@@ -1,0 +1,33 @@
+version: 1
+
+task:
+  id: "TASK-CODEX-TEST"
+  title: "Codex Integration Test - Simple Calculator"
+  repo: "."
+  prd:
+    text: |
+      # PRD: Simple Calculator CLI
+
+      Create a simple command-line calculator in Python that can perform basic arithmetic operations.
+
+      ## Requirements
+      1. Create a file `calculator.py` in the current directory
+      2. The calculator should support: addition, subtraction, multiplication, division
+      3. It should accept input in the format: `python calculator.py <num1> <operation> <num2>`
+      4. Example: `python calculator.py 5 + 3` should output `8`
+      5. Handle division by zero gracefully
+
+      ## Acceptance Criteria
+      - AC-1: File `calculator.py` exists
+      - AC-2: Calculator can add two numbers correctly
+      - AC-3: Calculator can subtract two numbers correctly
+      - AC-4: Calculator handles division by zero without crashing
+
+runner:
+  meta:
+    kind: "mock"
+    model: "gpt-4-turbo"
+  worker:
+    kind: "codex-cli"
+    docker_image: "agent-runner-codex:latest"
+    max_run_time_sec: 300

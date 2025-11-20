@@ -1,0 +1,17 @@
+version: 1
+task:
+  id: "TASK-SAMPLE"
+  title: "Sample Task"
+  repo: "."
+  prd:
+    text: |
+      # Sample PRD
+      Create a hello world file.
+runner:
+  meta:
+    kind: "mock"
+    model: "gpt-4-turbo"
+  worker:
+    kind: "codex-cli"
+    docker_image: "alpine" # Use alpine for quick test, though it won't have codex cli
+    # We expect it to fail on "codex exec" but that proves the runner is working

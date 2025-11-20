@@ -1,0 +1,42 @@
+# Go バイナリ・ビルド成果物
+/dist/
+/bin/
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# プロジェクト固有のバイナリ
+agent-runner
+
+# Go モジュール
+vendor/
+
+# テスト
+coverage/
+*.coverprofile
+*.test
+
+# ログ・出力ファイル
+*.log
+run.log
+test_output.log
+
+# IDE・エディタ
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 環境変数・秘密情報
+.env
+.env.local
+.envrc
+
+# プロジェクト生成物（Task Note 除外は不要。.agent-runner/ は保持）
+/output/
+/results/
