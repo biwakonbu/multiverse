@@ -95,6 +95,22 @@ Summary: {{ .Summary }}
 
 {{ end }}
 
+### 3.3 Test Results
+
+{{ if .TestResult }}
+- Command: {{ .TestResult.Command }}
+- Exit Code: {{ .TestResult.ExitCode }}
+- Summary: {{ .TestResult.Summary }}
+
+` + "```" + `text
+{{ .TestResult.RawOutput }}
+` + "```" + `
+
+{{ else }}
+No test configured or executed.
+
+{{ end }}
+
 ---
 `
 

@@ -11,12 +11,14 @@ import (
 
 	"github.com/biwakonbu/agent-runner/internal/meta"
 	"github.com/biwakonbu/agent-runner/pkg/config"
+	"gopkg.in/yaml.v3"
 )
 
 // MetaClient interface for interacting with Meta agent
 type MetaClient interface {
 	PlanTask(ctx context.Context, prdText string) (*meta.PlanTaskResponse, error)
 	NextAction(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.NextActionResponse, error)
+	CompletionAssessment(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error)
 }
 
 // WorkerExecutor interface for executing worker tasks
@@ -84,11 +86,31 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 
 	// 2. Plan Task
 	taskCtx.State = StatePlanning
+
+	// Record PlanTask request
+	planRequestYAML := fmt.Sprintf("type: plan_task\nversion: 1\npayload:\n  prd: %q", taskCtx.PRDText)
+
 	plan, err := r.Meta.PlanTask(ctx, taskCtx.PRDText)
 	if err != nil {
 		taskCtx.State = StateFailed
 		return taskCtx, fmt.Errorf("planning failed: %w", err)
 	}
+
+	// Record PlanTask response
+	planRespData := map[string]interface{}{
+		"type":    "plan_task",
+		"version": 1,
+		"payload": plan,
+	}
+	planRespBytes, _ := yaml.Marshal(planRespData)
+	planResponseYAML := string(planRespBytes)
+
+	taskCtx.MetaCalls = append(taskCtx.MetaCalls, MetaCallLog{
+		Type:         "plan_task",
+		Timestamp:    time.Now(),
+		RequestYAML:  planRequestYAML,
+		ResponseYAML: planResponseYAML,
+	})
 
 	// Map meta.AcceptanceCriterion to core.AcceptanceCriterion
 	for _, ac := range plan.AcceptanceCriteria {
@@ -101,7 +123,10 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 
 	// 3. Execution Loop
 	taskCtx.State = StateRunning
-	maxLoops := 10 // Safety break
+	maxLoops := r.Config.Runner.MaxLoops
+	if maxLoops <= 0 {
+		maxLoops = 10 // Default value
+	}
 	for i := 0; i < maxLoops; i++ {
 		// Prepare summary
 		var metaACs []meta.AcceptanceCriterion
@@ -119,14 +144,96 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 			WorkerRunsCount:    len(taskCtx.WorkerRuns),
 		}
 
+		// Record NextAction request
+		summaryBytes, _ := yaml.Marshal(summary)
+		nextActionReqYAML := string(summaryBytes)
+
 		action, err := r.Meta.NextAction(ctx, summary)
 		if err != nil {
 			taskCtx.State = StateFailed
 			return taskCtx, fmt.Errorf("next_action failed: %w", err)
 		}
 
+		// Record NextAction response
+		actionRespData := map[string]interface{}{
+			"type":    "next_action",
+			"version": 1,
+			"payload": action,
+		}
+		actionRespBytes, _ := yaml.Marshal(actionRespData)
+		nextActionRespYAML := string(actionRespBytes)
+
+		taskCtx.MetaCalls = append(taskCtx.MetaCalls, MetaCallLog{
+			Type:         "next_action",
+			Timestamp:    time.Now(),
+			RequestYAML:  nextActionReqYAML,
+			ResponseYAML: nextActionRespYAML,
+		})
+
 		if action.Decision.Action == "mark_complete" {
-			taskCtx.State = StateComplete // Or VALIDATING if we had a separate phase
+			// Transition to VALIDATING state for completion assessment
+			taskCtx.State = StateValidating
+
+			// Prepare TaskSummary with WorkerRuns for completion assessment
+			var metaWorkerRuns []meta.WorkerRunSummary
+			for _, run := range taskCtx.WorkerRuns {
+				metaWorkerRuns = append(metaWorkerRuns, meta.WorkerRunSummary{
+					ID:       run.ID,
+					ExitCode: run.ExitCode,
+					Summary:  run.Summary,
+				})
+			}
+
+			validationSummary := &meta.TaskSummary{
+				Title:              taskCtx.Title,
+				State:              string(taskCtx.State),
+				AcceptanceCriteria: metaACs,
+				WorkerRunsCount:    len(taskCtx.WorkerRuns),
+				WorkerRuns:         metaWorkerRuns,
+			}
+
+			// Record CompletionAssessment request
+			validationSummaryBytes, _ := yaml.Marshal(validationSummary)
+			assessmentReqYAML := string(validationSummaryBytes)
+
+			// Call CompletionAssessment to evaluate task completion
+			assessment, err := r.Meta.CompletionAssessment(ctx, validationSummary)
+			if err != nil {
+				taskCtx.State = StateFailed
+				return taskCtx, fmt.Errorf("completion assessment failed: %w", err)
+			}
+
+			// Record CompletionAssessment response
+			assessmentRespData := map[string]interface{}{
+				"type":    "completion_assessment",
+				"version": 1,
+				"payload": assessment,
+			}
+			assessmentRespBytes, _ := yaml.Marshal(assessmentRespData)
+			assessmentRespYAML := string(assessmentRespBytes)
+
+			taskCtx.MetaCalls = append(taskCtx.MetaCalls, MetaCallLog{
+				Type:         "completion_assessment",
+				Timestamp:    time.Now(),
+				RequestYAML:  assessmentReqYAML,
+				ResponseYAML: assessmentRespYAML,
+			})
+
+			// Update AC Passed flags based on assessment results
+			for i := range taskCtx.AcceptanceCriteria {
+				for _, result := range assessment.ByCriterion {
+					if taskCtx.AcceptanceCriteria[i].ID == result.ID {
+						taskCtx.AcceptanceCriteria[i].Passed = (result.Status == "passed")
+					}
+				}
+			}
+
+			// Determine final state based on assessment
+			if assessment.AllCriteriaSatisfied {
+				taskCtx.State = StateComplete
+			} else {
+				taskCtx.State = StateFailed
+			}
 			break
 		} else if action.Decision.Action == "run_worker" {
 			// Execute Worker

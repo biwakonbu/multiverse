@@ -76,6 +76,21 @@ func TestRunner_Properties(t *testing.T) {
 						Decision: meta.Decision{Action: "mark_complete"},
 					}, nil
 				},
+				CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+					criteria := []meta.CriterionResult{}
+					for _, ac := range summary.AcceptanceCriteria {
+						criteria = append(criteria, meta.CriterionResult{
+							ID:      ac.ID,
+							Status:  "passed",
+							Comment: "Mock passed",
+						})
+					}
+					return &meta.CompletionAssessmentResponse{
+						AllCriteriaSatisfied: true,
+						Summary:              "All passed",
+						ByCriterion:          criteria,
+					}, nil
+				},
 			}
 
 			// Mock Worker
@@ -172,6 +187,15 @@ func TestRunner_TestCommand_Success(t *testing.T) {
 				Decision: meta.Decision{Action: "mark_complete"},
 			}, nil
 		},
+		CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+			return &meta.CompletionAssessmentResponse{
+				AllCriteriaSatisfied: true,
+				Summary:              "All criteria passed",
+				ByCriterion: []meta.CriterionResult{
+					{ID: "AC-1", Status: "passed", Comment: "Passed"},
+				},
+			}, nil
+		},
 	}
 
 	mockWorker := &mock.WorkerExecutor{
@@ -250,6 +274,15 @@ func TestRunner_TestCommand_Failure(t *testing.T) {
 			}
 			return &meta.NextActionResponse{
 				Decision: meta.Decision{Action: "mark_complete"},
+			}, nil
+		},
+		CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+			return &meta.CompletionAssessmentResponse{
+				AllCriteriaSatisfied: true,
+				Summary:              "All criteria passed",
+				ByCriterion: []meta.CriterionResult{
+					{ID: "AC-1", Status: "passed", Comment: "Passed"},
+				},
 			}, nil
 		},
 	}
@@ -331,6 +364,15 @@ func TestRunner_TestCommand_NotConfigured(t *testing.T) {
 				Decision: meta.Decision{Action: "mark_complete"},
 			}, nil
 		},
+		CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+			return &meta.CompletionAssessmentResponse{
+				AllCriteriaSatisfied: true,
+				Summary:              "All criteria passed",
+				ByCriterion: []meta.CriterionResult{
+					{ID: "AC-1", Status: "passed", Comment: "Passed"},
+				},
+			}, nil
+		},
 	}
 
 	mockWorker := &mock.WorkerExecutor{
@@ -403,6 +445,15 @@ func TestRunner_TestCommand_RelativeCwd(t *testing.T) {
 			}
 			return &meta.NextActionResponse{
 				Decision: meta.Decision{Action: "mark_complete"},
+			}, nil
+		},
+		CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+			return &meta.CompletionAssessmentResponse{
+				AllCriteriaSatisfied: true,
+				Summary:              "All criteria passed",
+				ByCriterion: []meta.CriterionResult{
+					{ID: "AC-1", Status: "passed", Comment: "Passed"},
+				},
 			}, nil
 		},
 	}

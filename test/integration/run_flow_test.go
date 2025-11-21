@@ -54,6 +54,15 @@ func TestRunFlow_Success(t *testing.T) {
 				Decision: meta.Decision{Action: "mark_complete"},
 			}, nil
 		},
+		CompletionAssessmentFunc: func(ctx context.Context, summary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+			return &meta.CompletionAssessmentResponse{
+				AllCriteriaSatisfied: true,
+				Summary:              "All criteria satisfied",
+				ByCriterion: []meta.CriterionResult{
+					{ID: "AC-1", Status: "passed", Comment: "Login implemented"},
+				},
+			}, nil
+		},
 	}
 
 	// Worker: Success

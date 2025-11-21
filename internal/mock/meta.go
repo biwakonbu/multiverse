@@ -7,8 +7,9 @@ import (
 )
 
 type MetaClient struct {
-	PlanTaskFunc   func(ctx context.Context, prdText string) (*meta.PlanTaskResponse, error)
-	NextActionFunc func(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.NextActionResponse, error)
+	PlanTaskFunc              func(ctx context.Context, prdText string) (*meta.PlanTaskResponse, error)
+	NextActionFunc            func(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.NextActionResponse, error)
+	CompletionAssessmentFunc  func(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error)
 }
 
 func (m *MetaClient) PlanTask(ctx context.Context, prdText string) (*meta.PlanTaskResponse, error) {
@@ -21,6 +22,13 @@ func (m *MetaClient) PlanTask(ctx context.Context, prdText string) (*meta.PlanTa
 func (m *MetaClient) NextAction(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.NextActionResponse, error) {
 	if m.NextActionFunc != nil {
 		return m.NextActionFunc(ctx, taskSummary)
+	}
+	return nil, nil
+}
+
+func (m *MetaClient) CompletionAssessment(ctx context.Context, taskSummary *meta.TaskSummary) (*meta.CompletionAssessmentResponse, error) {
+	if m.CompletionAssessmentFunc != nil {
+		return m.CompletionAssessmentFunc(ctx, taskSummary)
 	}
 	return nil, nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -34,9 +35,22 @@ func NewSandboxManager() (*SandboxManager, error) {
 }
 
 func (s *SandboxManager) StartContainer(ctx context.Context, image string, repoPath string, env map[string]string) (string, error) {
-	// Pull image (simplified, assuming it exists or pull if missing)
-	// _, err := s.cli.ImagePull(ctx, image, types.ImagePullOptions{})
-	// if err != nil { ... }
+	// Check if image exists and pull if missing
+	_, _, err := s.cli.ImageInspectWithRaw(ctx, image)
+	if err != nil {
+		// Image doesn't exist, pull it
+		pullReader, pullErr := s.cli.ImagePull(ctx, image, types.ImagePullOptions{})
+		if pullErr != nil {
+			return "", fmt.Errorf("failed to pull image %s: %w", image, pullErr)
+		}
+		defer pullReader.Close()
+
+		// Wait for pull to complete by reading all output
+		_, copyErr := io.Copy(io.Discard, pullReader)
+		if copyErr != nil {
+			return "", fmt.Errorf("failed to complete image pull for %s: %w", image, copyErr)
+		}
+	}
 
 	var envSlice []string
 	for k, v := range env {

@@ -30,8 +30,9 @@ type TestDetails struct {
 
 // RunnerConfig holds runner configuration
 type RunnerConfig struct {
-	Meta   MetaConfig   `yaml:"meta"`
-	Worker WorkerConfig `yaml:"worker"`
+	Meta     MetaConfig   `yaml:"meta"`
+	Worker   WorkerConfig `yaml:"worker"`
+	MaxLoops int          `yaml:"max_loops"`
 }
 
 // MetaConfig holds Meta agent configuration

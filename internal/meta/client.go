@@ -234,6 +234,90 @@ Output MUST be a YAML block with type: next_action.
 	return &action, nil
 }
 
+func (c *Client) CompletionAssessment(ctx context.Context, taskSummary *TaskSummary) (*CompletionAssessmentResponse, error) {
+	if c.kind == "mock" {
+		// Mock implementation: all criteria passed
+		criteria := []CriterionResult{}
+		for _, ac := range taskSummary.AcceptanceCriteria {
+			criteria = append(criteria, CriterionResult{
+				ID:      ac.ID,
+				Status:  "passed",
+				Comment: "Mock assessment: passed",
+			})
+		}
+		return &CompletionAssessmentResponse{
+			AllCriteriaSatisfied: true,
+			Summary:              "Mock: All criteria satisfied",
+			ByCriterion:          criteria,
+		}, nil
+	}
+
+	systemPrompt := `You are a Meta-agent evaluating task completion.
+Review the Acceptance Criteria and Worker execution results.
+Output MUST be a YAML block with type: completion_assessment.
+
+Example format:
+type: completion_assessment
+version: 1
+payload:
+  all_criteria_satisfied: true
+  summary: "All acceptance criteria met"
+  by_criterion:
+    - id: "AC-1"
+      status: "passed"
+      comment: "Feature X successfully implemented"
+`
+
+	// Format acceptance criteria for LLM
+	acText := ""
+	for _, ac := range taskSummary.AcceptanceCriteria {
+		acText += fmt.Sprintf("- %s: %s\n", ac.ID, ac.Description)
+	}
+
+	// Format worker runs for LLM
+	workerText := ""
+	for _, run := range taskSummary.WorkerRuns {
+		workerText += fmt.Sprintf("- Run %s: exit_code=%d, summary=%s\n", run.ID, run.ExitCode, run.Summary)
+	}
+
+	userPrompt := fmt.Sprintf(`Task: %s
+State: %s
+
+Acceptance Criteria:
+%s
+
+Worker Execution Results:
+%s
+
+Evaluate whether all acceptance criteria are satisfied.`,
+		taskSummary.Title, taskSummary.State, acText, workerText)
+
+	resp, err := c.callLLM(ctx, systemPrompt, userPrompt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract YAML from response (handles markdown code blocks)
+	resp = extractYAML(resp)
+
+	var msg MetaMessage
+	if err := yaml.Unmarshal([]byte(resp), &msg); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w\nResponse: %s", err, resp)
+	}
+
+	// Re-marshal payload to specific struct
+	payloadBytes, err := yaml.Marshal(msg.Payload)
+	if err != nil {
+		return nil, err
+	}
+	var assessment CompletionAssessmentResponse
+	if err := yaml.Unmarshal(payloadBytes, &assessment); err != nil {
+		return nil, err
+	}
+
+	return &assessment, nil
+}
+
 // NewMockClient creates a mock Meta client (kind="mock")
 func NewMockClient() *Client {
 	return &Client{

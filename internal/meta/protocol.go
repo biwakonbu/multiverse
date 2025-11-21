@@ -53,10 +53,18 @@ type CriterionResult struct {
 	Comment string `yaml:"comment"`
 }
 
+// WorkerRunSummary is a summary of a single worker run
+type WorkerRunSummary struct {
+	ID      string `yaml:"id"`
+	ExitCode int    `yaml:"exit_code"`
+	Summary string `yaml:"summary"`
+}
+
 // TaskSummary is a simplified view of the task for the Meta agent
 type TaskSummary struct {
 	Title              string
 	State              string
 	AcceptanceCriteria []AcceptanceCriterion
 	WorkerRunsCount    int
+	WorkerRuns         []WorkerRunSummary
 }
