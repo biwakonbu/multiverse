@@ -5,6 +5,7 @@ package sandbox
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -399,5 +400,192 @@ func TestSandboxManager_ImagePull_NonExistentImage(t *testing.T) {
 	// エラーメッセージに "failed to pull image" が含まれることを確認
 	if !strings.Contains(err.Error(), "failed to pull image") {
 		t.Errorf("Error message should mention image pull failure: %v", err)
+	}
+}
+
+// TestSandboxManager_ConcurrentExec tests concurrent Exec calls in same container
+func TestSandboxManager_ConcurrentExec(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	image := "alpine:3.19"
+	tmpDir := t.TempDir()
+
+	containerID, err := sm.StartContainer(ctx, image, tmpDir, map[string]string{})
+	if err != nil {
+		t.Fatalf("StartContainer() error = %v", err)
+	}
+	defer sm.StopContainer(ctx, containerID)
+
+	// Run 3 concurrent Exec calls
+	type result struct {
+		exitCode int
+		output   string
+		err      error
+	}
+	results := make(chan result, 3)
+
+	for i := 0; i < 3; i++ {
+		go func(index int) {
+			exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", fmt.Sprintf("echo 'Task %d'", index)})
+			results <- result{exitCode, output, err}
+		}(i)
+	}
+
+	// Collect results
+	for i := 0; i < 3; i++ {
+		res := <-results
+		if res.err != nil {
+			t.Errorf("Concurrent Exec %d failed: %v", i, res.err)
+		}
+		if res.exitCode != 0 {
+			t.Errorf("Concurrent Exec %d exit code = %d, want 0", i, res.exitCode)
+		}
+	}
+}
+
+// TestSandboxManager_LargeOutput tests handling of large command output
+func TestSandboxManager_LargeOutput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	image := "alpine:3.19"
+	tmpDir := t.TempDir()
+
+	containerID, err := sm.StartContainer(ctx, image, tmpDir, map[string]string{})
+	if err != nil {
+		t.Fatalf("StartContainer() error = %v", err)
+	}
+	defer sm.StopContainer(ctx, containerID)
+
+	// Generate large output (1000 lines)
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "for i in $(seq 1 1000); do echo \"Line $i: This is a test line with some content\"; done"})
+	if err != nil {
+		t.Fatalf("Exec() error = %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("Exec() exit code = %d, want 0", exitCode)
+	}
+
+	// Verify output contains expected number of lines
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 900 { // Allow some margin
+		t.Errorf("Expected ~1000 lines, got %d", len(lines))
+	}
+}
+
+// TestSandboxManager_LongRunningCommand tests long-running command execution
+func TestSandboxManager_LongRunningCommand(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	image := "alpine:3.19"
+	tmpDir := t.TempDir()
+
+	containerID, err := sm.StartContainer(ctx, image, tmpDir, map[string]string{})
+	if err != nil {
+		t.Fatalf("StartContainer() error = %v", err)
+	}
+	defer sm.StopContainer(ctx, containerID)
+
+	// Run command that takes 3 seconds
+	start := time.Now()
+	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "sleep 3 && echo 'done'"})
+	duration := time.Since(start)
+
+	if err != nil {
+		t.Fatalf("Exec() error = %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("Exec() exit code = %d, want 0", exitCode)
+	}
+
+	// Verify it actually took ~3 seconds
+	if duration < 2*time.Second || duration > 5*time.Second {
+		t.Errorf("Command duration = %v, expected ~3 seconds", duration)
+	}
+}
+
+// TestSandboxManager_InvalidContainerID tests Exec with invalid container ID
+func TestSandboxManager_InvalidContainerID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Try to exec with non-existent container ID
+	_, _, err = sm.Exec(ctx, "nonexistent-container-id-12345", []string{"echo", "test"})
+	if err == nil {
+		t.Error("Exec() should fail with invalid container ID")
+	}
+
+	// Error should be from Docker API
+	if !strings.Contains(err.Error(), "No such container") && !strings.Contains(err.Error(), "no such container") {
+		t.Logf("Expected 'No such container' error, got: %v", err)
+	}
+}
+
+// TestSandboxManager_ContextCancellation tests context cancellation during operations
+func TestSandboxManager_ContextCancellation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	// Create context that will be cancelled immediately
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
+
+	image := "alpine:3.19"
+	tmpDir := t.TempDir()
+
+	// StartContainer should fail with cancelled context
+	_, err = sm.StartContainer(ctx, image, tmpDir, map[string]string{})
+	if err == nil {
+		t.Error("StartContainer() should fail with cancelled context")
+	}
+
+	if !strings.Contains(err.Error(), "context canceled") && err != context.Canceled {
+		t.Logf("Expected context cancellation error, got: %v", err)
 	}
 }

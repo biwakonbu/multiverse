@@ -46,7 +46,7 @@ test-all: test-unit test-integration
 
 test: test-all
 
-# Coverage target
+# Coverage target (includes Docker and Codex integration tests)
 coverage:
 	go test -coverprofile=coverage.out -tags=docker,codex ./...
 	go tool cover -html=coverage.out -o coverage.html
