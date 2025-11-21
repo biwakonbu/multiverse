@@ -295,18 +295,19 @@ export CODEX_API_KEY="..."
 - **各internal/*/CLAUDE.md** - パッケージ実装ガイダンス（標準フォーマット統一）
 - **[test/CLAUDE.md](test/CLAUDE.md)** - テスト戦略・ビルドタグ・精度管理
 
-### 人間開発者向け（設計・仕様）
-- **[docs/AgentRunner-architecture.md](docs/AgentRunner-architecture.md)** - システムアーキテクチャ・設計
-- **[docs/agentrunner-spec-v1.md](docs/agentrunner-spec-v1.md)** - MVP仕様書・機能定義
-- **[docs/AgentRunner-impl-design-v1.md](docs/AgentRunner-impl-design-v1.md)** - Go実装設計
+### docs/ - 設計・仕様・開発ガイド
+| ファイル | 対象 | 用途 |
+|---------|------|------|
+| [CLAUDE.md](docs/CLAUDE.md) | AI開発者 | ドキュメント整理ルール・命名規則 |
+| [AgentRunner-architecture.md](docs/AgentRunner-architecture.md) | アーキテクト | システム設計・モジュール関係 |
+| [agentrunner-spec-v1.md](docs/agentrunner-spec-v1.md) | 開発者・PO | MVP仕様・API・スキーマ |
+| [AgentRunner-impl-design-v1.md](docs/AgentRunner-impl-design-v1.md) | 実装者 | Go実装設計・パッケージ分割 |
+| [TESTING.md](docs/TESTING.md) | テスター・開発者 | テストベストプラクティス |
+| [CODEX_TEST_README.md](docs/CODEX_TEST_README.md) | 開発者 | Codex統合テスト実行ガイド |
 
 ### エンドユーザー向け（不変）
 - **[README.md](README.md)** - プロジェクト紹介（変更禁止）
 - **[GEMINI.md](GEMINI.md)** - プロジェクト背景・コンテキスト（変更禁止）
-
-### 開発ガイド
-- **[TESTING.md](TESTING.md)** - テストベストプラクティス
-- **[CODEX_TEST_README.md](CODEX_TEST_README.md)** - Codex統合ガイド
 
 ## 開発ノート
 

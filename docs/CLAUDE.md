@@ -36,18 +36,29 @@
 
 ### docs/ ドキュメント
 
+**設計・仕様・実装層**:
 ```
 docs/{scope}-{target}-{version}.md
 
 scope    : AgentRunner | Component | Design | Guide
-target   : architecture | spec | impl-design | protocol | integration
+target   : architecture | spec | impl-design | protocol
 version  : v1, v2... (オプション、仕様に応じて)
 
 例：
-  - AgentRunner-architecture.md        # 全体アーキテクチャ（公開）
+  - AgentRunner-architecture.md        # 全体アーキテクチャ
   - agentrunner-spec-v1.md             # MVP仕様書（v1）
   - AgentRunner-impl-design-v1.md      # Go実装設計（v1）
-  - design-protocol-meta-agent.md      # Meta-agentプロトコル詳細（例：将来拡張）
+  - design-protocol-meta-agent.md      # Meta-agentプロトコル（例：将来拡張）
+```
+
+**開発ガイド層**:
+```
+docs/{topic}_*README.md または docs/{topic}.md
+
+例：
+  - TESTING.md                         # テストベストプラクティス（単一・更新頻繁）
+  - CODEX_TEST_README.md               # Codex統合テスト実行ガイド
+  - SANDBOX_GUIDE.md                   # Docker Sandbox操作ガイド（例：将来）
 ```
 
 ### 内部CLAUDE.md
@@ -70,23 +81,31 @@ version  : v1, v2... (オプション、仕様に応じて)
 
 ```
 docs/
+├── メモリ・管理層
+│   └── CLAUDE.md                        # ドキュメント整理ルール・命名規則・責務分担
 ├── アーキテクチャ層
 │   └── AgentRunner-architecture.md      # 全体設計・データフロー・モジュール関係
 ├── 仕様層
 │   ├── agentrunner-spec-v1.md           # MVP機能・API・YAML スキーマ
 │   └── (将来) spec-v2.md, spec-v3.md
-└── 実装層
-    ├── AgentRunner-impl-design-v1.md    # Go実装・パッケージ構成・依存性戦略
-    └── (将来) protocol-design.md, integration-guide.md
+├── 実装層
+│   ├── AgentRunner-impl-design-v1.md    # Go実装・パッケージ構成・依存性戦略
+│   └── (将来) protocol-design.md
+└── 開発ガイド層
+    ├── TESTING.md                       # テストベストプラクティス
+    ├── CODEX_TEST_README.md             # Codex統合テスト実行ガイド
+    └── (将来) SANDBOX_GUIDE.md, WORKER_GUIDE.md
 ```
 
 ### 各層の役割
 
 | レイヤー | ファイル名 | 内容 | 対象 |
 |---------|----------|------|------|
+| **メモリ・管理** | `CLAUDE.md` | ドキュメント整理ルール、命名規則、責務分担 | AI開発者 |
 | **アーキテクチャ** | `*-architecture.md` | システム全体設計、モジュール関係、データフロー、状態遷移 | アーキテクト |
 | **仕様** | `*-spec-v*.md` | 機能要件、API仕様、YAML スキーマ、ユースケース | 実装者・レビュアー |
 | **実装設計** | `*-impl-design-*.md` | Go固有の実装、パッケージ分割、インターフェース設計 | 実装者・AI |
+| **開発ガイド** | `*.md` | テスト手法、統合ガイド、操作手順 | テスター・開発者 |
 
 ## サブディレクトリCLAUDE.md の標準パターン
 
@@ -167,9 +186,12 @@ docs/
 
 | ファイル | 管理者 | 更新頻度 |
 |---------|-------|--------|
+| **CLAUDE.md** (このファイル) | AI開発者 | 命名規則変更時 |
 | [AgentRunner-architecture.md](AgentRunner-architecture.md) | 人間設計者 | 年1回以上 |
 | [agentrunner-spec-v1.md](agentrunner-spec-v1.md) | 人間・プロダクト | バージョンアップ時 |
 | [AgentRunner-impl-design-v1.md](AgentRunner-impl-design-v1.md) | 人間実装者 | 重大リファクタリング時 |
+| [TESTING.md](TESTING.md) | 開発者 | テスト手法変更時 |
+| [CODEX_TEST_README.md](CODEX_TEST_README.md) | 開発者 | 実行手順変更時 |
 | [../CLAUDE.md](../CLAUDE.md) | AI開発者 | 継続的更新 |
 | [../test/CLAUDE.md](../test/CLAUDE.md) | AI開発者 | テスト追加時 |
 | [../internal/*/CLAUDE.md](../internal/) | AI開発者 | 実装変更時 |
