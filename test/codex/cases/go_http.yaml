@@ -1,0 +1,13 @@
+id: "go_http"
+title: "Generate Go HTTP Server"
+prd: |
+  Create a Go file named `server.go`.
+  It should start an HTTP server on port 8080.
+  It should handle `/hello` and respond with "Hello, World!".
+acceptance_criteria:
+  - id: "AC-1"
+    description: "File `server.go` exists"
+  - id: "AC-2"
+    description: "Contains `http.HandleFunc`"
+  - id: "AC-3"
+    description: "Contains port `8080`"

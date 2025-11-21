@@ -1,0 +1,15 @@
+id: "refactor_js"
+title: "Refactor JavaScript"
+prd: |
+  Refactor the following JavaScript code in `utils.js`:
+  ```javascript
+  function old(x) { return x * x; }
+  ```
+  Rename the function to `square` and use arrow syntax.
+acceptance_criteria:
+  - id: "AC-1"
+    description: "File `utils.js` exists"
+  - id: "AC-2"
+    description: "Function `square` is defined"
+  - id: "AC-3"
+    description: "Arrow function syntax `=>` is used"

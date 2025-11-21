@@ -220,11 +220,22 @@ func extractYAML(response string) string {
 		return strings.TrimSpace(matches[1])
 	}
 
-	// Method 3: Strip leading/trailing backticks if present
-	response = strings.TrimPrefix(response, "```yaml")
-	response = strings.TrimPrefix(response, "```")
-	response = strings.TrimSuffix(response, "```")
-	response = strings.TrimSpace(response)
+	// Method 3: Strip leading/trailing backticks if present (e.g. `yaml ... ` or ``` ... ``` without newlines)
+	// This handles cases where LLM might output inline code or malformed blocks
+	if strings.HasPrefix(response, "```") && strings.HasSuffix(response, "```") {
+		response = strings.TrimPrefix(response, "```yaml")
+		response = strings.TrimPrefix(response, "```")
+		response = strings.TrimSuffix(response, "```")
+		return strings.TrimSpace(response)
+	}
+
+	// Handle single backticks if it wraps the whole content
+	if strings.HasPrefix(response, "`") && strings.HasSuffix(response, "`") && !strings.Contains(response, "\n") {
+		// Be careful not to strip backticks if they are part of the content,
+		// but if the whole response is backticked, it's likely an escape.
+		// However, for YAML, single backticks are rare wrappers.
+		// Let's stick to the block logic above.
+	}
 
 	return response
 }

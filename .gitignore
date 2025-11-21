@@ -9,7 +9,7 @@
 *.exe
 
 # プロジェクト固有のバイナリ
-agent-runner
+/agent-runner
 
 # Go モジュール
 vendor/

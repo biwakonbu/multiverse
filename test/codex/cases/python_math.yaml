@@ -1,0 +1,13 @@
+id: "python_math"
+title: "Generate Python Calculator"
+prd: |
+  Create a Python script named `calculator.py`.
+  It should have a function `add(a, b)` that returns the sum.
+  It should print the result of `add(5, 3)` when run.
+acceptance_criteria:
+  - id: "AC-1"
+    description: "File `calculator.py` exists"
+  - id: "AC-2"
+    description: "Function `add` is defined"
+  - id: "AC-3"
+    description: "Output contains '8'"
