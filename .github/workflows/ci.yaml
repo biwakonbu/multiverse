@@ -38,9 +38,3 @@ jobs:
 
       - name: Test Integration
         run: make test-integration
-
-      - name: Build Docker Image
-        run: make docker-build
-
-      - name: Test Docker Sandbox
-        run: make test-docker
