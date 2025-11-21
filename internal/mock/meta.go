@@ -24,3 +24,8 @@ func (m *MetaClient) NextAction(ctx context.Context, taskSummary *meta.TaskSumma
 	}
 	return nil, nil
 }
+
+// NewMockMetaClient creates a mock MetaClient with default behavior
+func NewMockMetaClient() *MetaClient {
+	return &MetaClient{}
+}

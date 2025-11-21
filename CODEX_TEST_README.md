@@ -16,13 +16,23 @@
 
 ## テストの実行
 
-### 方法 1: テストスクリプトを使用
+### 方法 1: go test で実行（推奨）
+
+```bash
+# Codex テストのみ
+go test -tags=codex -timeout=10m ./test/codex/...
+
+# 詳細表示
+go test -v -tags=codex -timeout=10m ./test/codex/...
+```
+
+### 方法 2: テストスクリプトを使用
 
 ```bash
 ./run_codex_test.sh
 ```
 
-### 方法 2: 直接実行
+### 方法 3: 直接実行
 
 ```bash
 go run cmd/agent-runner/main.go < test_codex_task.yaml

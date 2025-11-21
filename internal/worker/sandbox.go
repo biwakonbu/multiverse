@@ -14,6 +14,13 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
+// SandboxProvider defines the interface for sandbox management
+type SandboxProvider interface {
+	StartContainer(ctx context.Context, image string, repoPath string, env map[string]string) (string, error)
+	Exec(ctx context.Context, containerID string, cmd []string) (int, string, error)
+	StopContainer(ctx context.Context, containerID string) error
+}
+
 type SandboxManager struct {
 	cli *client.Client
 }

@@ -3,7 +3,9 @@ package core
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"log/slog"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -33,15 +35,18 @@ type Runner struct {
 	Meta   MetaClient
 	Worker WorkerExecutor
 	Note   NoteWriter
+	Logger *slog.Logger
 }
 
 // NewRunner creates a new Runner instance
 func NewRunner(cfg *config.TaskConfig, m MetaClient, w WorkerExecutor, n NoteWriter) *Runner {
+	logger := slog.Default()
 	return &Runner{
 		Config: cfg,
 		Meta:   m,
 		Worker: w,
 		Note:   n,
+		Logger: logger,
 	}
 }
 
@@ -58,14 +63,17 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 	if taskCtx.RepoPath == "" {
 		taskCtx.RepoPath = "."
 	}
-	absRepo, _ := filepath.Abs(taskCtx.RepoPath)
+	absRepo, err := filepath.Abs(taskCtx.RepoPath)
+	if err != nil {
+		return taskCtx, fmt.Errorf("failed to resolve repo path: %w", err)
+	}
 	taskCtx.RepoPath = absRepo
 
 	// Load PRD
 	if r.Config.Task.PRD.Text != "" {
 		taskCtx.PRDText = r.Config.Task.PRD.Text
 	} else if r.Config.Task.PRD.Path != "" {
-		content, err := ioutil.ReadFile(r.Config.Task.PRD.Path)
+		content, err := os.ReadFile(r.Config.Task.PRD.Path)
 		if err != nil {
 			return taskCtx, fmt.Errorf("failed to read PRD file: %w", err)
 		}
@@ -141,13 +149,69 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 		}
 	}
 
-	// 4. Finish
+	// 4. Run Test Command (if configured and task completed)
+	if taskCtx.State == StateComplete && r.Config.Task.Test.Command != "" {
+		if err := r.runTestCommand(ctx, taskCtx); err != nil {
+			r.Logger.Warn("test command failed", "err", err)
+		}
+	}
+
+	// 5. Finish
 	taskCtx.FinishedAt = time.Now()
 
 	// Write Note
 	if err := r.Note.Write(taskCtx); err != nil {
-		fmt.Printf("Warning: failed to write task note: %v\n", err)
+		r.Logger.Warn("failed to write task note", "err", err)
 	}
 
 	return taskCtx, nil
+}
+
+// runTestCommand executes the test command configured in the task
+func (r *Runner) runTestCommand(ctx context.Context, taskCtx *TaskContext) error {
+	testCmd := r.Config.Task.Test.Command
+	if testCmd == "" {
+		return nil
+	}
+
+	r.Logger.Info("running test command", "command", testCmd)
+
+	// Determine working directory
+	cwd := r.Config.Task.Test.Cwd
+	if cwd == "" {
+		cwd = taskCtx.RepoPath
+	} else if !filepath.IsAbs(cwd) {
+		// Resolve relative path from repo root
+		cwd = filepath.Join(taskCtx.RepoPath, cwd)
+	}
+
+	// Create command with context
+	cmd := exec.CommandContext(ctx, "sh", "-c", testCmd)
+	cmd.Dir = cwd
+
+	// Capture output
+	output, err := cmd.CombinedOutput()
+
+	// Record test result (even on error)
+	taskCtx.TestConfig = &r.Config.Task.Test
+	taskCtx.TestResult = &TestResult{
+		Command:   testCmd,
+		RawOutput: string(output),
+	}
+
+	if err != nil {
+		taskCtx.TestResult.ExitCode = 1
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			taskCtx.TestResult.ExitCode = exitErr.ExitCode()
+		}
+		taskCtx.TestResult.Summary = fmt.Sprintf("Test failed with exit code %d", taskCtx.TestResult.ExitCode)
+		r.Logger.Info("test command failed", "exit_code", taskCtx.TestResult.ExitCode)
+		return err
+	}
+
+	taskCtx.TestResult.ExitCode = 0
+	taskCtx.TestResult.Summary = "Test passed"
+	r.Logger.Info("test command passed")
+
+	return nil
 }

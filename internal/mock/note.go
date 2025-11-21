@@ -14,3 +14,8 @@ func (n *NoteWriter) Write(taskCtx *core.TaskContext) error {
 	}
 	return nil
 }
+
+// NewMockNoteWriter creates a mock NoteWriter with default behavior
+func NewMockNoteWriter() *NoteWriter {
+	return &NoteWriter{}
+}

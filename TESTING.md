@@ -4,7 +4,9 @@
 
 - **ユニットテスト**: 個々の関数やメソッドを対象に、外部依存をモック化して実行します。
 - **プロパティベーステスト (PBT)**: `gopter` などのライブラリを使い、入力の範囲を自動生成して不変条件を検証します。テストケース数は `MinSuccessfulTests` で調整可能です。
-- **統合テスト**: 複数コンポーネントを組み合わせ、実際の実装や外部サービス（例: Docker Sandbox）と連携させて動作を検証します。
+- **統合テスト**: 複数コンポーネントを組み合わせ、実装をモック化して検証します。
+- **Docker Sandbox テスト**: 実際の Docker コンテナでサンドボックス管理の動作を検証します（`-tags=docker` で実行）。
+- **Codex 統合テスト**: 実際の Codex CLI を使用した end-to-end テスト（`-tags=codex` で実行）。
 
 ## 2. テストの実装ポイント
 
@@ -18,10 +20,13 @@
    - `parameters.MinSuccessfulTests` を適切に設定し、テスト実行時間とカバレッジのバランスを取ります。デバッグ時は 5〜10、CI では 50〜100 が目安です。
    - 生成するデータは `gen.IntRange` や `gen.AnyString` で制限し、極端なケースが原因でテストがハングしないようにします。
 4. **テストの実行**
-   - ユニットテスト: `go test ./internal/core -run TestRunner_Properties`
-   - 統合テスト: `go test ./test/integration/...`
-   - 全体: `go test ./...`
-   - タイムアウトが必要な場合は `go test -timeout 30s` を付与します。
+   - ユニットテスト（依存なし）: `go test ./...`
+   - Mock 統合テスト: `go test ./test/integration/...`
+   - Docker Sandbox テスト: `go test -tags=docker -timeout=10m ./test/sandbox/...`
+   - Codex 統合テスト: `go test -tags=codex -timeout=10m ./test/codex/...`
+   - 全テスト: `go test -tags=docker,codex -timeout=15m ./...`
+   - 並列実行: `go test -parallel 4 ./...`
+   - カバレッジ: `go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out`
 
 ## 3. トラブルシューティング
 

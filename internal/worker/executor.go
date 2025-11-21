@@ -12,7 +12,7 @@ import (
 
 type Executor struct {
 	Config   config.WorkerConfig
-	Sandbox  *SandboxManager
+	Sandbox  SandboxProvider
 	RepoPath string
 }
 
@@ -72,7 +72,10 @@ func (e *Executor) RunWorker(ctx context.Context, prompt string, env map[string]
 	// For now, let's hardcode "." or use a field.
 	repoPath := e.RepoPath
 	if repoPath == "" {
-		absRepo, _ := filepath.Abs(".")
+		absRepo, err := filepath.Abs(".")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get absolute path: %w", err)
+		}
 		repoPath = absRepo
 	}
 
@@ -80,7 +83,9 @@ func (e *Executor) RunWorker(ctx context.Context, prompt string, env map[string]
 	if err != nil {
 		return nil, fmt.Errorf("failed to start sandbox: %w", err)
 	}
-	defer e.Sandbox.StopContainer(ctx, containerID)
+	defer func() {
+		_ = e.Sandbox.StopContainer(ctx, containerID)
+	}()
 
 	// Construct Command
 	// "codex exec --sandbox workspace-write --json --cwd /workspace/project '<prompt>'"

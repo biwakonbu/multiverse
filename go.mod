@@ -1,8 +1,6 @@
 module github.com/biwakonbu/agent-runner
 
-go 1.24.0
-
-toolchain go1.24.10
+go 1.23
 
 require (
 	github.com/docker/docker v24.0.7+incompatible

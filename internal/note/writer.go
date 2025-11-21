@@ -29,7 +29,9 @@ func (w *Writer) Write(taskCtx *core.TaskContext) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	tmplStr := `
 # Task Note - {{ .ID }} {{ if .Title }}- {{ .Title }}{{ end }}

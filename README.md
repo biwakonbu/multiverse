@@ -54,14 +54,23 @@ go run cmd/agent-runner/main.go < sample_task_go.yaml
 ### テスト実行
 
 ```bash
-# 全テスト
+# ユニットテスト（依存なし）
 go test ./...
 
-# 特定パッケージ
-go test ./internal/core
-
-# 統合テスト
+# 統合テスト（Mock 使用）
 go test ./test/integration/...
+
+# Docker Sandbox テスト
+go test -tags=docker -timeout=10m ./test/sandbox/...
+
+# Codex 統合テスト
+go test -tags=codex -timeout=10m ./test/codex/...
+
+# 全テストを実行（推奨）
+go test -tags=docker,codex -timeout=15m ./...
+
+# カバレッジレポート生成
+go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
 ```
 
 ### サンドボックス環境のセットアップ
@@ -70,8 +79,14 @@ go test ./test/integration/...
 # Codex worker のランタイムをビルド
 docker build -t agent-runner-codex:latest sandbox/
 
-# Codex統合テスト
-./run_codex_test.sh
+# 軽量テスト用イメージをビルド
+docker build -t agent-runner-test:latest test/sandbox/ -f test/sandbox/Dockerfile.test
+
+# Docker Sandbox テストを実行
+go test -tags=docker -timeout=10m ./test/sandbox/...
+
+# Codex 統合テスト
+go test -tags=codex -timeout=10m ./test/codex/...
 ```
 
 ## 使用方法
@@ -155,9 +170,11 @@ cmd/
 
 ### テスト戦略
 
-- **ユニットテスト**: `internal/mock` でモック実装を注入
+- **ユニットテスト**: `internal/mock` でモック実装を注入、個別パッケージの機能検証
 - **プロパティベーステスト**: `gopter` で状態遷移の不変条件を検証
-- **統合テスト**: 実装全体を通じた動作確認
+- **Mock 統合テスト**: 複数コンポーネントの連携確認（外部依存なし）
+- **Docker Sandbox テスト**: 実際の Docker API とコンテナ管理の動作検証（`-tags=docker`）
+- **Codex 統合テスト**: 実際の Codex CLI による end-to-end テスト（`-tags=codex`）
 
 詳細は [TESTING.md](TESTING.md) を参照してください。
 

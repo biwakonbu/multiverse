@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -61,7 +63,10 @@ func (c *Client) callLLM(ctx context.Context, systemPrompt, userPrompt string) (
 			{Role: "user", Content: userPrompt},
 		},
 	}
-	jsonBody, _ := json.Marshal(reqBody)
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", err
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(jsonBody))
 	if err != nil {
@@ -74,10 +79,15 @@ func (c *Client) callLLM(ctx context.Context, systemPrompt, userPrompt string) (
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("OpenAI API error: %s (and failed to read error body: %w)", resp.Status, err)
+		}
 		return "", fmt.Errorf("OpenAI API error: %s %s", resp.Status, string(body))
 	}
 
@@ -91,6 +101,33 @@ func (c *Client) callLLM(ctx context.Context, systemPrompt, userPrompt string) (
 	}
 
 	return result.Choices[0].Message.Content, nil
+}
+
+// extractYAML extracts YAML content from LLM response, handling markdown code blocks
+func extractYAML(response string) string {
+	response = strings.TrimSpace(response)
+
+	// Method 1: Try to extract from markdown code block (```yaml ... ```)
+	reMarkdown := regexp.MustCompile("(?s)```ya?ml\\s*\\n(.+?)\\n```")
+	matches := reMarkdown.FindStringSubmatch(response)
+	if len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+
+	// Method 2: Try generic code block extraction (``` ... ```)
+	reGeneric := regexp.MustCompile("(?s)```\\s*\\n(.+?)\\n```")
+	matches = reGeneric.FindStringSubmatch(response)
+	if len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+
+	// Method 3: Strip leading/trailing backticks if present
+	response = strings.TrimPrefix(response, "```yaml")
+	response = strings.TrimPrefix(response, "```")
+	response = strings.TrimSuffix(response, "```")
+	response = strings.TrimSpace(response)
+
+	return response
 }
 
 func (c *Client) PlanTask(ctx context.Context, prdText string) (*PlanTaskResponse, error) {
@@ -123,9 +160,8 @@ payload:
 		return nil, err
 	}
 
-	// Extract YAML from response (it might be wrapped in markdown code blocks)
-	// For simplicity, assuming LLM returns clean YAML or we need to strip backticks.
-	// TODO: Implement robust extraction.
+	// Extract YAML from response (handles markdown code blocks)
+	resp = extractYAML(resp)
 
 	var msg MetaMessage
 	if err := yaml.Unmarshal([]byte(resp), &msg); err != nil {
@@ -133,7 +169,10 @@ payload:
 	}
 
 	// Re-marshal payload to specific struct
-	payloadBytes, _ := yaml.Marshal(msg.Payload)
+	payloadBytes, err := yaml.Marshal(msg.Payload)
+	if err != nil {
+		return nil, err
+	}
 	var plan PlanTaskResponse
 	if err := yaml.Unmarshal(payloadBytes, &plan); err != nil {
 		return nil, err
@@ -175,16 +214,32 @@ Output MUST be a YAML block with type: next_action.
 		return nil, err
 	}
 
+	// Extract YAML from response (handles markdown code blocks)
+	resp = extractYAML(resp)
+
 	var msg MetaMessage
 	if err := yaml.Unmarshal([]byte(resp), &msg); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w\nResponse: %s", err, resp)
 	}
 
-	payloadBytes, _ := yaml.Marshal(msg.Payload)
+	payloadBytes, err := yaml.Marshal(msg.Payload)
+	if err != nil {
+		return nil, err
+	}
 	var action NextActionResponse
 	if err := yaml.Unmarshal(payloadBytes, &action); err != nil {
 		return nil, err
 	}
 
 	return &action, nil
+}
+
+// NewMockClient creates a mock Meta client (kind="mock")
+func NewMockClient() *Client {
+	return &Client{
+		kind:   "mock",
+		apiKey: "",
+		model:  "mock",
+		client: &http.Client{Timeout: 60 * time.Second},
+	}
 }

@@ -16,3 +16,8 @@ func (w *WorkerExecutor) RunWorker(ctx context.Context, prompt string, env map[s
 	}
 	return nil, nil
 }
+
+// NewMockWorkerExecutor creates a mock WorkerExecutor with default behavior
+func NewMockWorkerExecutor() *WorkerExecutor {
+	return &WorkerExecutor{}
+}
