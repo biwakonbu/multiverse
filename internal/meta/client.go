@@ -17,21 +17,23 @@ import (
 )
 
 type Client struct {
-	kind   string
-	apiKey string
-	model  string
-	client *http.Client
+	kind         string
+	apiKey       string
+	model        string
+	systemPrompt string
+	client       *http.Client
 }
 
-func NewClient(kind, apiKey, model string) *Client {
+func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	if model == "" {
 		model = "gpt-4-turbo" // Default
 	}
 	return &Client{
-		kind:   kind,
-		apiKey: apiKey,
-		model:  model,
-		client: &http.Client{Timeout: 60 * time.Second},
+		kind:         kind,
+		apiKey:       apiKey,
+		model:        model,
+		systemPrompt: systemPrompt,
+		client:       &http.Client{Timeout: 60 * time.Second},
 	}
 }
 
@@ -237,7 +239,9 @@ func (c *Client) PlanTask(ctx context.Context, prdText string) (*PlanTaskRespons
 		}, nil
 	}
 
-	systemPrompt := `You are a Meta-agent that plans software development tasks.
+	systemPrompt := c.systemPrompt
+	if systemPrompt == "" {
+		systemPrompt = `You are a Meta-agent that plans software development tasks.
 Your goal is to read a PRD and break it down into Acceptance Criteria.
 Output MUST be a YAML block with the following structure:
 type: plan_task
@@ -250,6 +254,7 @@ payload:
       type: "e2e"
       critical: true
 `
+	}
 	userPrompt := fmt.Sprintf("PRD:\n%s\n\nGenerate the plan.", prdText)
 
 	resp, err := c.callLLM(ctx, systemPrompt, userPrompt)
@@ -296,10 +301,13 @@ func (c *Client) NextAction(ctx context.Context, taskSummary *TaskSummary) (*Nex
 		}, nil
 	}
 
-	systemPrompt := `You are a Meta-agent that orchestrates a coding task.
+	systemPrompt := c.systemPrompt
+	if systemPrompt == "" {
+		systemPrompt = `You are a Meta-agent that orchestrates a coding task.
 Decide the next action based on the current context.
 Output MUST be a YAML block with type: next_action.
 `
+	}
 	// Serialize context for LLM
 	contextSummary := fmt.Sprintf("Task: %s\nState: %s\nACs: %v\nWorkerRuns: %d",
 		taskSummary.Title, taskSummary.State, len(taskSummary.AcceptanceCriteria), taskSummary.WorkerRunsCount)
@@ -349,7 +357,9 @@ func (c *Client) CompletionAssessment(ctx context.Context, taskSummary *TaskSumm
 		}, nil
 	}
 
-	systemPrompt := `You are a Meta-agent evaluating task completion.
+	systemPrompt := c.systemPrompt
+	if systemPrompt == "" {
+		systemPrompt = `You are a Meta-agent evaluating task completion.
 Review the Acceptance Criteria and Worker execution results.
 Output MUST be a YAML block with type: completion_assessment.
 
@@ -364,6 +374,7 @@ payload:
       status: "passed"
       comment: "Feature X successfully implemented"
 `
+	}
 
 	// Format acceptance criteria for LLM
 	acText := ""

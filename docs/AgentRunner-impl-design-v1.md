@@ -11,20 +11,32 @@ agent-runner/
       main.go
 
   internal/
-    cli/
-    config/
-    task/
-    meta/
-    sandbox/
-    worker/
-    tasknote/
-    llm/
-    logging/
+    core/          # Core オーケストレータ（実装済み）
+    meta/          # Meta エージェント Client（実装済み）
+    worker/        # Worker Executor + Sandbox Manager（実装済み）
+    note/          # Task Note Writer（実装済み）
+    mock/          # テスト用 Mock 実装（実装済み）
+
+  pkg/
+    config/        # YAML スキーマ定義（実装済み）
+
+  test/
+    integration/   # 統合テスト
+    sandbox/       # Docker Sandbox テスト
+    codex/         # Codex 統合テスト
 
   go.mod
   go.sum
   README.md
 ```
+
+**注**: 設計時の `internal/cli`, `internal/task`, `internal/sandbox`, `internal/llm`, `internal/logging` は、実装時に以下のように統合されました：
+
+- `internal/cli` → `cmd/agent-runner/main.go` に統合
+- `internal/task` → `internal/core/context.go` に統合
+- `internal/sandbox` → `internal/worker/sandbox.go` に統合
+- `internal/llm` → `internal/meta/client.go` に統合
+- `internal/logging` → `cmd/agent-runner/main.go` で直接 `slog` を使用
 
 各ディレクトリの責務は以下。
 
@@ -155,25 +167,29 @@ type TaskContext struct {
 
 - Meta（LLM）呼び出し専用パッケージ。
 - 主な責務
-  - `plan_task` / `next_action` 用の呼び出し I/F
+  - `plan_task` / `next_action` / `completion_assessment` 用の呼び出し I/F
   - プロンプトテンプレートの組み立て
   - YAML 応答のパース・検証
+  - **LLM エラー再試行ロジック（Exponential Backoff）**
 
 ```go
 type Service interface {
     PlanTask(ctx context.Context, tc *task.TaskContext) (*PlanTaskResult, error)
     NextAction(ctx context.Context, tc *task.TaskContext) (*NextActionResult, error)
+    CompletionAssessment(ctx context.Context, tc *task.TaskContext) (*CompletionAssessmentResult, error)
 }
 ```
 
-実際の LLM 呼び出しは `internal/llm` に委譲。
+実際の LLM 呼び出しは `internal/meta/client.go` 内で完結しており、`internal/llm` パッケージは存在しません。
 
-#### internal/llm
+#### internal/meta/client.go (旧 internal/llm)
 
 - OpenAI などの具体的な LLM クライアント。
 - 主な責務
   - ChatCompletion API 呼び出し
-  - 将来的にプロバイダを差し替えるための抽象化
+  - **Exponential Backoff による再試行**
+    - 対象: 5xx, Timeout, RateLimit
+    - 最大 3 回、1s -> 2s -> 4s
 
 ```go
 type Client interface {
@@ -181,22 +197,13 @@ type Client interface {
 }
 ```
 
-#### internal/sandbox
-
-- サンドボックス実行（Docker / 将来の Kubernetes 等）の抽象化。
-- 主な責務
-  - `SandboxExecutor` インターフェース
-  - `DockerLocalExecutor` 実装（v1）
-  - Request/Result/Errors の定義
-
-（詳細は後述の §2 で定義）
-
 #### internal/worker
 
-- Worker ごとの実行ロジック。
+- Worker ごとの実行ロジック + Sandbox 管理。
 - v1 では `codex-cli` のみ。
 - 主な責務
   - Meta の `worker_call` 情報をもとに SandboxExecutor を呼び出す
+  - **コンテナライフサイクル管理（Start / Exec / Stop）**
   - 実行結果（stdout/stderr/exit code）を `TaskContext` に反映
 
 ```go
@@ -204,6 +211,15 @@ type Runner interface {
     RunWorker(ctx context.Context, tc *task.TaskContext, call WorkerCall) (*WorkerResult, error)
 }
 ```
+
+#### internal/worker/sandbox.go (旧 internal/sandbox)
+
+- サンドボックス実行（Docker）の抽象化。
+- 主な責務
+  - `SandboxExecutor` インターフェース
+  - `DockerLocalExecutor` 実装（v1）
+  - **ImagePull 自動実行**
+  - **Codex 認証自動マウント**
 
 #### internal/tasknote
 
@@ -226,131 +242,65 @@ type Runner interface {
 ### 2-1. インターフェース定義
 
 ```go
-package sandbox
+package worker
 
 import (
     "context"
-    "time"
 )
 
-type Mount struct {
-    Source   string // ホスト側パス（絶対パス）
-    Target   string // コンテナ側パス
-    ReadOnly bool
-}
-
-type ResourceLimit struct {
-    CPUQuota    string        // 例: "0.5"（0.5 vCPU）や ""（未指定）
-    MemoryLimit string        // 例: "1g"（1 GiB）や ""（未指定）
-    Timeout     time.Duration // 実行タイムアウト
-}
-
-type Request struct {
-    Image   string            // 必須。例: "co-routine/agent-worker-codex:latest"
-    Command []string          // 必須。例: {"codex", "exec", "--non-interactive", "..."}
-    Env     map[string]string // 任意。KEY=VALUE
-
-    Workdir string  // コンテナ内の作業ディレクトリ。例: "/workspace/project"
-    Mounts  []Mount // リポジトリ等のマウント
-
-    Resource ResourceLimit
-}
-
-type Result struct {
-    ExitCode  int
-    Stdout    []byte
-    Stderr    []byte
-    StartedAt time.Time
-    EndedAt   time.Time
-}
-
-type ErrorKind string
-
-const (
-    ErrorUnknown        ErrorKind = "unknown"
-    ErrorTimeout        ErrorKind = "timeout"
-    ErrorInfra          ErrorKind = "infra"           // Docker daemon エラー等
-    ErrorInvalidRequest ErrorKind = "invalid_request" // Request の不備
-)
-
-type Error struct {
-    Kind  ErrorKind
-    Op    string // 例: "docker_run"
-    Cause error
-}
-
-func (e *Error) Error() string {
-    // Kind / Op / Cause を含めたメッセージ
-    return ...
-}
-
-func (e *Error) Unwrap() error {
-    return e.Cause
-}
-
-type Executor interface {
-    Run(ctx context.Context, req *Request) (*Result, error)
+type SandboxProvider interface {
+    StartContainer(ctx context.Context, image string, repoPath string, env map[string]string) (string, error)
+    Exec(ctx context.Context, containerID string, cmd []string) (int, string, error)
+    StopContainer(ctx context.Context, containerID string) error
 }
 ```
 
 - 実装側の方針
-  - **正常系**:
-    - コンテナが起動し `ExitCode` が得られたら `error == nil` で返す（ExitCode != 0 でも）。
-    - 呼び出し側は ExitCode を見て Worker 成功/失敗を判断する。
-  - **異常系**:
-    - Docker 自体の異常（Timeout / daemon 死亡 / ネットワークエラーなど）は `*sandbox.Error` を返す。
-    - `ErrorKind` により上位がメッセージ・再試行可否を判断可能。
+  - **StartContainer**:
+    - コンテナを起動し、ID を返す。
+    - **ImagePull 自動実行**: イメージが存在しない場合、自動的に pull する。
+    - **Codex 認証自動マウント**: `~/.codex/auth.json` があればマウント、なければ `CODEX_API_KEY` 環境変数を注入。
+  - **Exec**:
+    - 既存コンテナ内でコマンドを実行する。
+    - ExitCode と Output (Stdout + Stderr) を返す。
+  - **StopContainer**:
+    - コンテナを強制停止・削除する。
 
 ### 2-2. DockerLocalExecutor 実装
 
+`SandboxManager` として実装。
+
 ```go
-type DockerLocalExecutor struct {
-    Logger        *slog.Logger
-    DockerBinPath string // 例: "docker"
-    DefaultImage  string // Request.Image が空のときのデフォルト
+type SandboxManager struct {
+    cli *client.Client
 }
 ```
 
-`Run` の実装方針：
+`StartContainer` の実装方針：
 
-1. `Request` のバリデーション
-   - `Image` が空なら `DefaultImage` を使用。
-   - `Command` が空なら `ErrorInvalidRequest` でエラー。
-2. `docker run` 用の引数を組み立てる
-   - ベース:
+1. `ImageInspect` でイメージ確認 → なければ `ImagePull`。
+2. マウント準備:
+   - `repoPath` → `/workspace/project`
+   - `~/.codex/auth.json` (存在すれば) → `/root/.codex/auth.json` (ReadOnly)
+3. 環境変数準備:
+   - 引数の `env` を注入
+   - `CODEX_API_KEY` (存在すれば) を注入
+4. `ContainerCreate` & `ContainerStart`:
+   - `Cmd`: `["tail", "-f", "/dev/null"]` (Keep Alive)
+   - `WorkingDir`: `/workspace/project`
 
-     ```sh
-     docker run --rm
-       --workdir <Workdir>
-       -v <src>:<dst>:ro|rw
-       -e KEY=VALUE
-       --network=none
-       <image> <command...>
-     ```
+`Exec` の実装方針：
 
-   - ResourceLimit
-     - `Timeout` は Go 側の `context` で管理（`exec.CommandContext`）
-     - `CPUQuota` / `MemoryLimit` は `--cpus` / `--memory` などにマッピング（必要なら）
+1. `ContainerExecCreate`:
+   - `AttachStdout`, `AttachStderr`: true
+2. `ContainerExecAttach`:
+   - 出力を `stdcopy.StdCopy` でバッファリング
+3. `ContainerExecInspect`:
+   - ExitCode 取得
 
-3. `exec.CommandContext` で実行
-   - `cmd := exec.CommandContext(ctx, e.DockerBinPath, args...)`
-   - `stdout` / `stderr` は `bytes.Buffer` にバッファリング（v1 はストリーミングしない）
-4. 実行結果のマッピング
-   - `cmd.Run()` の戻り値
-     - `ctx` の締め切りで `context.DeadlineExceeded` -> `ErrorTimeout`
-     - それ以外の `*exec.ExitError` は「正常系」（ExitCode に反映）
-     - その他のエラーは `ErrorInfra`
-   - `Result` に
-     - `ExitCode`
-     - `Stdout` / `Stderr`
-     - `StartedAt` / `EndedAt`
+`StopContainer` の実装方針：
 
-ログ方針：
-
-- `sandbox` パッケージ内では
-  - DEBUG レベルで `docker run` の引数概要をログ
-  - ERROR レベルで `ErrorInfra` / `ErrorInvalidRequest` の詳細をログ
-- `stdout` / `stderr` の中身はログには書かない（サイズ膨張を防ぐため）。呼び出し側が Task Note に載せる。
+1. `ContainerStop` (Timeout: 0) で強制停止。
 
 ---
 
@@ -383,7 +333,7 @@ messages := []llm.Message{
 
 #### 3-2-2. system メッセージ案
 
-```text
+````text
 あなたはソフトウェア開発プロジェクトのテックリードです。
 
 - あなたの役割は、与えられたタスク仕様と PRD（要件定義）から、
@@ -407,7 +357,7 @@ messages := []llm.Message{
 - 言語は PRD の言語に合わせてください（PRD が日本語なら日本語、英語なら英語）。
 
 以上のルールを厳守し、YAML だけを出力してください。
-```
+````
 
 #### 3-2-3. user メッセージテンプレート案
 
@@ -470,7 +420,7 @@ notes: []
 
 #### 3-3-2. system メッセージ案
 
-```text
+````text
 あなたはソフトウェア開発タスクを管理するテックリード兼オーケストレータです。
 
 - 与えられたタスクコンテキスト（TaskContext）にもとづき、
@@ -511,7 +461,7 @@ notes: []
 - 言語はタスクの PRD の言語に合わせてください。
 
 以上のルールを厳守し、YAML だけを出力してください。
-```
+````
 
 #### 3-3-3. user メッセージテンプレート案
 
@@ -535,17 +485,75 @@ notes: []
 
 ---
 
-## 4. 次にやるべきこと（実装タスク候補）
+### 3-4. completion_assessment 用テンプレート
 
-この設計を前提に、他のコーディングエージェントに渡すタスクとしては:
+#### 3-4-1. 想定メッセージ構造
+
+```go
+messages := []llm.Message{
+    {Role: "system", Content: completionAssessmentSystemPrompt},
+    {Role: "user",   Content: renderCompletionAssessmentUserPrompt(taskSummary)},
+}
+```
+
+#### 3-4-2. system メッセージ案
+
+````text
+あなたはタスクの完了状況を評価する Meta-agent です。
+Acceptance Criteria と Worker の実行結果を確認し、タスクが完了したかどうかを判定してください。
+
+出力フォーマットについて:
+
+- 出力は必ず 1 つの YAML ドキュメントのみとします。
+- コードブロック（```）や解説文は一切書かないでください。
+- YAML のスキーマは次のとおりです:
+
+  type: "completion_assessment"
+  version: 1
+  payload:
+    all_criteria_satisfied: boolean
+    summary: string
+    by_criterion:
+      - id: string      # AC-ID
+        status: string  # "passed" | "failed"
+        comment: string # 判定理由
+
+- フィールド名は必ず上記のとおりにしてください。
+- 言語はタスクの PRD の言語に合わせてください。
+
+以上のルールを厳守し、YAML だけを出力してください。
+````
+
+#### 3-4-3. user メッセージテンプレート案
+
+```text
+以下に、このタスクの Acceptance Criteria と実行結果の要約を示します。
+
+{{TASK_SUMMARY_YAML}}
+
+お願いしたいこと:
+
+- 各 Acceptance Criteria が満たされているか判定してください。
+- 全ての Criteria が満たされている場合、all_criteria_satisfied を true にしてください。
+- 判定結果を前述のスキーマに従った YAML のみで出力してください。
+```
+
+---
+
+## 4. 実装状況（2025-11-21 時点）
+
+以下の実装が完了しています:
 
 1. **internal/sandbox 実装**
-   - 上記インターフェースどおり `Executor` / `DockerLocalExecutor` / `Error` を実装。
+   - `Executor` / `DockerLocalExecutor` 実装済み。
+   - ImagePull 自動実行、Codex 認証自動マウント実装済み。
+   - `env:` プレフィックスによるホスト環境変数の解決実装済み。
 2. **internal/meta 実装**
-   - `planTaskSystemPrompt` / `nextActionSystemPrompt` を定数として埋め込み。
-   - `TaskSpec` / `TaskContext` からテンプレートを埋める関数を実装。
-   - 応答 YAML をパースし、構造体にマッピング。
+   - `plan_task` / `next_action` / `completion_assessment` 実装済み。
+   - Exponential Backoff による再試行ロジック実装済み。
+   - `system_prompt` オーバーライド機能実装済み。
 3. **internal/cli 実装**
-   - YAML 読み込み → `TaskContext` 初期化 → Meta → Worker → TaskNote → exit code 返却のひととおりのフロー。
+   - YAML 読み込み → `TaskContext` 初期化 → Meta → Worker → TaskNote → exit code 返却のフロー実装済み。
+   - ループ実行と完了判定ロジック実装済み。
 
-ここまで実装すれば、最低限の「ワンショット AgentRunner CLI」が動く状態になります。
+これにより、AgentRunner CLI の基本機能は動作可能な状態です。

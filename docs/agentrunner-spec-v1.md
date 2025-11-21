@@ -1,4 +1,5 @@
-# AgentRunner 仕様書（v1 / MVP）  
+# AgentRunner 仕様書（v1 / MVP）
+
 最終更新: 2025-11-20
 
 ---
@@ -50,8 +51,8 @@ v1 では以下の範囲に限定して実装する。
   - Worker 種別は `codex-cli` の 1 種のみを想定。
   - Codex CLI への具体的なオプションは実 CLI ドキュメントに基づいて実装時に調整する（後述 1.3）。
 - 実行フロー:
-  - 1 タスクにつき 1 回以上の Worker 実行を許容する設計とするが、
-  - MVP の最初の実装では **1 回の Worker 実行＋テスト** を基本とし、複数回ループや resume は後続で拡張する。
+  - 1 タスクにつき 1 回以上の Worker 実行を許容する（ループ対応済み）。
+  - `max_loops` 設定により、Meta エージェントの判断で複数回の Worker 実行と再計画が可能。
 
 ### 1.3 前提・外部依存（事実 / 仮説の分離）
 
@@ -159,27 +160,27 @@ agent-runner run < task.yaml
 version: 1
 
 task:
-  id: "TASK-123"                 # 任意。未指定ならランナー側で採番
-  title: "ユーザ登録 API の実装"     # 任意。Task Note のヘッダなどに利用
-  repo: "."                      # 任意。作業対象リポジトリのパス（デフォルト "."）
+  id: "TASK-123" # 任意。未指定ならランナー側で採番
+  title: "ユーザ登録 API の実装" # 任意。Task Note のヘッダなどに利用
+  repo: "." # 任意。作業対象リポジトリのパス（デフォルト "."）
 
   prd:
-    path: "./docs/TASK-123.md"   # PRD をファイルから読む場合
+    path: "./docs/TASK-123.md" # PRD をファイルから読む場合
     # text: |                    # もしくは PRD 本文を直接埋め込む場合
     #   ここに PRD 本文...
 
   test:
-    command: "npm test"          # 任意。自動テストを走らせるコマンド
+    command: "npm test" # 任意。自動テストを走らせるコマンド
     # cwd: "./"                  # 任意。テスト実行ディレクトリ（デフォルトは repo）
 
 runner:
   meta:
-    kind: "openai-chat"          # v1 は固定想定
-    model: "gpt-5.1"             # 任意。未指定ならデフォルトモデルを利用
+    kind: "openai-chat" # v1 は固定想定
+    model: "gpt-5.1" # 任意。未指定ならデフォルトモデルを利用
     # system_prompt: |           # 任意。Meta 用 system prompt を上書きしたい場合
 
   worker:
-    kind: "codex-cli"            # v1 は "codex-cli" 固定
+    kind: "codex-cli" # v1 は "codex-cli" 固定
     # docker_image: ...          # 任意。デフォルトイメージを上書きする場合
     # max_run_time_sec: 1800     # 任意。1 回の Worker 実行タイムアウト
     # env:
@@ -244,6 +245,17 @@ Meta とのやり取りは次の 3 種類のリクエスト/レスポンスで�
 3. `completion_assessment`（v1 では必須ではない）:
    - 入力: 最終状態の TaskContext。
    - 出力: 完了評価コメントや、残課題の一覧など。
+
+#### 4.2.1 LLM エラー再試行ロジック（実装済み）
+
+v1 実装では、LLM API 呼び出しの信頼性を向上させるため、以下の再試行ロジックを実装している：
+
+- **再試行対象エラー**: HTTP 5xx、タイムアウト、Rate Limit（429）
+- **再試行回数**: 最大 3 回
+- **Exponential Backoff**: 1 秒 → 2 秒 → 4 秒
+- **非再試行エラー**: HTTP 4xx（400, 401, 403 など）
+
+これにより、一時的なネットワークエラーや API の過負荷による失敗を自動的に回復し、タスク実行の成功率を向上させている。
 
 ### 4.3 `plan_task` 出力 YAML
 
@@ -313,9 +325,9 @@ decision:
     - `mode`: string（v1 では `"exec"` 固定）
     - `prompt`: string（Worker に渡すべき自然言語の指示文）
 
-### 4.5 `completion_assessment` 出力 YAML（任意）
+### 4.5 `completion_assessment` 出力 YAML
 
-v1 では必須ではないが、将来的に以下のような形を想定する。
+v1 で実装済み。Meta エージェントはタスク完了時に以下のような評価を出力する。
 
 ```yaml
 type: completion_assessment
@@ -349,10 +361,21 @@ Worker Executor は Meta の `worker_call` に従い、Sandbox 上で Worker（C
 codex exec   --sandbox workspace-write   --json   --cwd /workspace/project   "<Meta から渡された prompt>"
 ```
 
+#### 5.2.1 コンテナライフサイクル最適化（実装済み）
+
+v1 実装では、パフォーマンス最適化のため、以下のコンテナライフサイクル管理を採用している：
+
+- **タスク開始時**: 1 回だけコンテナを起動（`WorkerExecutor.Start()`）
+- **Worker 実行時**: 既存コンテナ内で `docker exec` を実行（`WorkerExecutor.RunWorker()`）
+- **タスク完了時**: コンテナを停止（`WorkerExecutor.Stop()`）
+
+この設計により、Worker 実行ごとにコンテナを起動・停止する場合と比較して、5-10 倍の高速化を実現している。
+
 ### 5.3 サンドボックス（Docker）仕様（案）
 
 - デフォルト Docker イメージ:
   - 例: `ghcr.io/<org>/agent-runner-codex:latest`
+  - v1 実装: `ghcr.io/biwakonbu/agent-runner-codex:latest`
 - コンテナ内パス:
   - プロジェクト: `/workspace/project`
 - マウント:
@@ -361,6 +384,19 @@ codex exec   --sandbox workspace-write   --json   --cwd /workspace/project   "<M
 - 環境変数:
   - `runner.worker.env` の値をコンテナ内に注入。
   - `"env:XXX"` 形式はホストの環境変数 `XXX` を参照して値を設定。
+
+#### 5.3.1 ImagePull 自動実行（実装済み）
+
+v1 実装では、Docker イメージが存在しない場合、自動的に `docker pull` を実行する。これにより、初回実行時のエラーを防ぎ、ユーザーが手動でイメージを取得する必要がなくなる。
+
+#### 5.3.2 Codex 認証自動マウント（実装済み）
+
+v1 実装では、以下の順序で Codex 認証情報を自動的に検出・設定する：
+
+1. `~/.codex/auth.json` が存在する場合、read-only でコンテナ内の `/root/.codex/auth.json` にマウント
+2. `~/.codex/auth.json` が存在しない場合、環境変数 `CODEX_API_KEY` をコンテナ内に注入
+
+これにより、ユーザーは認証情報を手動で設定する必要がなく、既存の Codex CLI 環境をそのまま利用できる。
 
 ### 5.4 Worker 実行結果（内部表現）
 
@@ -426,7 +462,7 @@ type TaskContext struct {
 
 以下は v1 で利用する Task Note のテンプレ例である。必要に応じてフィールドを増減する。
 
-```markdown
+````markdown
 # Task Note - {{ .ID }} {{ if .Title }}- {{ .Title }}{{ end }}
 
 - Task ID: {{ .ID }}
@@ -453,6 +489,7 @@ type TaskContext struct {
 ```text
 {{ .PRDText }}
 ```
+````
 
 </details>
 
@@ -461,8 +498,9 @@ type TaskContext struct {
 ## 3. 受け入れ条件 (Acceptance Criteria)
 
 {{ range .AcceptanceCriteria }}
+
 - [{{ if .Passed }}x{{ else }} {{ end }}] {{ .ID }}: {{ .Description }}
-{{ end }}
+  {{ end }}
 
 ---
 
@@ -471,14 +509,15 @@ type TaskContext struct {
 ### 4.1 Meta Calls
 
 {{ range .MetaCalls }}
+
 #### {{ .Type }} at {{ .Timestamp }}
 
 ```yaml
-{{ .RequestYAML }}
+{ { .RequestYAML } }
 ```
 
 ```yaml
-{{ .ResponseYAML }}
+{ { .ResponseYAML } }
 ```
 
 {{ end }}
@@ -486,6 +525,7 @@ type TaskContext struct {
 ### 4.2 Worker Runs
 
 {{ range .WorkerRuns }}
+
 #### Run {{ .ID }} (ExitCode={{ .ExitCode }}) at {{ .StartedAt }} - {{ .FinishedAt }}
 
 ```text
@@ -499,6 +539,7 @@ type TaskContext struct {
 ## 5. テスト結果
 
 {{ if .TestResult }}
+
 - Command: `{{ .TestResult.Command }}`
 - ExitCode: {{ .TestResult.ExitCode }}
 - Summary: {{ .TestResult.Summary }}
@@ -516,6 +557,7 @@ type TaskContext struct {
 ## 6. メモ / 残課題
 
 {{ .Notes }}
+
 ```
 
 実装では `text/template` 等を用いて TaskContext からこのテンプレートを埋めて出力する。
@@ -530,11 +572,13 @@ type TaskContext struct {
   - `agent-runner run` のみ。
   - stdin YAML 読み込み → TaskConfig パース → TaskContext 構築。
 - Meta:
-  - `plan_task` と `next_action` を 1 回ずつ呼び出すコードパス。
+  - `plan_task` と `next_action` を呼び出すコードパス。
+  - `completion_assessment` による完了判定と AC 評価。
   - `acceptance_criteria` と `next_action` のパース。
 - Worker:
-  - Docker 上で `codex-cli`（仮）を 1 回実行する Worker Executor。
+  - Docker 上で `codex-cli`（仮）を実行する Worker Executor。
   - 実行結果（exit code, stdout/stderr）を TaskContext に記録。
+  - コンテナライフサイクル最適化（タスク開始時に起動、終了時に停止）。
 - テスト:
   - v1 では `task.test.command` が指定されていない場合は自動テストを行わない。
   - 指定されている場合も、まずは Worker 内での実行（Meta の prompt で指示）に任せる想定とし、Core 側で別途テストプロセスを起動するかどうかは後続で検討。
@@ -543,8 +587,6 @@ type TaskContext struct {
 
 ### 7.2 後続拡張の候補（v1 では未実装）
 
-- `next_action` を複数回ループさせることで、複数回の Worker 実行 → 再計画を行う。
-- `completion_assessment` の活用と Task Note への反映。
 - Core 側でテストコマンドを独立して実行し、その結果を Meta にフィードバックするループ。
 - 複数 Worker サポート（Cursor CLI, Claude Code 等）。
 - Web UI / ダッシュボードからのタスク起動・モニタリング。
@@ -565,3 +607,4 @@ type TaskContext struct {
 この範囲が完了すれば、YAML 一枚から実際に Worker（Codex）を動かし、Task Note を残すところまで「一通りの体験」が成立する。
 
 ---
+```

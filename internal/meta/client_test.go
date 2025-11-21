@@ -338,7 +338,7 @@ func TestExtractYAML_MultipleCodeBlocks(t *testing.T) {
 // TestClient_APIKeyHandling tests that API key is stored correctly
 func TestClient_APIKeyHandling(t *testing.T) {
 	apiKey := "test-api-key-12345"
-	client := NewClient("openai-chat", apiKey, "gpt-4-turbo")
+	client := NewClient("openai-chat", apiKey, "gpt-4-turbo", "")
 
 	// We can't access private field, but we can verify the client was created
 	if client == nil {

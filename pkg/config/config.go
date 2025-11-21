@@ -37,8 +37,9 @@ type RunnerConfig struct {
 
 // MetaConfig holds Meta agent configuration
 type MetaConfig struct {
-	Kind  string `yaml:"kind"`
-	Model string `yaml:"model"`
+	Kind         string `yaml:"kind"`
+	Model        string `yaml:"model"`
+	SystemPrompt string `yaml:"system_prompt"`
 }
 
 // WorkerConfig holds Worker agent configuration

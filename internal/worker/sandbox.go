@@ -54,7 +54,11 @@ func (s *SandboxManager) StartContainer(ctx context.Context, image string, repoP
 
 	var envSlice []string
 	for k, v := range env {
-		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, v))
+		val := v
+		if len(v) > 4 && v[:4] == "env:" {
+			val = os.Getenv(v[4:])
+		}
+		envSlice = append(envSlice, fmt.Sprintf("%s=%s", k, val))
 	}
 
 	// Prepare mounts
