@@ -229,14 +229,6 @@ func extractYAML(response string) string {
 		return strings.TrimSpace(response)
 	}
 
-	// Handle single backticks if it wraps the whole content
-	if strings.HasPrefix(response, "`") && strings.HasSuffix(response, "`") && !strings.Contains(response, "\n") {
-		// Be careful not to strip backticks if they are part of the content,
-		// but if the whole response is backticked, it's likely an escape.
-		// However, for YAML, single backticks are rare wrappers.
-		// Let's stick to the block logic above.
-	}
-
 	return response
 }
 

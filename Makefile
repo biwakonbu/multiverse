@@ -52,6 +52,13 @@ coverage:
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 	@go tool cover -func=coverage.out | tail -5
+	
+# Worker coverage target (includes Docker integration tests)
+test-worker-coverage:
+	go test -coverprofile=coverage-worker.out -tags=docker -timeout=30m ./internal/worker/...
+	go tool cover -html=coverage-worker.out -o coverage-worker.html
+	@echo "Worker coverage report generated: coverage-worker.html"
+	@go tool cover -func=coverage-worker.out | grep total
 
 # Lint target
 lint:

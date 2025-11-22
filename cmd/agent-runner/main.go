@@ -28,7 +28,7 @@ func main() {
 }
 
 // Run is the main entry point for the application, extracted for testing.
-func Run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer, logger *slog.Logger) error {
+func Run(ctx context.Context, stdin io.Reader, _, _ io.Writer, logger *slog.Logger) error {
 	// 1. Read YAML from stdin
 	bytes, err := io.ReadAll(stdin)
 	if err != nil {
