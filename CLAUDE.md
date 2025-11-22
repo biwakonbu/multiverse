@@ -319,14 +319,21 @@ export CODEX_API_KEY="..."
 
 ### docs/ - 設計・仕様・開発ガイド
 
-| ファイル                                                            | 対象             | 用途                             |
-| ------------------------------------------------------------------- | ---------------- | -------------------------------- |
-| [CLAUDE.md](docs/CLAUDE.md)                                         | AI 開発者        | ドキュメント整理ルール・命名規則 |
-| [AgentRunner-architecture.md](docs/AgentRunner-architecture.md)     | アーキテクト     | システム設計・モジュール関係     |
-| [agentrunner-spec-v1.md](docs/agentrunner-spec-v1.md)               | 開発者・PO       | MVP 仕様・API・スキーマ          |
-| [AgentRunner-impl-design-v1.md](docs/AgentRunner-impl-design-v1.md) | 実装者           | Go 実装設計・パッケージ分割      |
-| [TESTING.md](docs/TESTING.md)                                       | テスター・開発者 | テストベストプラクティス         |
-| [CODEX_TEST_README.md](docs/CODEX_TEST_README.md)                   | 開発者           | Codex 統合テスト実行ガイド       |
+| ディレクトリ/ファイル                                              | 対象                 | 用途                             |
+| ------------------------------------------------------------------ | -------------------- | -------------------------------- |
+| [README.md](docs/README.md)                                        | 全員                 | ドキュメント全体のナビゲーション |
+| [CLAUDE.md](docs/CLAUDE.md)                                        | AI 開発者            | ドキュメント整理ルール・命名規則 |
+| **specifications/**                                                | 実装者・レビュアー   | **確定仕様**                     |
+| [core-specification.md](docs/specifications/core-specification.md) | 実装者               | コア仕様（YAML、FSM、Task Note） |
+| [meta-protocol.md](docs/specifications/meta-protocol.md)           | Meta 実装者          | Meta-agent プロトコル仕様        |
+| [worker-interface.md](docs/specifications/worker-interface.md)     | Worker 実装者        | Worker 実行仕様                  |
+| **design/**                                                        | アーキテクト・実装者 | **設計ドキュメント**             |
+| [architecture.md](docs/design/architecture.md)                     | アーキテクト         | システムアーキテクチャ           |
+| [implementation-guide.md](docs/design/implementation-guide.md)     | 実装者               | Go 実装ガイド                    |
+| [data-flow.md](docs/design/data-flow.md)                           | 実装者               | データフロー設計                 |
+| **guides/**                                                        | 開発者・テスター     | **開発ガイド**                   |
+| [testing.md](docs/guides/testing.md)                               | テスター・開発者     | テストベストプラクティス         |
+| [codex-integration.md](docs/guides/codex-integration.md)           | 開発者               | Codex 統合テスト実行ガイド       |
 
 ### エンドユーザー向け（不変）
 
