@@ -26,7 +26,7 @@ type Client struct {
 
 func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	if model == "" {
-		model = "gpt-4-turbo" // Default
+		model = "gpt-5.1-codex-max-high" // Default
 	}
 	return &Client{
 		kind:         kind,
