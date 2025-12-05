@@ -175,11 +175,13 @@
 
     <!-- チャット再表示ボタン (簡易FAB) -->
     {#if !isChatVisible}
-      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div
         class="chat-fab"
         on:click={() => (isChatVisible = true)}
+        on:keydown={(e) => e.key === "Enter" && (isChatVisible = true)}
         role="button"
+        tabindex="0"
         aria-label="Open Chat"
       >
         💬
@@ -191,20 +193,20 @@
 <style>
   .chat-fab {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 48px;
-    height: 48px;
+    bottom: var(--mv-spacing-lg);
+    right: var(--mv-spacing-lg);
+    width: var(--mv-icon-size-xxxl);
+    height: var(--mv-icon-size-xxxl);
     background: var(--mv-color-surface-primary);
-    border: 1px solid var(--mv-color-border-default);
-    border-radius: 50%;
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
+    border-radius: var(--mv-radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--mv-shadow-card);
     cursor: pointer;
     z-index: 1000;
-    font-size: 20px;
+    font-size: var(--mv-icon-size-md);
   }
   .chat-fab:hover {
     background: var(--mv-color-surface-hover);

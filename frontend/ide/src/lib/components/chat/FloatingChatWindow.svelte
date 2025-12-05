@@ -208,8 +208,8 @@
   }
 
   .floating-window.minimized {
-    height: 32px; /* Header height only */
-    background: rgba(0, 0, 0, 0.5); /* Darker when minimized */
+    height: var(--mv-icon-size-xl); /* Header height only */
+    background: var(--mv-color-surface-overlay); /* Darker when minimized */
   }
 
   .floating-window:focus-within {
@@ -237,8 +237,8 @@
   .window-controls {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 4px; /* Align with tab vertical center roughly */
+    gap: var(--mv-spacing-xxs);
+    margin-bottom: var(--mv-spacing-xxs); /* Align with tab vertical center roughly */
   }
 
   .control-btn {
@@ -247,11 +247,11 @@
     color: var(--mv-color-text-muted);
     cursor: pointer;
     font-family: var(--mv-font-mono);
-    font-size: 14px;
-    padding: 0 4px;
+    font-size: var(--mv-font-size-md);
+    padding: 0 var(--mv-spacing-xxs);
     line-height: 1;
     opacity: 0.7;
-    transition: opacity 0.2s;
+    transition: opacity var(--mv-duration-fast);
   }
 
   .control-btn:hover {

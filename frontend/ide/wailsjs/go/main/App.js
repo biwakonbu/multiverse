@@ -41,3 +41,7 @@ export function RunTask(arg1) {
 export function SelectWorkspace() {
   return window['go']['main']['App']['SelectWorkspace']();
 }
+
+export function GetAvailablePools() {
+  return window['go']['main']['App']['GetAvailablePools']();
+}

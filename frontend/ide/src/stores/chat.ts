@@ -1,5 +1,4 @@
 import { writable, type Writable } from 'svelte/store';
-import { formatLocalTime } from '../lib/utils/time';
 
 // Wails runtime path inferred from list_dir results
 // src/stores/chat.ts -> ../../wailsjs/wailsjs/runtime/runtime
