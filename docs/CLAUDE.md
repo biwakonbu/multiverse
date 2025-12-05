@@ -7,19 +7,19 @@
 ### 配置原則
 
 ```
-根ルート (AI 向けルール非対象)：
+根ルート：
   ├── CLAUDE.md          # プロジェクトメモリ（AI開発操作ガイド）
   ├── GEMINI.md          # プロジェクト概要・背景（変更不可）
   ├── README.md          # エンドユーザー向けドキュメント（変更不可）
-  ├── TESTING.md         # テストベストプラクティス
-  ├── CODEX_TEST_README.md # Codex統合ガイド
+  ├── PRD.md             # プロダクト要件書
   └── docs/              # 設計・仕様ドキュメント（プロダクト指向）
         └── CLAUDE.md    # このファイル（ドキュメント整理ルール）
 
 コア実装層メモリ（各内部パッケージ）：
-  internal/{core,meta,worker,note,mock}/ → CLAUDE.md
+  internal/{core,meta,worker,note,mock,orchestrator,ide,cli,logging}/ → CLAUDE.md
   pkg/config/                            → CLAUDE.md
   test/                                  → CLAUDE.md
+  sandbox/                               → CLAUDE.md
 ```
 
 ### 責任分担
@@ -31,7 +31,6 @@
 | **docs/\*.md**            | アーキテクト・レビュアー | 人間開発者 | 設計・仕様・ユースケース           |
 | **internal/\*/CLAUDE.md** | Claude Code              | AI 開発者  | パッケージ固有の設計・実装パターン |
 | **GEMINI.md / README.md** | エンドユーザー           | 人間開発者 | プロジェクト概要（変更禁止）       |
-| **TESTING.md**            | 開発者・テスター         | 人間開発者 | テストベストプラクティス           |
 
 ## ドキュメント命名規則
 
@@ -56,12 +55,11 @@ version  : v1, v2... (オプション、仕様に応じて)
 **開発ガイド層**:
 
 ```
-docs/{topic}_*README.md または docs/{topic}.md
+docs/guides/{topic}.md
 
 例：
-  - TESTING.md                         # テストベストプラクティス（単一・更新頻繁）
-  - CODEX_TEST_README.md               # Codex統合テスト実行ガイド
-  - SANDBOX_GUIDE.md                   # Docker Sandbox操作ガイド（例：将来）
+  - guides/testing.md                  # テストベストプラクティス
+  - guides/codex-integration.md        # Codex統合テスト実行ガイド
 ```
 
 ### 内部 CLAUDE.md
@@ -91,7 +89,10 @@ docs/
 │   ├── README.md                        # 仕様ドキュメントの概要
 │   ├── core-specification.md            # コア仕様（YAML、プロトコル、FSM）
 │   ├── meta-protocol.md                 # Meta-agentプロトコル仕様
-│   └── worker-interface.md              # Worker実行仕様
+│   ├── worker-interface.md              # Worker実行仕様
+│   ├── orchestrator-spec.md             # Orchestrator仕様（Task永続化・IPC）
+│   ├── logging-specification.md         # ロギング仕様（Trace ID・構造化ログ）
+│   └── testing-strategy.md              # テスト戦略（E2E・検証範囲）
 │
 ├── design/                              # 設計ドキュメント
 │   ├── README.md                        # 設計ドキュメントの概要
@@ -194,21 +195,25 @@ docs/
 
 ## 既存ドキュメント一覧
 
-| ファイル                                                                     | 管理者           | 更新頻度               |
-| ---------------------------------------------------------------------------- | ---------------- | ---------------------- |
-| **CLAUDE.md** (このファイル)                                                 | AI 開発者        | 命名規則変更時         |
-| [README.md](README.md)                                                       | AI 開発者        | ドキュメント構造変更時 |
-| [specifications/core-specification.md](specifications/core-specification.md) | 人間・プロダクト | 仕様変更時             |
-| [specifications/meta-protocol.md](specifications/meta-protocol.md)           | 人間・プロダクト | プロトコル変更時       |
-| [specifications/worker-interface.md](specifications/worker-interface.md)     | 人間・プロダクト | Worker 仕様変更時      |
-| [design/architecture.md](design/architecture.md)                             | 人間設計者       | 年 1 回以上            |
-| [design/implementation-guide.md](design/implementation-guide.md)             | 人間実装者       | 重大リファクタリング時 |
-| [design/data-flow.md](design/data-flow.md)                                   | 人間実装者       | データフロー変更時     |
-| [guides/testing.md](guides/testing.md)                                       | 開発者           | テスト手法変更時       |
-| [guides/codex-integration.md](guides/codex-integration.md)                   | 開発者           | 実行手順変更時         |
-| [../CLAUDE.md](../CLAUDE.md)                                                 | AI 開発者        | 継続的更新             |
-| [../test/CLAUDE.md](../test/CLAUDE.md)                                       | AI 開発者        | テスト追加時           |
-| [../internal/\*/CLAUDE.md](../internal/)                                     | AI 開発者        | 実装変更時             |
+| ファイル                                                                         | 管理者           | 更新頻度               |
+| -------------------------------------------------------------------------------- | ---------------- | ---------------------- |
+| **CLAUDE.md** (このファイル)                                                     | AI 開発者        | 命名規則変更時         |
+| [README.md](README.md)                                                           | AI 開発者        | ドキュメント構造変更時 |
+| [specifications/core-specification.md](specifications/core-specification.md)     | 人間・プロダクト | 仕様変更時             |
+| [specifications/meta-protocol.md](specifications/meta-protocol.md)               | 人間・プロダクト | プロトコル変更時       |
+| [specifications/worker-interface.md](specifications/worker-interface.md)         | 人間・プロダクト | Worker 仕様変更時      |
+| [specifications/orchestrator-spec.md](specifications/orchestrator-spec.md)       | 人間・プロダクト | Orchestrator 仕様変更時 |
+| [specifications/logging-specification.md](specifications/logging-specification.md) | 人間・プロダクト | ロギング仕様変更時     |
+| [specifications/testing-strategy.md](specifications/testing-strategy.md)         | 人間・プロダクト | テスト戦略変更時       |
+| [design/architecture.md](design/architecture.md)                                 | 人間設計者       | 年 1 回以上            |
+| [design/implementation-guide.md](design/implementation-guide.md)                 | 人間実装者       | 重大リファクタリング時 |
+| [design/data-flow.md](design/data-flow.md)                                       | 人間実装者       | データフロー変更時     |
+| [guides/testing.md](guides/testing.md)                                           | 開発者           | テスト手法変更時       |
+| [guides/codex-integration.md](guides/codex-integration.md)                       | 開発者           | 実行手順変更時         |
+| [../CLAUDE.md](../CLAUDE.md)                                                     | AI 開発者        | 継続的更新             |
+| [../test/CLAUDE.md](../test/CLAUDE.md)                                           | AI 開発者        | テスト追加時           |
+| [../internal/\*/CLAUDE.md](../internal/)                                         | AI 開発者        | 実装変更時             |
+| [../sandbox/CLAUDE.md](../sandbox/CLAUDE.md)                                     | AI 開発者        | Docker イメージ変更時  |
 
 ## 拡張ガイド
 

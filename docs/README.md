@@ -11,6 +11,9 @@
 - [core-specification.md](specifications/core-specification.md) - コア仕様（YAML、TaskContext、FSM、Task Note）
 - [meta-protocol.md](specifications/meta-protocol.md) - Meta-agent プロトコル仕様
 - [worker-interface.md](specifications/worker-interface.md) - Worker 実行仕様
+- [orchestrator-spec.md](specifications/orchestrator-spec.md) - Orchestrator 仕様（Task 永続化・スケジューリング・IPC）
+- [logging-specification.md](specifications/logging-specification.md) - ロギング仕様（Trace ID・構造化ログ）
+- [testing-strategy.md](specifications/testing-strategy.md) - テスト戦略（Backend/Frontend E2E）
 
 ### 🏗️ [design/](design/) - 設計ドキュメント
 

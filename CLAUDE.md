@@ -48,8 +48,14 @@ multiverse/
 │   │   └── ipc/
 │   │       └── filesystem_queue.go # ファイルベース IPC キュー
 │   │
-│   └── ide/                       # IDE バックエンドロジック（新規）
-│       └── workspace_store.go     # Workspace メタデータ管理
+│   ├── ide/                       # IDE バックエンドロジック
+│   │   └── workspace_store.go     # Workspace メタデータ管理
+│   │
+│   ├── cli/                       # CLI フラグ処理
+│   │   └── flags.go               # コマンドラインフラグ定義
+│   │
+│   └── logging/                   # 統一ロギングシステム
+│       └── logging.go             # 構造化ログ・Trace ID 伝播
 │
 ├── frontend/
 │   └── ide/                       # Svelte + TypeScript フロントエンド
@@ -99,11 +105,13 @@ multiverse/
 | `internal/orchestrator/` | Task 永続化・スケジューラ・IPC | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
 | `internal/ide/` | Workspace メタデータ管理 | [CLAUDE.md](internal/ide/CLAUDE.md) |
 | `internal/cli/` | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
+| `internal/logging/` | 統一ロギング（構造化ログ・Trace ID） | [CLAUDE.md](internal/logging/CLAUDE.md) |
 | `frontend/ide/` | Svelte + TS フロントエンド | [CLAUDE.md](frontend/ide/CLAUDE.md) |
 | `pkg/config/` | YAML 設定パース（再利用可能） | [CLAUDE.md](pkg/config/CLAUDE.md) |
 | `test/` | 4 段階テスト戦略 | [CLAUDE.md](test/CLAUDE.md) |
 | `docs/` | 設計・仕様・開発ガイド | [CLAUDE.md](docs/CLAUDE.md) |
 | `examples/` | サンプルタスク・実行スクリプト | [CLAUDE.md](examples/CLAUDE.md) |
+| `sandbox/` | Worker Docker イメージ定義 | [CLAUDE.md](sandbox/CLAUDE.md) |
 
 ## よく使うコマンド
 
@@ -449,7 +457,9 @@ export CODEX_API_KEY="..."
 | **Util** | cli | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
 | **Util** | note | Task Note 生成・テンプレート | [CLAUDE.md](internal/note/CLAUDE.md) |
 | **Util** | mock | テストダブル・FuncField 注入 | [CLAUDE.md](internal/mock/CLAUDE.md) |
+| **Util** | logging | 構造化ログ・Trace ID 伝播 | [CLAUDE.md](internal/logging/CLAUDE.md) |
 | **Config** | pkg/config | YAML 設定スキーマ | [CLAUDE.md](pkg/config/CLAUDE.md) |
+| **Infra** | sandbox | Worker Docker イメージ定義 | [CLAUDE.md](sandbox/CLAUDE.md) |
 
 ### コマンド層
 
