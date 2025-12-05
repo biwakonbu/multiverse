@@ -88,17 +88,18 @@ multiverse/
 
 | ディレクトリ | 役割 | 詳細 |
 |------------|------|------|
-| `cmd/agent-runner/` | Core CLI エントリポイント | 既存の agent-runner コマンド |
-| `cmd/multiverse-ide/` | Wails デスクトップアプリ | app.go（バックエンド）、main.go（Wails 初期化） |
-| `cmd/multiverse-orchestrator/` | Orchestrator CLI | Worker 起動管理（実装予定） |
+| `cmd/agent-runner/` | Core CLI エントリポイント | [CLAUDE.md](cmd/agent-runner/CLAUDE.md) |
+| `cmd/multiverse-ide/` | Wails デスクトップアプリ | [CLAUDE.md](cmd/multiverse-ide/CLAUDE.md) |
+| `cmd/multiverse-orchestrator/` | Orchestrator CLI | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
 | `internal/core/` | タスク FSM とオーケストレーション | [CLAUDE.md](internal/core/CLAUDE.md) |
 | `internal/meta/` | Meta-agent（LLM）との通信層 | [CLAUDE.md](internal/meta/CLAUDE.md) |
 | `internal/worker/` | Worker 実行と Docker 管理 | [CLAUDE.md](internal/worker/CLAUDE.md) |
 | `internal/note/` | タスク実行履歴の Markdown 出力 | [CLAUDE.md](internal/note/CLAUDE.md) |
 | `internal/mock/` | テスト用モック実装 | [CLAUDE.md](internal/mock/CLAUDE.md) |
-| `internal/orchestrator/` | Task 永続化・スケジューラ・IPC | task_store.go, scheduler.go |
-| `internal/ide/` | Workspace メタデータ管理 | workspace_store.go |
-| `frontend/ide/` | Svelte + TS フロントエンド | App.svelte, TaskList.svelte 等 |
+| `internal/orchestrator/` | Task 永続化・スケジューラ・IPC | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
+| `internal/ide/` | Workspace メタデータ管理 | [CLAUDE.md](internal/ide/CLAUDE.md) |
+| `internal/cli/` | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
+| `frontend/ide/` | Svelte + TS フロントエンド | [CLAUDE.md](frontend/ide/CLAUDE.md) |
 | `pkg/config/` | YAML 設定パース（再利用可能） | [CLAUDE.md](pkg/config/CLAUDE.md) |
 | `test/` | 4 段階テスト戦略 | [CLAUDE.md](test/CLAUDE.md) |
 | `docs/` | 設計・仕様・開発ガイド | [CLAUDE.md](docs/CLAUDE.md) |
@@ -317,21 +318,19 @@ PENDING → READY → RUNNING → SUCCEEDED / FAILED / CANCELED / BLOCKED
 ### `/internal/orchestrator` - Orchestrator ドメインロジック
 
 - **task_store.go**: Task/Attempt の永続化（JSONL/JSON）
-  - `LoadTask()` - JSONL から最後の行を読み込み
-  - `SaveTask()` - JSONL にアペンド
-  - `LoadAttempt()` / `SaveAttempt()` - JSON 読み書き
 - **scheduler.go**: タスクスケジューリング
-  - `ScheduleTask()` - Task を READY 状態に更新、Queue にジョブ追加
 - **ipc/filesystem_queue.go**: ファイルベース IPC キュー
-  - `Enqueue()` - `ipc/queue/<pool-id>/<job-id>.json` に保存
-  - `ListJobs()` - キュー内ジョブ一覧
+- **詳細**: [internal/orchestrator/CLAUDE.md](internal/orchestrator/CLAUDE.md)
 
 ### `/internal/ide` - IDE バックエンドロジック
 
 - **workspace_store.go**: Workspace メタデータ管理
-  - `GetWorkspaceID()` - `sha1(projectRoot)[:12]` で ID 生成
-  - `GetWorkspaceDir()` - `~/.multiverse/workspaces/<id>/`
-  - `LoadWorkspace()` / `SaveWorkspace()` - workspace.json 読み書き
+- **詳細**: [internal/ide/CLAUDE.md](internal/ide/CLAUDE.md)
+
+### `/internal/cli` - CLI フラグ処理
+
+- **flags.go**: コマンドラインフラグ定義とパース
+- **詳細**: [internal/cli/CLAUDE.md](internal/cli/CLAUDE.md)
 
 ### `/internal/note` - Task Note 生成
 
@@ -442,14 +441,29 @@ export CODEX_API_KEY="..."
 
 | 層 | パッケージ | 責務 | 詳細 |
 |----|-----------|------|------|
-| **IDE** | ide | Workspace メタデータ管理 | workspace_store.go |
-| **IDE** | orchestrator | Task/Attempt 永続化・スケジューラ | task_store.go, scheduler.go |
+| **IDE** | ide | Workspace メタデータ管理 | [CLAUDE.md](internal/ide/CLAUDE.md) |
+| **IDE** | orchestrator | Task/Attempt 永続化・スケジューラ | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
 | **Core** | core | FSM・TaskContext・状態遷移 | [CLAUDE.md](internal/core/CLAUDE.md) |
 | **Core** | meta | LLM 通信・YAML プロトコル | [CLAUDE.md](internal/meta/CLAUDE.md) |
 | **Core** | worker | CLI 実行・Docker サンドボックス | [CLAUDE.md](internal/worker/CLAUDE.md) |
+| **Util** | cli | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
 | **Util** | note | Task Note 生成・テンプレート | [CLAUDE.md](internal/note/CLAUDE.md) |
 | **Util** | mock | テストダブル・FuncField 注入 | [CLAUDE.md](internal/mock/CLAUDE.md) |
 | **Config** | pkg/config | YAML 設定スキーマ | [CLAUDE.md](pkg/config/CLAUDE.md) |
+
+### コマンド層
+
+| パッケージ | 責務 | 詳細 |
+|-----------|------|------|
+| cmd/agent-runner | AgentRunner Core CLI | [CLAUDE.md](cmd/agent-runner/CLAUDE.md) |
+| cmd/multiverse-ide | Wails デスクトップアプリ | [CLAUDE.md](cmd/multiverse-ide/CLAUDE.md) |
+| cmd/multiverse-orchestrator | Orchestrator CLI | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
+
+### フロントエンド
+
+| パッケージ | 責務 | 詳細 |
+|-----------|------|------|
+| frontend/ide | Svelte + TypeScript UI | [CLAUDE.md](frontend/ide/CLAUDE.md) |
 
 ### テスト戦略
 

@@ -84,7 +84,7 @@ func (s *TaskStore) LoadTask(id string) (*Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	var lastLine string
 	scanner := bufio.NewScanner(file)
@@ -132,7 +132,7 @@ func (s *TaskStore) SaveTask(task *Task) error {
 	if err != nil {
 		return fmt.Errorf("failed to open task file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if _, err := f.Write(append(data, '\n')); err != nil {
 		return fmt.Errorf("failed to write task line: %w", err)
