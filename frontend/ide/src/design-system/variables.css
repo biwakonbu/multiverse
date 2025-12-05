@@ -1,0 +1,173 @@
+/**
+ * multiverse IDE デザインシステム CSS変数
+ *
+ * プレフィックス: --mv- (multiverse)
+ * 命名規則: --mv-{category}-{variant}-{state}
+ */
+
+:root {
+  /* ========================================
+     カラー: ステータス
+     ======================================== */
+
+  /* Pending - 待機中 */
+  --mv-color-status-pending-bg: #3a3a3a;
+  --mv-color-status-pending-border: #666666;
+  --mv-color-status-pending-text: #ff9800;
+
+  /* Ready - 準備完了 */
+  --mv-color-status-ready-bg: #2a2a4a;
+  --mv-color-status-ready-border: #5588ff;
+  --mv-color-status-ready-text: #5588ff;
+
+  /* Running - 実行中 */
+  --mv-color-status-running-bg: #2a3a2a;
+  --mv-color-status-running-border: #44bb44;
+  --mv-color-status-running-text: #4caf50;
+  --mv-color-status-running-glow: rgba(68, 187, 68, 0.4);
+
+  /* Succeeded - 成功 */
+  --mv-color-status-succeeded-bg: #1a3a1a;
+  --mv-color-status-succeeded-border: #228822;
+  --mv-color-status-succeeded-text: #228822;
+
+  /* Failed - 失敗 */
+  --mv-color-status-failed-bg: #3a1a1a;
+  --mv-color-status-failed-border: #cc2222;
+  --mv-color-status-failed-text: #f44336;
+
+  /* Canceled - キャンセル */
+  --mv-color-status-canceled-bg: #2a2a2a;
+  --mv-color-status-canceled-border: #555555;
+  --mv-color-status-canceled-text: #888888;
+
+  /* Blocked - ブロック */
+  --mv-color-status-blocked-bg: #3a3a1a;
+  --mv-color-status-blocked-border: #ccaa22;
+  --mv-color-status-blocked-text: #ccaa22;
+
+  /* ========================================
+     カラー: サーフェス（背景）
+     ======================================== */
+  --mv-color-surface-app: #1a1a1a;
+  --mv-color-surface-primary: #1e1e1e;
+  --mv-color-surface-secondary: #252525;
+  --mv-color-surface-hover: #2a2a2a;
+  --mv-color-surface-selected: #333333;
+  --mv-color-surface-node: #2d2d2d;
+
+  /* ========================================
+     カラー: ボーダー
+     ======================================== */
+  --mv-color-border-subtle: #333333;
+  --mv-color-border-default: #444444;
+  --mv-color-border-strong: #666666;
+  --mv-color-border-focus: #4caf50;
+
+  /* ========================================
+     カラー: テキスト
+     ======================================== */
+  --mv-color-text-primary: #eeeeee;
+  --mv-color-text-secondary: #aaaaaa;
+  --mv-color-text-muted: #888888;
+  --mv-color-text-disabled: #555555;
+
+  /* ========================================
+     スペーシング: グリッド
+     ======================================== */
+  --mv-grid-cell-width: 160px;
+  --mv-grid-cell-height: 100px;
+  --mv-grid-gap: 40px;
+
+  /* ========================================
+     スペーシング: UI
+     ======================================== */
+  --mv-spacing-xxs: 4px;
+  --mv-spacing-xs: 8px;
+  --mv-spacing-sm: 12px;
+  --mv-spacing-md: 16px;
+  --mv-spacing-lg: 24px;
+  --mv-spacing-xl: 32px;
+  --mv-spacing-xxl: 48px;
+
+  /* ========================================
+     スペーシング: レイアウト
+     ======================================== */
+  --mv-layout-toolbar-height: 56px;
+  --mv-layout-detail-panel-width: 360px;
+  --mv-layout-minimap-width: 150px;
+  --mv-layout-minimap-height: 100px;
+
+  /* ========================================
+     ボーダー半径
+     ======================================== */
+  --mv-radius-sm: 4px;
+  --mv-radius-md: 8px;
+  --mv-radius-lg: 12px;
+
+  /* ========================================
+     タイポグラフィ
+     ======================================== */
+  --mv-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mv-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --mv-font-size-xs: 10px;
+  --mv-font-size-sm: 12px;
+  --mv-font-size-md: 14px;
+  --mv-font-size-lg: 16px;
+  --mv-font-size-xl: 18px;
+  --mv-font-size-xxl: 24px;
+
+  --mv-font-weight-normal: 400;
+  --mv-font-weight-medium: 500;
+  --mv-font-weight-semibold: 600;
+  --mv-font-weight-bold: 700;
+
+  --mv-line-height-tight: 1.2;
+  --mv-line-height-normal: 1.5;
+  --mv-line-height-relaxed: 1.75;
+
+  /* ========================================
+     アニメーション: デュレーション
+     ======================================== */
+  --mv-duration-instant: 100ms;
+  --mv-duration-fast: 150ms;
+  --mv-duration-normal: 300ms;
+  --mv-duration-slow: 500ms;
+  --mv-duration-pulse: 2000ms;
+
+  /* ========================================
+     アニメーション: イージング
+     ======================================== */
+  --mv-easing-default: ease-in-out;
+  --mv-easing-in: ease-in;
+  --mv-easing-out: ease-out;
+  --mv-easing-linear: linear;
+  --mv-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ========================================
+     アニメーション: トランジション
+     ======================================== */
+  --mv-transition-hover: var(--mv-duration-fast) var(--mv-easing-out);
+  --mv-transition-state: var(--mv-duration-normal) var(--mv-easing-default);
+  --mv-transition-transform: var(--mv-duration-fast) var(--mv-easing-out);
+
+  /* ========================================
+     ズーム
+     ======================================== */
+  --mv-zoom-min: 0.25;
+  --mv-zoom-max: 3;
+  --mv-zoom-default: 1;
+}
+
+/* ========================================
+   パルスアニメーション（実行中ノード）
+   ======================================== */
+@keyframes mv-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--mv-color-status-running-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}

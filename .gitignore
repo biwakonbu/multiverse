@@ -56,3 +56,7 @@ frontend/ide/node_modules/
 
 # multiverse データディレクトリ（ローカル開発用）
 # 本番データは ~/.multiverse/ に保存される
+
+# Playwright MCP
+screenshots/
+.playwright-mcp/

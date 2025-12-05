@@ -29,3 +29,6 @@ build_error.log
 
 # Wails 自動生成ファイル（wailsjs/ はコミット対象）
 # wailsjs/ は Go バインディングの TypeScript 型定義を含むためコミットする
+
+*storybook.log
+storybook-static

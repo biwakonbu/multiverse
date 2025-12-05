@@ -1,81 +1,175 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import WorkspaceSelector from './lib/WorkspaceSelector.svelte';
-  import TaskList from './lib/TaskList.svelte';
-  import TaskDetail from './lib/TaskDetail.svelte';
   import TaskCreate from './lib/TaskCreate.svelte';
-  // @ts-ignore
-  import { ListTasks, GetWorkspace } from '../wailsjs/go/main/App';
+  import { GridCanvas } from './lib/grid';
+  import { Toolbar } from './lib/toolbar';
+  import { DetailPanel } from './lib/panel';
+  import { tasks, selectedTask, selectedTaskId } from './stores';
+  import type { Task } from './types';
+  // @ts-ignore - Wails自動生成ファイル
+  import { ListTasks } from '../wailsjs/go/main/App';
 
   let workspaceId: string | null = null;
-  let tasks: any[] = [];
-  let selectedTask: any | null = null;
-  let interval: any;
+  let showCreateModal = false;
+  let interval: ReturnType<typeof setInterval> | null = null;
 
+  // タスク一覧を読み込み
   async function loadTasks() {
     if (!workspaceId) return;
     try {
-      tasks = await ListTasks();
-      // Update selected task if it exists
-      if (selectedTask) {
-        const updated = tasks.find(t => t.id === selectedTask.id);
-        if (updated) selectedTask = updated;
-      }
+      const taskList: Task[] = await ListTasks();
+      tasks.setTasks(taskList);
     } catch (e) {
-      console.error(e);
+      console.error('タスク読み込みエラー:', e);
     }
   }
 
+  // Workspace選択時
   function onWorkspaceSelected(event: CustomEvent<string>) {
     workspaceId = event.detail;
     loadTasks();
+    // 2秒間隔でポーリング
     interval = setInterval(loadTasks, 2000);
   }
 
-  function onTaskSelect(event: CustomEvent<any>) {
-    selectedTask = event.detail;
+  // タスク作成モーダルを開く
+  function handleCreateTask() {
+    showCreateModal = true;
   }
 
+  // タスク作成完了
   function onTaskCreated() {
+    showCreateModal = false;
     loadTasks();
   }
 
+  // タスク作成キャンセル
+  function onCreateCancel() {
+    showCreateModal = false;
+  }
+
   onDestroy(() => {
-    if (interval) clearInterval(interval);
+    if (interval) {
+      clearInterval(interval);
+    }
   });
 </script>
 
-<main>
+<main class="app">
   {#if !workspaceId}
     <WorkspaceSelector on:selected={onWorkspaceSelected} />
   {:else}
-    <div class="layout">
-      <div class="sidebar">
-        <TaskList {tasks} on:select={onTaskSelect} />
-        <TaskCreate on:created={onTaskCreated} />
-      </div>
-      <TaskDetail task={selectedTask} />
+    <!-- ツールバー -->
+    <Toolbar on:createTask={handleCreateTask} />
+
+    <!-- メインコンテンツ -->
+    <div class="main-content">
+      <!-- グリッドキャンバス -->
+      <GridCanvas />
+
+      <!-- 詳細パネル -->
+      <DetailPanel />
     </div>
+
+    <!-- タスク作成モーダル -->
+    {#if showCreateModal}
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <div class="modal-overlay" on:click={onCreateCancel} role="presentation">
+        <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+        <div
+          class="modal-content"
+          on:click|stopPropagation
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-task-title"
+        >
+          <header class="modal-header">
+            <h2 id="create-task-title">新規タスク作成</h2>
+            <button class="btn-close" on:click={onCreateCancel} aria-label="閉じる">
+              ×
+            </button>
+          </header>
+          <TaskCreate on:created={onTaskCreated} />
+        </div>
+      </div>
+    {/if}
   {/if}
 </main>
 
 <style>
-  main {
+  .app {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #1e1e1e;
-    color: #eee;
-    font-family: sans-serif;
+    background: var(--mv-color-surface-app);
+    color: var(--mv-color-text-primary);
+    font-family: var(--mv-font-sans);
+    overflow: hidden;
   }
-  .layout {
+
+  .main-content {
     display: flex;
     flex: 1;
     overflow: hidden;
   }
-  .sidebar {
+
+  /* モーダルオーバーレイ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background: var(--mv-color-surface-primary);
+    border: 1px solid var(--mv-color-border-default);
+    border-radius: var(--mv-radius-lg);
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #444;
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--mv-spacing-md);
+    border-bottom: 1px solid var(--mv-color-border-subtle);
+  }
+
+  .modal-header h2 {
+    font-size: var(--mv-font-size-lg);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-primary);
+    margin: 0;
+  }
+
+  .btn-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--mv-radius-sm);
+    color: var(--mv-color-text-secondary);
+    font-size: var(--mv-font-size-xl);
+    cursor: pointer;
+    transition: background var(--mv-transition-hover),
+                color var(--mv-transition-hover);
+  }
+
+  .btn-close:hover {
+    background: var(--mv-color-surface-hover);
+    color: var(--mv-color-text-primary);
   }
 </style>

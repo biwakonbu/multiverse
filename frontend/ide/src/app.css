@@ -1,11 +1,14 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+/* デザインシステムCSS変数をインポート */
+@import './design-system/variables.css';
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+:root {
+  font-family: var(--mv-font-sans);
+  line-height: var(--mv-line-height-normal);
+  font-weight: var(--mv-font-weight-normal);
+
+  color-scheme: dark;
+  color: var(--mv-color-text-primary);
+  background-color: var(--mv-color-surface-app);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,15 +16,20 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 #app {
-  width: 100%;
+  width: 100vw;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
