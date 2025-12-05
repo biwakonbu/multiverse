@@ -129,13 +129,13 @@ wails build
 
 ```bash
 # 依存パッケージインストール
-cd frontend/ide && npm install
+cd frontend/ide && pnpm install
 
 # 開発サーバー起動
-cd frontend/ide && npm run dev
+cd frontend/ide && pnpm run dev
 
 # 本番ビルド
-cd frontend/ide && npm run build
+cd frontend/ide && pnpm run build
 ```
 
 ### テスト

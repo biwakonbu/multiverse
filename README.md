@@ -173,7 +173,7 @@ cmd/
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 # フロントエンドの依存関係をインストール
-cd frontend/ide && npm install && cd ../..
+cd frontend/ide && pnpm install && cd ../..
 
 # デスクトップアプリをビルド
 wails build
@@ -229,7 +229,7 @@ go test -v ./internal/ide/...
 go test -v ./internal/orchestrator/...
 
 # フロントエンドビルド確認
-cd frontend/ide && npm run build && cd ../..
+cd frontend/ide && pnpm run build && cd ../..
 
 # 全体ビルド確認
 wails build
@@ -240,7 +240,7 @@ wails build
 | 問題                       | 原因                   | 対策                                            |
 | -------------------------- | ---------------------- | ----------------------------------------------- |
 | Wails build が失敗         | Node.js 未インストール | `brew install node`                             |
-| フロントエンドビルドエラー | 依存関係不足           | `cd frontend/ide && npm install`                |
+| フロントエンドビルドエラー | 依存関係不足           | `cd frontend/ide && pnpm install`               |
 | Task 実行が失敗            | agent-runner がない    | `go build -o ./agent-runner ./cmd/agent-runner` |
 | Workspace が見つからない   | パーミッション         | `~/.multiverse/` の権限を確認                   |
 
