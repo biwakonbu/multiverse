@@ -19,6 +19,14 @@ type Workspace struct {
 	LastOpenedAt time.Time `json:"lastOpenedAt"`
 }
 
+// WorkspaceSummary は一覧表示用の簡易情報
+type WorkspaceSummary struct {
+	ID           string    `json:"id"`
+	DisplayName  string    `json:"displayName"`
+	ProjectRoot  string    `json:"projectRoot"`
+	LastOpenedAt time.Time `json:"lastOpenedAt"`
+}
+
 // WorkspaceStore handles workspace persistence.
 type WorkspaceStore struct {
 	BaseDir string
@@ -83,5 +91,59 @@ func (s *WorkspaceStore) SaveWorkspace(ws *Workspace) error {
 		return fmt.Errorf("failed to write workspace file: %w", err)
 	}
 
+	return nil
+}
+
+// ListWorkspaces は全ワークスペースをスキャンして一覧を返す
+// lastOpenedAt でソート（新しい順）
+func (s *WorkspaceStore) ListWorkspaces() ([]WorkspaceSummary, error) {
+	entries, err := os.ReadDir(s.BaseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []WorkspaceSummary{}, nil
+		}
+		return nil, fmt.Errorf("failed to read workspace directory: %w", err)
+	}
+
+	var summaries []WorkspaceSummary
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		id := entry.Name()
+		ws, err := s.LoadWorkspace(id)
+		if err != nil {
+			// workspace.json がないディレクトリはスキップ
+			continue
+		}
+		summaries = append(summaries, WorkspaceSummary{
+			ID:           id,
+			DisplayName:  ws.DisplayName,
+			ProjectRoot:  ws.ProjectRoot,
+			LastOpenedAt: ws.LastOpenedAt,
+		})
+	}
+
+	// lastOpenedAt でソート（新しい順）
+	for i := 0; i < len(summaries)-1; i++ {
+		for j := i + 1; j < len(summaries); j++ {
+			if summaries[j].LastOpenedAt.After(summaries[i].LastOpenedAt) {
+				summaries[i], summaries[j] = summaries[j], summaries[i]
+			}
+		}
+	}
+
+	return summaries, nil
+}
+
+// RemoveWorkspace はワークスペースディレクトリを削除する
+func (s *WorkspaceStore) RemoveWorkspace(id string) error {
+	dir := s.GetWorkspaceDir(id)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return fmt.Errorf("workspace not found: %s", id)
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		return fmt.Errorf("failed to remove workspace: %w", err)
+	}
 	return nil
 }

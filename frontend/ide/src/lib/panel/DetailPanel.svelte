@@ -44,10 +44,19 @@
     loadingAttempts = true;
     try {
       const result = await ListAttempts(taskId);
-      // 新しい順にソート
-      attempts = (result || []).sort((a: Attempt, b: Attempt) =>
-        new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
-      );
+      // 新しい順にソート（Wails生成型からローカル型へ変換）
+      attempts = (result || [])
+        .map((a): Attempt => ({
+          id: a.id,
+          taskId: a.taskId,
+          status: a.status as AttemptStatus,
+          startedAt: a.startedAt,
+          finishedAt: a.finishedAt,
+          errorSummary: a.errorSummary
+        }))
+        .sort((a, b) =>
+          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+        );
     } catch (e) {
       console.error('Attempt一覧取得エラー:', e);
       attempts = [];

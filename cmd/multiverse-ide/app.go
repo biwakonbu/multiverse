@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/ide"
@@ -56,15 +57,22 @@ func (a *App) SelectWorkspace() string {
 	ws, err := a.workspaceStore.LoadWorkspace(id)
 	if err != nil {
 		// Create new workspace if not exists
+		now := time.Now()
 		ws = &ide.Workspace{
-			Version:     "1.0",
-			ProjectRoot: selection,
-			DisplayName: selection, // Simplified for now
+			Version:      "1.0",
+			ProjectRoot:  selection,
+			DisplayName:  filepath.Base(selection),
+			CreatedAt:    now,
+			LastOpenedAt: now,
 		}
-		if err := a.workspaceStore.SaveWorkspace(ws); err != nil {
-			runtime.LogErrorf(a.ctx, "Failed to save workspace: %v", err)
-			return ""
-		}
+	} else {
+		// Update lastOpenedAt for existing workspace
+		ws.LastOpenedAt = time.Now()
+	}
+
+	if err := a.workspaceStore.SaveWorkspace(ws); err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to save workspace: %v", err)
+		return ""
 	}
 
 	a.currentWS = ws
@@ -85,6 +93,47 @@ func (a *App) GetWorkspace(id string) *ide.Workspace {
 		return nil
 	}
 	return ws
+}
+
+// ListRecentWorkspaces は最近使用したワークスペース一覧を返す
+func (a *App) ListRecentWorkspaces() []ide.WorkspaceSummary {
+	summaries, err := a.workspaceStore.ListWorkspaces()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to list workspaces: %v", err)
+		return []ide.WorkspaceSummary{}
+	}
+	return summaries
+}
+
+// OpenWorkspaceByID は既存ワークスペースを ID で開く
+func (a *App) OpenWorkspaceByID(id string) string {
+	ws, err := a.workspaceStore.LoadWorkspace(id)
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to load workspace: %v", err)
+		return ""
+	}
+
+	// Update lastOpenedAt
+	ws.LastOpenedAt = time.Now()
+	if err := a.workspaceStore.SaveWorkspace(ws); err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to save workspace: %v", err)
+		return ""
+	}
+
+	a.currentWS = ws
+
+	// Initialize TaskStore and Scheduler for this workspace
+	wsDir := a.workspaceStore.GetWorkspaceDir(id)
+	a.taskStore = orchestrator.NewTaskStore(wsDir)
+	queue := ipc.NewFilesystemQueue(wsDir)
+	a.scheduler = orchestrator.NewScheduler(a.taskStore, queue)
+
+	return id
+}
+
+// RemoveWorkspace はワークスペースを履歴から削除
+func (a *App) RemoveWorkspace(id string) error {
+	return a.workspaceStore.RemoveWorkspace(id)
 }
 
 // ListTasks returns all tasks in the current workspace.

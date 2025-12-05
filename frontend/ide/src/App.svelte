@@ -22,7 +22,18 @@
   async function loadTasks() {
     if (!workspaceId) return;
     try {
-      const taskList: Task[] = await ListTasks();
+      const result = await ListTasks();
+      // Wails生成型からローカル型へ変換
+      const taskList: Task[] = (result || []).map((t): Task => ({
+        id: t.id,
+        title: t.title,
+        status: t.status as Task['status'],
+        poolId: t.poolId,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        startedAt: t.startedAt,
+        doneAt: t.doneAt
+      }));
       log.debug("tasks loaded", { count: taskList.length });
       tasks.setTasks(taskList);
     } catch (e) {

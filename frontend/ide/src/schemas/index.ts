@@ -48,6 +48,19 @@ export const WorkspaceSchema = z.object({
 
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 
+// WorkspaceSummary スキーマ（一覧表示用）
+export const WorkspaceSummarySchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  projectRoot: z.string(),
+  lastOpenedAt: z.string().datetime({ offset: true }).or(z.string()),
+});
+
+export type WorkspaceSummary = z.infer<typeof WorkspaceSummarySchema>;
+
+// WorkspaceSummary 配列スキーマ
+export const WorkspaceSummaryArraySchema = z.array(WorkspaceSummarySchema);
+
 // グリッド配置用のタスクノード
 export const TaskNodeSchema = z.object({
   task: TaskSchema,

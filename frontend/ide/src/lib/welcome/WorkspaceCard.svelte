@@ -1,0 +1,194 @@
+<script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+  import type { WorkspaceSummary } from '../../schemas';
+
+  export let workspace: WorkspaceSummary;
+
+  const dispatch = createEventDispatcher<{
+    open: string;
+    remove: string;
+  }>();
+
+  // 日付フォーマット
+  function formatDate(dateStr: string): string {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  // パスからプロジェクト名を取得
+  function getProjectName(path: string): string {
+    return path.split('/').filter(Boolean).pop() || path;
+  }
+
+  // パスを短縮表示（ホームディレクトリを ~ に置換）
+  function shortenPath(path: string): string {
+    // 簡易的な処理（実際は環境変数から取得すべき）
+    return path.replace(/^\/Users\/[^/]+/, '~');
+  }
+
+  function handleClick() {
+    dispatch('open', workspace.id);
+  }
+
+  function handleRemove(e: MouseEvent) {
+    e.stopPropagation();
+    dispatch('remove', workspace.id);
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      dispatch('open', workspace.id);
+    }
+  }
+</script>
+
+<div
+  class="workspace-card"
+  on:click={handleClick}
+  on:keydown={handleKeydown}
+  role="button"
+  tabindex="0"
+>
+  <div class="card-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  </div>
+
+  <div class="card-content">
+    <h3 class="project-name">
+      {workspace.displayName || getProjectName(workspace.projectRoot)}
+    </h3>
+    <p class="project-path">{shortenPath(workspace.projectRoot)}</p>
+    <p class="last-opened">最終使用: {formatDate(workspace.lastOpenedAt)}</p>
+  </div>
+
+  <button
+    class="remove-btn"
+    on:click={handleRemove}
+    title="履歴から削除"
+    aria-label="履歴から削除"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  </button>
+</div>
+
+<style>
+  .workspace-card {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-md);
+    padding: var(--mv-spacing-md);
+    background: var(--mv-color-surface-secondary);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
+    border-radius: var(--mv-radius-md);
+    cursor: pointer;
+    transition: all var(--mv-transition-hover);
+  }
+
+  .workspace-card:hover {
+    background: var(--mv-color-surface-hover);
+    border-color: var(--mv-color-border-default);
+    transform: var(--mv-transform-hover-lift);
+  }
+
+  .workspace-card:focus {
+    outline: none;
+    box-shadow: var(--mv-shadow-focus);
+  }
+
+  .card-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mv-color-interactive-primary);
+  }
+
+  .card-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .card-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .project-name {
+    font-size: var(--mv-font-size-md);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-primary);
+    margin: 0 0 var(--mv-spacing-xxs) 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .project-path {
+    font-size: var(--mv-font-size-sm);
+    color: var(--mv-color-text-muted);
+    margin: 0 0 var(--mv-spacing-xxs) 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mv-font-mono);
+  }
+
+  .last-opened {
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-disabled);
+    margin: 0;
+  }
+
+  .remove-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--mv-radius-sm);
+    color: var(--mv-color-text-muted);
+    cursor: pointer;
+    transition: all var(--mv-transition-hover);
+    opacity: 0;
+  }
+
+  .workspace-card:hover .remove-btn {
+    opacity: 1;
+  }
+
+  .remove-btn:hover {
+    background: var(--mv-color-surface-selected);
+    color: var(--mv-color-interactive-danger);
+  }
+
+  .remove-btn:focus {
+    outline: none;
+    opacity: 1;
+    box-shadow: var(--mv-shadow-focus);
+  }
+
+  .remove-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+</style>
