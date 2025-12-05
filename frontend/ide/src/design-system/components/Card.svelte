@@ -54,12 +54,12 @@
 
   .variant-elevated {
     background: var(--mv-color-surface-secondary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--mv-shadow-card);
   }
 
   .variant-outlined {
     background: transparent;
-    border: 1px solid var(--mv-color-border-default);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
   }
 
   /* パディング */
@@ -81,7 +81,7 @@
 
   /* 選択状態 */
   .selected {
-    border: 2px solid var(--mv-color-border-focus);
+    border: var(--mv-border-width-default) solid var(--mv-color-border-focus);
   }
 
   /* インタラクティブ */
@@ -94,7 +94,7 @@
   }
 
   .interactive:focus-visible {
-    outline: 2px solid var(--mv-color-border-focus);
-    outline-offset: 2px;
+    outline: var(--mv-focus-ring-width) solid var(--mv-color-border-focus);
+    outline-offset: var(--mv-focus-ring-offset);
   }
 </style>

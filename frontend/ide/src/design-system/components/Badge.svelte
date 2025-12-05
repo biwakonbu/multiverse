@@ -44,12 +44,12 @@
     font-family: var(--mv-font-sans);
     font-weight: var(--mv-font-weight-medium);
     text-transform: uppercase;
-    letter-spacing: 0.02em;
+    letter-spacing: var(--mv-letter-spacing-widest);
   }
 
   /* サイズ */
   .size-small {
-    padding: 2px var(--mv-spacing-xs);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     font-size: var(--mv-font-size-xs);
   }
 
@@ -61,51 +61,51 @@
   /* ステータス別スタイル */
   .status-pending {
     background: var(--mv-color-status-pending-bg);
-    border: 1px solid var(--mv-color-status-pending-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-pending-border);
     color: var(--mv-color-status-pending-text);
   }
 
   .status-ready {
     background: var(--mv-color-status-ready-bg);
-    border: 1px solid var(--mv-color-status-ready-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-ready-border);
     color: var(--mv-color-status-ready-text);
   }
 
   .status-running {
     background: var(--mv-color-status-running-bg);
-    border: 1px solid var(--mv-color-status-running-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-running-border);
     color: var(--mv-color-status-running-text);
   }
 
   .status-succeeded {
     background: var(--mv-color-status-succeeded-bg);
-    border: 1px solid var(--mv-color-status-succeeded-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-succeeded-border);
     color: var(--mv-color-status-succeeded-text);
   }
 
   .status-failed {
     background: var(--mv-color-status-failed-bg);
-    border: 1px solid var(--mv-color-status-failed-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-failed-border);
     color: var(--mv-color-status-failed-text);
   }
 
   .status-canceled {
     background: var(--mv-color-status-canceled-bg);
-    border: 1px solid var(--mv-color-status-canceled-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-canceled-border);
     color: var(--mv-color-status-canceled-text);
   }
 
   .status-blocked {
     background: var(--mv-color-status-blocked-bg);
-    border: 1px solid var(--mv-color-status-blocked-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-blocked-border);
     color: var(--mv-color-status-blocked-text);
   }
 
   /* パルスドット（Running 状態用） */
   .pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+    width: var(--mv-indicator-size-xs);
+    height: var(--mv-indicator-size-xs);
+    border-radius: var(--mv-radius-full);
     background: var(--mv-color-status-running-text);
     animation: pulse var(--mv-duration-pulse) var(--mv-easing-default) infinite;
   }

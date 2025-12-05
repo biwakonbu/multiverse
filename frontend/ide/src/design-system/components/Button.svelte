@@ -59,7 +59,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--mv-spacing-xs);
-    border: 1px solid transparent;
+    border: var(--mv-border-width-thin) solid transparent;
     border-radius: var(--mv-radius-md);
     font-family: var(--mv-font-sans);
     font-weight: var(--mv-font-weight-medium);
@@ -70,19 +70,19 @@
 
   /* サイズ */
   .size-small {
-    height: 28px;
+    height: var(--mv-input-height-sm);
     padding: 0 var(--mv-spacing-sm);
     font-size: var(--mv-font-size-sm);
   }
 
   .size-medium {
-    height: 36px;
+    height: var(--mv-input-height-md);
     padding: 0 var(--mv-spacing-md);
     font-size: var(--mv-font-size-md);
   }
 
   .size-large {
-    height: 44px;
+    height: var(--mv-input-height-lg);
     padding: 0 var(--mv-spacing-lg);
     font-size: var(--mv-font-size-lg);
   }
@@ -143,7 +143,7 @@
 
   /* フォーカス状態 */
   .button:focus-visible {
-    outline: 2px solid var(--mv-color-border-focus);
-    outline-offset: 2px;
+    outline: var(--mv-focus-ring-width) solid var(--mv-color-border-focus);
+    outline-offset: var(--mv-focus-ring-offset);
   }
 </style>

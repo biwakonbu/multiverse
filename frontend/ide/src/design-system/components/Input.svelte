@@ -104,7 +104,7 @@
   .input {
     font-family: var(--mv-font-sans);
     background: var(--mv-color-surface-primary);
-    border: 1px solid var(--mv-color-border-default);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
     border-radius: var(--mv-radius-md);
     color: var(--mv-color-text-primary);
     transition: var(--mv-transition-hover);
@@ -120,7 +120,7 @@
   }
 
   .size-small .input {
-    height: 28px;
+    height: var(--mv-input-height-sm);
     padding: 0 var(--mv-spacing-xs);
     font-size: var(--mv-font-size-sm);
   }
@@ -130,7 +130,7 @@
   }
 
   .size-medium .input {
-    height: 36px;
+    height: var(--mv-input-height-md);
     padding: 0 var(--mv-spacing-sm);
     font-size: var(--mv-font-size-md);
   }
@@ -140,7 +140,7 @@
   }
 
   .size-large .input {
-    height: 44px;
+    height: var(--mv-input-height-lg);
     padding: 0 var(--mv-spacing-md);
     font-size: var(--mv-font-size-lg);
   }
@@ -153,7 +153,7 @@
   .input:focus {
     outline: none;
     border-color: var(--mv-color-border-focus);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    box-shadow: var(--mv-shadow-focus);
   }
 
   .input.error {
@@ -161,7 +161,7 @@
   }
 
   .input.error:focus {
-    box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+    box-shadow: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-error);
   }
 
   .input.disabled {

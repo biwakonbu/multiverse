@@ -142,9 +142,9 @@
 
   .grid-background {
     position: absolute;
-    inset: -1000px;
-    width: calc(100% + 2000px);
-    height: calc(100% + 2000px);
+    inset: calc(var(--mv-canvas-overflow-size) * -1);
+    width: calc(100% + var(--mv-canvas-overflow-size) * 2);
+    height: calc(100% + var(--mv-canvas-overflow-size) * 2);
     transform-origin: 0 0;
     pointer-events: none;
   }

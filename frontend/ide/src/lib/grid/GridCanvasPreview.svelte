@@ -154,7 +154,7 @@
           height="140"
           patternUnits="userSpaceOnUse"
         >
-          <circle cx="100" cy="70" r="1.5" fill="var(--mv-color-border-subtle, #333333)" />
+          <circle cx="100" cy="70" r="1.5" fill="var(--mv-color-border-subtle)" />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#grid-dots)" />
@@ -202,12 +202,12 @@
   .canvas-container {
     position: relative;
     width: 100%;
-    height: 500px;
+    height: var(--mv-canvas-preview-height);
     overflow: hidden;
-    background: var(--mv-color-surface-app, #1a1a1a);
+    background: var(--mv-color-surface-app);
     cursor: grab;
     touch-action: none;
-    border-radius: var(--mv-radius-md, 8px);
+    border-radius: var(--mv-radius-md);
   }
 
   .canvas-container:active {
@@ -215,15 +215,15 @@
   }
 
   .canvas-container:focus {
-    outline: 2px solid var(--mv-color-border-focus, #4caf50);
-    outline-offset: -2px;
+    outline: var(--mv-focus-ring-width) solid var(--mv-color-border-focus);
+    outline-offset: calc(var(--mv-focus-ring-offset) * -1);
   }
 
   .grid-background {
     position: absolute;
-    inset: -1000px;
-    width: calc(100% + 2000px);
-    height: calc(100% + 2000px);
+    inset: calc(var(--mv-canvas-overflow-size) * -1);
+    width: calc(100% + var(--mv-canvas-overflow-size) * 2);
+    height: calc(100% + var(--mv-canvas-overflow-size) * 2);
     transform-origin: 0 0;
     pointer-events: none;
   }
@@ -246,32 +246,32 @@
 
   .zoom-indicator {
     position: absolute;
-    bottom: var(--mv-spacing-md, 16px);
-    right: var(--mv-spacing-md, 16px);
-    background: var(--mv-color-surface-secondary, #252525);
-    color: var(--mv-color-text-secondary, #aaaaaa);
-    padding: var(--mv-spacing-xxs, 4px) var(--mv-spacing-xs, 8px);
-    border-radius: var(--mv-radius-sm, 4px);
-    font-size: var(--mv-font-size-xs, 10px);
-    font-family: var(--mv-font-mono, monospace);
+    bottom: var(--mv-spacing-md);
+    right: var(--mv-spacing-md);
+    background: var(--mv-color-surface-secondary);
+    color: var(--mv-color-text-secondary);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-sm);
+    font-size: var(--mv-font-size-xs);
+    font-family: var(--mv-font-mono);
     pointer-events: none;
     opacity: 0.8;
   }
 
   .controls-hint {
     position: absolute;
-    bottom: var(--mv-spacing-md, 16px);
-    left: var(--mv-spacing-md, 16px);
+    bottom: var(--mv-spacing-md);
+    left: var(--mv-spacing-md);
     display: flex;
-    gap: var(--mv-spacing-sm, 12px);
-    font-size: var(--mv-font-size-xs, 10px);
-    color: var(--mv-color-text-muted, #888888);
+    gap: var(--mv-spacing-sm);
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
     pointer-events: none;
   }
 
   .controls-hint span {
-    background: var(--mv-color-surface-secondary, #252525);
-    padding: 2px 6px;
-    border-radius: var(--mv-radius-sm, 4px);
+    background: var(--mv-color-surface-secondary);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-sm);
   }
 </style>

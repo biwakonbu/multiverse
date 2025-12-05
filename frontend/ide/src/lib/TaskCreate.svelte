@@ -127,7 +127,7 @@
     font-family: var(--mv-font-sans);
     color: var(--mv-color-text-primary);
     background: var(--mv-color-surface-secondary);
-    border: 1px solid var(--mv-color-border-default);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
     border-radius: var(--mv-radius-sm);
     transition: border-color var(--mv-transition-hover),
                 box-shadow var(--mv-transition-hover);
@@ -137,7 +137,7 @@
   .form-select:focus {
     outline: none;
     border-color: var(--mv-color-border-focus);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    box-shadow: var(--mv-shadow-focus);
   }
 
   .form-input::placeholder {
@@ -199,7 +199,7 @@
 
   .btn-primary {
     background: var(--mv-color-status-running-bg);
-    border: 1px solid var(--mv-color-status-running-border);
+    border: var(--mv-border-width-thin) solid var(--mv-color-status-running-border);
     color: var(--mv-color-status-running-text);
   }
 
@@ -210,7 +210,7 @@
 
   .btn-primary:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+    box-shadow: var(--mv-shadow-focus);
   }
 
   .btn:disabled {
@@ -220,11 +220,11 @@
 
   /* スピナー */
   .spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid transparent;
+    width: var(--mv-icon-size-xs);
+    height: var(--mv-icon-size-xs);
+    border: var(--mv-border-width-default) solid transparent;
     border-top-color: currentColor;
-    border-radius: 50%;
+    border-radius: var(--mv-radius-full);
     animation: spin 0.8s linear infinite;
   }
 

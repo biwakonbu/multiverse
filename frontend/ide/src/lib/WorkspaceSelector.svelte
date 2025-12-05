@@ -74,7 +74,7 @@
     align-items: center;
     gap: var(--mv-spacing-xxl);
     text-align: center;
-    max-width: 480px;
+    max-width: var(--mv-container-max-width-sm);
   }
 
   /* ロゴセクション */
@@ -90,7 +90,7 @@
     font-weight: var(--mv-font-weight-bold);
     color: var(--mv-color-text-primary);
     margin: 0;
-    letter-spacing: -0.5px;
+    letter-spacing: var(--mv-letter-spacing-tight);
   }
 
   .app-subtitle {
@@ -130,12 +130,12 @@
   }
 
   .btn:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: var(--mv-transform-press);
   }
 
   .btn-primary {
     background: var(--mv-color-status-ready-bg);
-    border: 2px solid var(--mv-color-status-ready-border);
+    border: var(--mv-border-width-default) solid var(--mv-color-status-ready-border);
     color: var(--mv-color-status-ready-text);
   }
 
@@ -146,7 +146,7 @@
 
   .btn-primary:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(85, 136, 255, 0.3);
+    box-shadow: var(--mv-shadow-selected);
   }
 
   .btn:disabled {
@@ -155,17 +155,17 @@
   }
 
   .icon {
-    width: 20px;
-    height: 20px;
+    width: var(--mv-icon-size-md);
+    height: var(--mv-icon-size-md);
   }
 
   /* スピナー */
   .spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
+    width: var(--mv-icon-size-sm);
+    height: var(--mv-icon-size-sm);
+    border: var(--mv-border-width-default) solid transparent;
     border-top-color: currentColor;
-    border-radius: 50%;
+    border-radius: var(--mv-radius-full);
     animation: spin 0.8s linear infinite;
   }
 
@@ -178,7 +178,7 @@
   /* ヒント */
   .hints {
     padding-top: var(--mv-spacing-lg);
-    border-top: 1px solid var(--mv-color-border-subtle);
+    border-top: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
   }
 
   .hint {

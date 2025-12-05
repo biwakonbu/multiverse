@@ -1,0 +1,451 @@
+{
+  "extends": [
+    "stylelint-config-standard",
+    "stylelint-config-html/svelte"
+  ],
+  "plugins": [
+    "stylelint-declaration-strict-value"
+  ],
+  "rules": {
+    "color-no-hex": true,
+    "color-named": "never",
+    "import-notation": null,
+    "declaration-empty-line-before": null,
+    "custom-property-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "no-descending-specificity": null,
+    "value-keyword-case": null,
+    "color-function-notation": null,
+    "color-function-alias-notation": null,
+    "alpha-value-notation": null,
+    "declaration-property-value-keyword-no-deprecated": null,
+    "function-disallowed-list": [
+      "rgb",
+      "rgba",
+      "hsl",
+      "hsla",
+      "hwb",
+      "lab",
+      "lch",
+      "oklab",
+      "oklch"
+    ],
+    "scale-unlimited/declaration-strict-value": [
+      [
+        "/color$/",
+        "fill",
+        "stroke",
+        "background",
+        "background-color",
+        "border-color",
+        "border-top-color",
+        "border-right-color",
+        "border-bottom-color",
+        "border-left-color",
+        "outline-color",
+        "box-shadow",
+        "text-shadow",
+        "font-size",
+        "font-weight",
+        "font-family",
+        "line-height",
+        "letter-spacing",
+        "width",
+        "height",
+        "min-width",
+        "min-height",
+        "max-width",
+        "max-height",
+        "padding",
+        "padding-top",
+        "padding-right",
+        "padding-bottom",
+        "padding-left",
+        "margin",
+        "margin-top",
+        "margin-right",
+        "margin-bottom",
+        "margin-left",
+        "gap",
+        "row-gap",
+        "column-gap",
+        "border-width",
+        "border-top-width",
+        "border-right-width",
+        "border-bottom-width",
+        "border-left-width",
+        "border-radius",
+        "border-top-left-radius",
+        "border-top-right-radius",
+        "border-bottom-left-radius",
+        "border-bottom-right-radius",
+        "outline-width",
+        "outline-offset",
+        "top",
+        "right",
+        "bottom",
+        "left",
+        "inset",
+        "transform"
+      ],
+      {
+        "ignoreValues": {
+          "": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "revert",
+            "none",
+            "transparent",
+            "currentColor",
+            "100%",
+            "50%"
+          ],
+          "/color$/": [
+            "inherit",
+            "initial",
+            "unset",
+            "transparent",
+            "currentColor"
+          ],
+          "background": [
+            "none",
+            "transparent",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "background-color": [
+            "transparent",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "box-shadow": [
+            "none",
+            "inherit",
+            "initial",
+            "unset",
+            "0"
+          ],
+          "text-shadow": [
+            "none",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "font-family": [
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "font-weight": [
+            "inherit",
+            "initial",
+            "unset",
+            "normal",
+            "bold",
+            "bolder",
+            "lighter"
+          ],
+          "line-height": [
+            "inherit",
+            "initial",
+            "unset",
+            "normal",
+            "1"
+          ],
+          "letter-spacing": [
+            "inherit",
+            "initial",
+            "unset",
+            "normal"
+          ],
+          "width": [
+            "auto",
+            "fit-content",
+            "max-content",
+            "min-content",
+            "100%",
+            "100vw"
+          ],
+          "height": [
+            "auto",
+            "fit-content",
+            "max-content",
+            "min-content",
+            "100%",
+            "100vh"
+          ],
+          "min-width": [
+            "0",
+            "auto",
+            "fit-content",
+            "max-content",
+            "min-content"
+          ],
+          "min-height": [
+            "0",
+            "auto",
+            "fit-content",
+            "max-content",
+            "min-content",
+            "100vh"
+          ],
+          "max-width": [
+            "none",
+            "fit-content",
+            "max-content",
+            "min-content",
+            "100%"
+          ],
+          "max-height": [
+            "none",
+            "fit-content",
+            "max-content",
+            "min-content",
+            "100%"
+          ],
+          "padding": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "padding-top": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "padding-right": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "padding-bottom": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "padding-left": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "margin": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "margin-top": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "margin-right": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "margin-bottom": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "margin-left": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "gap": [
+            "0",
+            "normal",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "row-gap": [
+            "0",
+            "normal",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "column-gap": [
+            "0",
+            "normal",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-top-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-right-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-bottom-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-left-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-radius": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-top-left-radius": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-top-right-radius": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-bottom-left-radius": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "border-bottom-right-radius": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "outline-width": [
+            "0",
+            "thin",
+            "medium",
+            "thick",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "outline-offset": [
+            "0",
+            "inherit",
+            "initial",
+            "unset"
+          ],
+          "top": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ],
+          "right": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ],
+          "bottom": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ],
+          "left": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ],
+          "inset": [
+            "0",
+            "auto",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ],
+          "transform": [
+            "none",
+            "inherit",
+            "initial",
+            "unset",
+            "/^\\{.+\\}/"
+          ]
+        },
+        "expandShorthand": true,
+        "recurseLonghand": true,
+        "message": "\"${property}\" \u306b\u76f4\u63a5\u5024 \"${value}\" \u306f\u4f7f\u7528\u7981\u6b62\u3002CSS\u5909\u6570 var(--mv-*) \u3092\u4f7f\u7528\u3057\u3066\u304f\u3060\u3055\u3044\u3002"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/variables.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null,
+        "scale-unlimited/declaration-strict-value": null
+      }
+    }
+  ]
+}

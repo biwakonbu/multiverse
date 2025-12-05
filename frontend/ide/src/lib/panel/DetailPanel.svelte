@@ -127,7 +127,7 @@
   .detail-panel {
     width: var(--mv-layout-detail-panel-width);
     background: var(--mv-color-surface-primary);
-    border-left: 1px solid var(--mv-color-border-subtle);
+    border-left: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -145,7 +145,7 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--mv-spacing-md);
-    border-bottom: 1px solid var(--mv-color-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
   }
 
   .panel-title {
@@ -156,8 +156,8 @@
   }
 
   .btn-close {
-    width: 28px;
-    height: 28px;
+    width: var(--mv-input-height-sm);
+    height: var(--mv-input-height-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -211,7 +211,7 @@
     font-size: var(--mv-font-size-xs);
     font-weight: var(--mv-font-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
   }
 
   .status-badge.status-pending {
@@ -263,7 +263,7 @@
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
     font-size: var(--mv-font-size-sm);
     font-weight: var(--mv-font-weight-medium);
-    border: 1px solid var(--mv-color-border-default);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
     border-radius: var(--mv-radius-sm);
     cursor: pointer;
     transition: background var(--mv-transition-hover),
@@ -287,7 +287,7 @@
 
   /* メタ情報セクション */
   .meta-section {
-    border-top: 1px solid var(--mv-color-border-subtle);
+    border-top: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
     padding-top: var(--mv-spacing-md);
   }
 
@@ -296,7 +296,7 @@
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: var(--mv-letter-spacing-wider);
     margin: 0 0 var(--mv-spacing-sm);
   }
 

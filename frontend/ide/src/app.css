@@ -22,7 +22,7 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: var(--mv-container-max-width-xs);
   min-height: 100vh;
   overflow: hidden;
 }

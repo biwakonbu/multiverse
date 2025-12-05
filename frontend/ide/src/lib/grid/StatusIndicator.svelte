@@ -52,62 +52,62 @@
 
   .dot {
     position: relative;
-    border-radius: 50%;
+    border-radius: var(--mv-radius-full);
     flex-shrink: 0;
   }
 
   /* サイズバリエーション */
   .size-small .dot {
-    width: 8px;
-    height: 8px;
+    width: var(--mv-indicator-size-sm);
+    height: var(--mv-indicator-size-sm);
   }
 
   .size-medium .dot {
-    width: 12px;
-    height: 12px;
+    width: var(--mv-indicator-size-md);
+    height: var(--mv-indicator-size-md);
   }
 
   .size-large .dot {
-    width: 16px;
-    height: 16px;
+    width: var(--mv-indicator-size-lg);
+    height: var(--mv-indicator-size-lg);
   }
 
   /* ステータス別カラー */
   .status-pending .dot {
-    background: var(--mv-color-status-pending-text, #ff9800);
+    background: var(--mv-color-status-pending-text);
   }
 
   .status-ready .dot {
-    background: var(--mv-color-status-ready-text, #5588ff);
+    background: var(--mv-color-status-ready-text);
   }
 
   .status-running .dot {
-    background: var(--mv-color-status-running-text, #4caf50);
+    background: var(--mv-color-status-running-text);
   }
 
   .status-succeeded .dot {
-    background: var(--mv-color-status-succeeded-text, #228822);
+    background: var(--mv-color-status-succeeded-text);
   }
 
   .status-failed .dot {
-    background: var(--mv-color-status-failed-text, #f44336);
+    background: var(--mv-color-status-failed-text);
   }
 
   .status-canceled .dot {
-    background: var(--mv-color-status-canceled-text, #888888);
+    background: var(--mv-color-status-canceled-text);
   }
 
   .status-blocked .dot {
-    background: var(--mv-color-status-blocked-text, #ccaa22);
+    background: var(--mv-color-status-blocked-text);
   }
 
   /* パルスリングアニメーション */
   .pulse-ring {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
-    background: var(--mv-color-status-running-text, #4caf50);
-    animation: pulse-ring var(--mv-animation-pulse-duration, 2000ms) ease-in-out infinite;
+    border-radius: var(--mv-radius-full);
+    background: var(--mv-color-status-running-text);
+    animation: pulse-ring var(--mv-duration-pulse) ease-in-out infinite;
   }
 
   @keyframes pulse-ring {
@@ -123,24 +123,24 @@
 
   /* ラベル */
   .label {
-    font-size: var(--mv-font-size-sm, 12px);
-    color: var(--mv-color-text-secondary, #aaaaaa);
+    font-size: var(--mv-font-size-sm);
+    color: var(--mv-color-text-secondary);
   }
 
   .size-small .label {
-    font-size: var(--mv-font-size-xs, 10px);
+    font-size: var(--mv-font-size-xs);
   }
 
   .size-large .label {
-    font-size: var(--mv-font-size-md, 14px);
+    font-size: var(--mv-font-size-md);
   }
 
   /* ステータス別ラベルカラー */
-  .status-pending .label { color: var(--mv-color-status-pending-text, #ff9800); }
-  .status-ready .label { color: var(--mv-color-status-ready-text, #5588ff); }
-  .status-running .label { color: var(--mv-color-status-running-text, #4caf50); }
-  .status-succeeded .label { color: var(--mv-color-status-succeeded-text, #228822); }
-  .status-failed .label { color: var(--mv-color-status-failed-text, #f44336); }
-  .status-canceled .label { color: var(--mv-color-status-canceled-text, #888888); }
-  .status-blocked .label { color: var(--mv-color-status-blocked-text, #ccaa22); }
+  .status-pending .label { color: var(--mv-color-status-pending-text); }
+  .status-ready .label { color: var(--mv-color-status-ready-text); }
+  .status-running .label { color: var(--mv-color-status-running-text); }
+  .status-succeeded .label { color: var(--mv-color-status-succeeded-text); }
+  .status-failed .label { color: var(--mv-color-status-failed-text); }
+  .status-canceled .label { color: var(--mv-color-status-canceled-text); }
+  .status-blocked .label { color: var(--mv-color-status-blocked-text); }
 </style>

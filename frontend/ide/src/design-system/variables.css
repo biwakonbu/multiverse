@@ -3,74 +3,162 @@
  *
  * プレフィックス: --mv- (multiverse)
  * 命名規則: --mv-{category}-{variant}-{state}
+ *
+ * テーマ: Nord Deep ベース
+ * - 深い背景にパステル UI が輝くデザイン
+ * - 控えめなグロー効果
+ * - ゲーム的な UI（Factorio 風）
+ *
+ * トークン階層:
+ * 1. プリミティブカラー（生の色値）
+ * 2. セマンティックカラー（用途別）
+ * 3. コンポーネントカラー（UI要素別）
  */
 
 :root {
   /* ========================================
-     カラー: ステータス
+     プリミティブカラー: Nord パレット
      ======================================== */
 
-  /* Pending - 待機中 */
-  --mv-color-status-pending-bg: #3a3a3a;
-  --mv-color-status-pending-border: #666666;
-  --mv-color-status-pending-text: #ff9800;
+  /* Polar Night（深い背景） */
+  --mv-primitive-polar-night-0: #2e3440;
+  --mv-primitive-polar-night-1: #3b4252;
+  --mv-primitive-polar-night-2: #434c5e;
+  --mv-primitive-polar-night-3: #4c566a;
 
-  /* Ready - 準備完了 */
-  --mv-color-status-ready-bg: #2a2a4a;
-  --mv-color-status-ready-border: #5588ff;
-  --mv-color-status-ready-text: #5588ff;
+  /* Snow Storm（明るいテキスト） */
+  --mv-primitive-snow-storm-0: #d8dee9;
+  --mv-primitive-snow-storm-1: #e5e9f0;
+  --mv-primitive-snow-storm-2: #eceff4;
 
-  /* Running - 実行中 */
-  --mv-color-status-running-bg: #2a3a2a;
-  --mv-color-status-running-border: #44bb44;
-  --mv-color-status-running-text: #4caf50;
-  --mv-color-status-running-glow: rgba(68, 187, 68, 0.4);
+  /* Frost（青系アクセント） */
+  --mv-primitive-frost-0: #8fbcbb;
+  --mv-primitive-frost-1: #88c0d0;
+  --mv-primitive-frost-2: #81a1c1;
+  --mv-primitive-frost-3: #5e81ac;
 
-  /* Succeeded - 成功 */
-  --mv-color-status-succeeded-bg: #1a3a1a;
-  --mv-color-status-succeeded-border: #228822;
-  --mv-color-status-succeeded-text: #228822;
+  /* Aurora（ステータス色） */
+  --mv-primitive-aurora-red: #bf616a;
+  --mv-primitive-aurora-orange: #d08770;
+  --mv-primitive-aurora-yellow: #ebcb8b;
+  --mv-primitive-aurora-green: #a3be8c;
+  --mv-primitive-aurora-purple: #b48ead;
 
-  /* Failed - 失敗 */
-  --mv-color-status-failed-bg: #3a1a1a;
-  --mv-color-status-failed-border: #cc2222;
-  --mv-color-status-failed-text: #f44336;
+  /* Nord Deep 拡張（標準より深い背景） */
+  --mv-primitive-deep-0: #16181e;
+  --mv-primitive-deep-1: #1c1f26;
+  --mv-primitive-deep-2: #242832;
+  --mv-primitive-deep-3: #272b36;
+  --mv-primitive-deep-4: #2d323e;
+  --mv-primitive-deep-5: #363c4a;
 
-  /* Canceled - キャンセル */
-  --mv-color-status-canceled-bg: #2a2a2a;
-  --mv-color-status-canceled-border: #555555;
-  --mv-color-status-canceled-text: #888888;
+  /* パステル化した Aurora */
+  --mv-primitive-pastel-red: #c97b7b;
+  --mv-primitive-pastel-orange: #d19a66;
+  --mv-primitive-pastel-yellow: #d9c28a;
+  --mv-primitive-pastel-green: #8fbf9f;
+  --mv-primitive-pastel-green-muted: #7fa387;
+  --mv-primitive-pastel-green-dark: #6b8f71;
 
-  /* Blocked - ブロック */
-  --mv-color-status-blocked-bg: #3a3a1a;
-  --mv-color-status-blocked-border: #ccaa22;
-  --mv-color-status-blocked-text: #ccaa22;
+  /* ニュートラル（グレースケール） */
+  --mv-primitive-neutral-400: #6b7280;
+  --mv-primitive-neutral-500: #5c6677;
+  --mv-primitive-neutral-600: #a5afbf;
 
   /* ========================================
-     カラー: サーフェス（背景）
+     セマンティックカラー: サーフェス（背景）
      ======================================== */
-  --mv-color-surface-app: #1a1a1a;
-  --mv-color-surface-primary: #1e1e1e;
-  --mv-color-surface-secondary: #252525;
-  --mv-color-surface-hover: #2a2a2a;
-  --mv-color-surface-selected: #333333;
-  --mv-color-surface-node: #2d2d2d;
+  --mv-color-surface-app: var(--mv-primitive-deep-0);
+  --mv-color-surface-primary: var(--mv-primitive-deep-1);
+  --mv-color-surface-secondary: var(--mv-primitive-deep-2);
+  --mv-color-surface-hover: var(--mv-primitive-deep-4);
+  --mv-color-surface-selected: var(--mv-primitive-deep-5);
+  --mv-color-surface-node: var(--mv-primitive-deep-3);
+  --mv-color-surface-overlay: rgba(0, 0, 0, 0.6);
 
   /* ========================================
-     カラー: ボーダー
+     セマンティックカラー: ボーダー
      ======================================== */
-  --mv-color-border-subtle: #333333;
-  --mv-color-border-default: #444444;
-  --mv-color-border-strong: #666666;
-  --mv-color-border-focus: #4caf50;
+  --mv-color-border-subtle: var(--mv-primitive-polar-night-1);
+  --mv-color-border-default: var(--mv-primitive-polar-night-2);
+  --mv-color-border-strong: var(--mv-primitive-polar-night-3);
+  --mv-color-border-focus: var(--mv-primitive-frost-1);
 
   /* ========================================
-     カラー: テキスト
+     セマンティックカラー: テキスト
      ======================================== */
-  --mv-color-text-primary: #eeeeee;
-  --mv-color-text-secondary: #aaaaaa;
-  --mv-color-text-muted: #888888;
-  --mv-color-text-disabled: #555555;
+  --mv-color-text-primary: var(--mv-primitive-snow-storm-2);
+  --mv-color-text-secondary: var(--mv-primitive-snow-storm-0);
+  --mv-color-text-muted: var(--mv-primitive-neutral-600);
+  --mv-color-text-disabled: var(--mv-primitive-neutral-500);
+
+  /* ========================================
+     セマンティックカラー: グロー・シャドウ
+     ======================================== */
+  --mv-color-glow-focus: rgba(136, 192, 208, 0.3);
+  --mv-color-glow-selected: rgba(136, 192, 208, 0.4);
+  --mv-color-glow-error: rgba(191, 97, 106, 0.3);
+  --mv-color-glow-running: rgba(143, 191, 159, 0.35);
+  --mv-color-shadow-elevated: rgba(0, 0, 0, 0.3);
+  --mv-color-shadow-deep: rgba(0, 0, 0, 0.4);
+
+  /* ========================================
+     セマンティックカラー: インタラクティブ
+     ======================================== */
+  --mv-color-interactive-primary: var(--mv-primitive-frost-1);
+  --mv-color-interactive-primary-hover: var(--mv-primitive-frost-0);
+  --mv-color-interactive-secondary: var(--mv-primitive-frost-2);
+  --mv-color-interactive-danger: var(--mv-primitive-aurora-red);
+
+  /* ========================================
+     ステータスカラー: Pending（待機中）
+     ======================================== */
+  --mv-color-status-pending-bg: var(--mv-primitive-deep-4);
+  --mv-color-status-pending-border: var(--mv-primitive-polar-night-3);
+  --mv-color-status-pending-text: var(--mv-primitive-pastel-orange);
+
+  /* ========================================
+     ステータスカラー: Ready（準備完了）
+     ======================================== */
+  --mv-color-status-ready-bg: #1e2a3a;
+  --mv-color-status-ready-border: var(--mv-primitive-frost-2);
+  --mv-color-status-ready-text: var(--mv-primitive-frost-1);
+
+  /* ========================================
+     ステータスカラー: Running（実行中）
+     ======================================== */
+  --mv-color-status-running-bg: #1e2d26;
+  --mv-color-status-running-border: var(--mv-primitive-pastel-green);
+  --mv-color-status-running-text: var(--mv-primitive-aurora-green);
+  --mv-color-status-running-glow: var(--mv-color-glow-running);
+
+  /* ========================================
+     ステータスカラー: Succeeded（成功）
+     ======================================== */
+  --mv-color-status-succeeded-bg: #1a2822;
+  --mv-color-status-succeeded-border: var(--mv-primitive-pastel-green-dark);
+  --mv-color-status-succeeded-text: var(--mv-primitive-pastel-green-muted);
+
+  /* ========================================
+     ステータスカラー: Failed（失敗）
+     ======================================== */
+  --mv-color-status-failed-bg: #2d1f22;
+  --mv-color-status-failed-border: var(--mv-primitive-pastel-red);
+  --mv-color-status-failed-text: var(--mv-primitive-aurora-red);
+
+  /* ========================================
+     ステータスカラー: Canceled（キャンセル）
+     ======================================== */
+  --mv-color-status-canceled-bg: #22252d;
+  --mv-color-status-canceled-border: var(--mv-primitive-polar-night-1);
+  --mv-color-status-canceled-text: var(--mv-primitive-neutral-400);
+
+  /* ========================================
+     ステータスカラー: Blocked（ブロック）
+     ======================================== */
+  --mv-color-status-blocked-bg: #2d2a1e;
+  --mv-color-status-blocked-border: var(--mv-primitive-pastel-yellow);
+  --mv-color-status-blocked-text: var(--mv-primitive-aurora-yellow);
 
   /* ========================================
      スペーシング: グリッド
@@ -104,6 +192,79 @@
   --mv-radius-sm: 4px;
   --mv-radius-md: 8px;
   --mv-radius-lg: 12px;
+  --mv-radius-full: 50%;
+
+  /* ========================================
+     ボーダー幅
+     ======================================== */
+  --mv-border-width-thin: 1px;
+  --mv-border-width-default: 2px;
+  --mv-border-width-thick: 3px;
+
+  /* ========================================
+     フォーカスリング
+     ======================================== */
+  --mv-focus-ring-width: 2px;
+  --mv-focus-ring-offset: 2px;
+
+  /* ========================================
+     インジケーターサイズ
+     ======================================== */
+  --mv-indicator-size-xs: 6px;
+  --mv-indicator-size-sm: 8px;
+  --mv-indicator-size-md: 12px;
+  --mv-indicator-size-lg: 16px;
+
+  /* ========================================
+     インプット高さ
+     ======================================== */
+  --mv-input-height-sm: 28px;
+  --mv-input-height-md: 36px;
+  --mv-input-height-lg: 44px;
+
+  /* ========================================
+     コンテナ幅
+     ======================================== */
+  --mv-container-max-width-xs: 320px;
+  --mv-container-max-width-sm: 480px;
+  --mv-container-max-height-modal: 80vh;
+
+  /* ========================================
+     アイコンサイズ
+     ======================================== */
+  --mv-icon-size-xs: 14px;
+  --mv-icon-size-sm: 16px;
+  --mv-icon-size-md: 20px;
+  --mv-icon-size-lg: 28px;
+  --mv-icon-size-xl: 32px;
+
+  /* ========================================
+     Letter-spacing
+     ======================================== */
+  --mv-letter-spacing-tight: -0.5px;
+  --mv-letter-spacing-normal: 0;
+  --mv-letter-spacing-wide: 0.5px;
+  --mv-letter-spacing-wider: 1px;
+  --mv-letter-spacing-widest: 0.02em;
+
+  /* ========================================
+     キャンバス特殊値
+     ======================================== */
+  --mv-canvas-overflow-size: 1000px;
+  --mv-canvas-preview-height: 500px;
+
+  /* ========================================
+     ボックスシャドウ
+     ======================================== */
+  --mv-shadow-focus: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-focus);
+  --mv-shadow-selected: 0 0 0 var(--mv-border-width-thick) var(--mv-color-glow-selected);
+  --mv-shadow-card: 0 4px 12px var(--mv-color-shadow-elevated);
+
+  /* ========================================
+     トランスフォーム
+     ======================================== */
+  --mv-transform-hover-lift: translateY(-2px);
+  --mv-transform-press: translateY(1px);
 
   /* ========================================
      タイポグラフィ
@@ -162,12 +323,13 @@
 
 /* ========================================
    パルスアニメーション（実行中ノード）
+   控えめなグローが拡大するスタイル
    ======================================== */
 @keyframes mv-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 var(--mv-color-status-running-glow);
+    box-shadow: 0 0 4px 0 var(--mv-color-status-running-glow);
   }
   50% {
-    box-shadow: 0 0 0 8px transparent;
+    box-shadow: 0 0 12px 4px var(--mv-color-status-running-glow);
   }
 }

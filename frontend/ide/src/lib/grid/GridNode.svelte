@@ -68,7 +68,7 @@
     width: var(--mv-grid-cell-width);
     height: var(--mv-grid-cell-height);
     background: var(--mv-color-surface-node);
-    border: 2px solid var(--mv-color-border-default);
+    border: var(--mv-border-width-default) solid var(--mv-color-border-default);
     border-radius: var(--mv-radius-md);
     padding: var(--mv-spacing-xs) var(--mv-spacing-sm);
     cursor: pointer;
@@ -84,18 +84,18 @@
 
   .node:hover {
     border-color: var(--mv-color-border-strong);
-    transform: translateY(-2px);
+    transform: var(--mv-transform-hover-lift);
   }
 
   .node:focus {
     outline: none;
     border-color: var(--mv-color-border-focus);
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+    box-shadow: var(--mv-shadow-focus);
   }
 
   .node.selected {
     border-color: var(--mv-color-border-focus);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.4);
+    box-shadow: var(--mv-shadow-selected);
   }
 
   /* ステータス別スタイル */
@@ -143,9 +143,9 @@
   }
 
   .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    width: var(--mv-indicator-size-sm);
+    height: var(--mv-indicator-size-sm);
+    border-radius: var(--mv-radius-full);
     flex-shrink: 0;
   }
 
@@ -181,7 +181,7 @@
     font-size: var(--mv-font-size-xs);
     font-weight: var(--mv-font-weight-bold);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
   }
 
   .status-pending .status-text {
@@ -237,7 +237,7 @@
     font-family: var(--mv-font-mono);
     color: var(--mv-color-text-secondary);
     background: var(--mv-color-surface-secondary);
-    padding: 2px var(--mv-spacing-xxs);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xxs);
     border-radius: var(--mv-radius-sm);
   }
 </style>

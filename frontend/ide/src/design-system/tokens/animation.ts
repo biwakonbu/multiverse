@@ -33,11 +33,12 @@ export const easing = {
 } as const;
 
 // パルスアニメーション設定（実行中ノード用）
+// Nord Deep テーマ: 控えめなパステル緑グロー
 export const pulse = {
   // グロー効果の最大サイズ
-  glowSize: 8,
-  // グロー効果の色（RGBA）
-  glowColor: 'rgba(68, 187, 68, 0.4)',
+  glowSize: 12,
+  // グロー効果の色（RGBA）- パステル緑（nord14 ベース）
+  glowColor: 'rgba(143, 191, 159, 0.35)',
   // アニメーションサイクル
   duration: duration.pulse,
   easing: easing.default,
