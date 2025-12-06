@@ -354,10 +354,8 @@
     background: var(--mv-progress-bar-bg);
     border-radius: var(--mv-radius-sm);
     overflow: hidden;
-    box-shadow:
-      0 0 15px var(--mv-color-glow-ambient),
-      inset 0 1px 2px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--mv-color-glow-ambient);
+    box-shadow: var(--mv-shadow-progress-bar);
+    border: var(--mv-border-panel);
   }
 
   .progress-fill {
@@ -366,7 +364,7 @@
     background: var(--mv-progress-bar-fill);
     border-radius: var(--mv-radius-sm);
     transition: width var(--mv-duration-slow);
-    box-shadow: 0 0 8px var(--mv-progress-bar-fill-glow);
+    box-shadow: var(--mv-shadow-glow-sm);
   }
 
   .progress-percentage {
@@ -376,7 +374,7 @@
     color: var(--mv-progress-text-color);
     min-width: var(--mv-progress-text-width-md);
     justify-content: flex-end;
-    text-shadow: 0 0 8px var(--mv-progress-bar-fill-glow);
+    text-shadow: var(--mv-text-shadow-glow);
   }
 
   .progress-number {
@@ -389,7 +387,7 @@
   .progress-symbol {
     font-size: var(--mv-font-size-sm);
     font-weight: var(--mv-font-weight-semibold);
-    margin-left: 1px;
+    margin-left: var(--mv-border-width-thin);
     opacity: 0.85;
   }
 
@@ -456,8 +454,8 @@
   /* キャンバス */
   .canvas {
     position: relative;
-    min-width: 100%;
-    min-height: 100%;
+    min-width: var(--mv-size-full);
+    min-height: var(--mv-size-full);
   }
 
   /* 接続線 */
@@ -494,7 +492,7 @@
       border-color var(--mv-transition-hover),
       box-shadow var(--mv-transition-hover),
       transform var(--mv-transition-hover);
-    box-shadow: 0 0 8px var(--mv-color-glow-ambient); /* 常時微発光 */
+    box-shadow: var(--mv-shadow-node-glow); /* 常時微発光 */
   }
 
   .graph-node:hover {
@@ -604,8 +602,8 @@
   /* 空状態 */
   .empty-state {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: var(--mv-size-half);
+    left: var(--mv-size-half);
     transform: translate(-50%, -50%);
     text-align: center;
     color: var(--mv-color-text-muted);

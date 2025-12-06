@@ -55,8 +55,8 @@
 
 <style>
   .preview-container {
-    width: 800px;
-    height: 600px;
+    width: var(--mv-size-preview-width);
+    height: var(--mv-size-preview-height);
     background: var(--mv-color-surface-primary);
     border-radius: var(--mv-radius-md, 8px);
     overflow: hidden;

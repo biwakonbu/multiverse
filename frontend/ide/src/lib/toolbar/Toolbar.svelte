@@ -250,7 +250,7 @@
     border: var(--mv-border-width-thin) solid var(--mv-color-glow-ambient); /* ボーダーをグロー色に */
     border-radius: var(--mv-radius-sm);
     padding: var(--mv-spacing-xxs);
-    box-shadow: 0 0 8px var(--mv-color-glow-ambient); /* 常時微発光 */
+    box-shadow: var(--mv-shadow-node-glow); /* 常時微発光 */
   }
 
   .zoom-value {
@@ -284,7 +284,7 @@
     border: var(--mv-border-width-thin) solid var(--mv-color-glow-ambient); /* ボーダーをグロー色に */
     border-radius: var(--mv-radius-sm);
     font-size: var(--mv-font-size-xs);
-    box-shadow: 0 0 8px var(--mv-color-glow-ambient); /* 常時微発光 */
+    box-shadow: var(--mv-shadow-node-glow); /* 常時微発光 */
   }
 
   .pool-name {

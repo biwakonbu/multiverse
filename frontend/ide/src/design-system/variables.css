@@ -379,6 +379,26 @@
   --mv-zoom-min: 0.25;
   --mv-zoom-max: 3;
   --mv-zoom-default: 1;
+
+  /* ========================================
+     追加シャドウ・ボーダー
+     ======================================== */
+  --mv-shadow-glow-sm: 0 0 8px var(--mv-color-glow-focus);
+  --mv-shadow-glow-lg: 0 0 15px var(--mv-color-glow-focus);
+  --mv-shadow-node-glow: 0 0 8px rgba(136, 192, 208, 0.3);
+  --mv-shadow-button-glow: 0 0 8px rgba(136, 192, 208, 0.4);
+  --mv-border-panel: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
+  --mv-text-shadow-glow: 0 0 4px var(--mv-color-glow-focus);
+  --mv-shadow-progress-bar: 0 0 15px var(--mv-color-glow-focus), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --mv-shadow-floating-window: 0 0 15px var(--mv-color-glow-focus), 0 4px 12px var(--mv-color-shadow-deep);
+
+  /* ========================================
+     固定サイズ（レイアウト用）
+     ======================================== */
+  --mv-size-full: 100%;
+  --mv-size-half: 50%;
+  --mv-size-preview-width: 800px;
+  --mv-size-preview-height: 600px;
 }
 
 /* ========================================
