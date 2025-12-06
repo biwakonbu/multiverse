@@ -298,10 +298,8 @@
     letter-spacing: var(--mv-letter-spacing-wide);
 
     /* Shadow and glow */
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 8px var(--mv-glow-frost-2-lighter);
-    text-shadow: 0 0 8px var(--mv-glow-frost-2-border);
+    box-shadow: var(--mv-shadow-zoom-glow);
+    text-shadow: var(--mv-text-shadow-zoom);
 
     pointer-events: none;
     transition: all var(--mv-duration-fast);

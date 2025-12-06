@@ -347,7 +347,7 @@
     background: var(--mv-bg-glow-red-light);
     color: var(--mv-primitive-aurora-red);
     border-color: var(--mv-glow-failed);
-    box-shadow: 0 0 8px var(--mv-glow-red);
+    box-shadow: var(--mv-shadow-backlog-item);
   }
 
   .type-badge.question {

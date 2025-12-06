@@ -182,6 +182,6 @@
   .unsatisfied:hover .path-main {
     stroke: var(--mv-color-status-blocked-text);
     filter: drop-shadow(0 0 4px var(--mv-color-status-blocked-text))
-      drop-shadow(0 0 8px rgba(180, 142, 173, 0.4));
+      drop-shadow(0 0 8px var(--mv-glow-purple-strong));
   }
 </style>

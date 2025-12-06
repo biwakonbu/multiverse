@@ -147,9 +147,7 @@
     border-bottom: var(--mv-border-width-thin) solid
       var(--mv-glass-border-bottom);
 
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 0 1px var(--mv-glow-black-light);
+    box-shadow: var(--mv-shadow-glass-panel-full);
 
     transition: all var(--mv-duration-fast) var(--mv-easing-out);
   }
@@ -157,18 +155,13 @@
   .node:hover .node-glass {
     background: var(--mv-glass-hover);
     border-color: var(--mv-glass-border-hover);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 12px var(--mv-glass-border);
+    box-shadow: var(--mv-shadow-glass-panel-with-glow);
   }
 
   /* 選択状態 - 強調されたグロー */
   .node.selected .node-glass {
     border-color: var(--mv-shadow-glow-accent-border);
-    box-shadow:
-      var(--mv-shadow-floating-lg),
-      var(--mv-shadow-glow-accent),
-      inset 0 1px 0 var(--mv-glow-frost-2-lighter);
+    box-shadow: var(--mv-shadow-floating-with-accent-inset);
     background: var(--mv-glow-frost-2-lighter);
   }
 
@@ -233,9 +226,9 @@
     top: 0;
     left: var(--mv-spacing-md);
     right: var(--mv-spacing-md);
-    height: 2px;
+    height: var(--mv-size-progress-height);
     background: var(--mv-glass-border-light);
-    border-radius: 0 0 2px 2px;
+    border-radius: 0 0 var(--mv-radius-progress) var(--mv-radius-progress);
     transition: all var(--mv-duration-fast);
   }
 
@@ -247,9 +240,7 @@
       var(--mv-primitive-frost-3) 80%,
       transparent 100%
     );
-    box-shadow:
-      0 0 8px var(--mv-primitive-frost-3),
-      0 0 16px rgba(94, 129, 172, 0.3);
+    box-shadow: var(--mv-shadow-phase-concept);
   }
   .phase-design .phase-indicator-top {
     background: linear-gradient(
@@ -259,9 +250,7 @@
       var(--mv-primitive-aurora-purple) 80%,
       transparent 100%
     );
-    box-shadow:
-      0 0 8px var(--mv-primitive-aurora-purple),
-      0 0 16px rgba(180, 142, 173, 0.3);
+    box-shadow: var(--mv-shadow-phase-design);
   }
   .phase-impl .phase-indicator-top {
     background: linear-gradient(
@@ -271,9 +260,7 @@
       var(--mv-primitive-aurora-green) 80%,
       transparent 100%
     );
-    box-shadow:
-      0 0 8px var(--mv-primitive-aurora-green),
-      0 0 16px rgba(163, 190, 140, 0.3);
+    box-shadow: var(--mv-shadow-phase-impl);
   }
   .phase-verify .phase-indicator-top {
     background: linear-gradient(
@@ -283,9 +270,7 @@
       var(--mv-primitive-aurora-yellow) 80%,
       transparent 100%
     );
-    box-shadow:
-      0 0 8px var(--mv-primitive-aurora-yellow),
-      0 0 16px rgba(235, 203, 139, 0.3);
+    box-shadow: var(--mv-shadow-phase-verify);
   }
 
   /* ヘッダー（コンパクト・ステータスのみ） */
@@ -316,16 +301,16 @@
   /* ステータス別の色 - 強化されたグロー */
   .node.status-pending .status-dot {
     background: var(--mv-color-status-pending-text);
-    box-shadow: 0 0 4px var(--mv-color-status-pending-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-pending-text);
   }
   .node.status-pending .status-text {
     color: var(--mv-color-status-pending-text);
-    text-shadow: 0 0 8px rgba(224, 152, 128, 0.4);
+    text-shadow: var(--mv-text-shadow-orange);
   }
 
   .node.status-ready .status-dot {
     background: var(--mv-color-status-ready-text);
-    box-shadow: 0 0 6px var(--mv-color-status-ready-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-ready-text);
   }
   .node.status-ready .status-text {
     color: var(--mv-color-status-ready-text);
@@ -334,7 +319,7 @@
 
   .node.status-running .status-dot {
     background: var(--mv-color-status-running-text);
-    box-shadow: 0 0 8px var(--mv-color-status-running-text);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-color-status-running-text);
     animation: dot-pulse 1.5s infinite ease-in-out;
   }
   .node.status-running .status-text {
@@ -345,16 +330,16 @@
   @keyframes dot-pulse {
     0%,
     100% {
-      box-shadow: 0 0 4px var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-running-text);
     }
     50% {
-      box-shadow: 0 0 12px var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-glow-frost-2-md) var(--mv-color-status-running-text);
     }
   }
 
   .node.status-succeeded .status-dot {
     background: var(--mv-color-status-succeeded-text);
-    box-shadow: 0 0 6px var(--mv-color-status-succeeded-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-succeeded-text);
   }
   .node.status-succeeded .status-text {
     color: var(--mv-color-status-succeeded-text);
@@ -363,16 +348,16 @@
 
   .node.status-failed .status-dot {
     background: var(--mv-color-status-failed-text);
-    box-shadow: 0 0 6px var(--mv-color-status-failed-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-failed-text);
   }
   .node.status-failed .status-text {
     color: var(--mv-color-status-failed-text);
-    text-shadow: 0 0 8px var(--mv-glow-failed);
+    text-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-glow-failed);
   }
 
   .node.status-blocked .status-dot {
     background: var(--mv-color-status-blocked-text);
-    box-shadow: 0 0 4px var(--mv-color-status-blocked-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-blocked-text);
   }
   .node.status-blocked .status-text {
     color: var(--mv-color-status-blocked-text);
@@ -383,7 +368,7 @@
   .phase-tag {
     font-size: var(--mv-font-size-xxs);
     font-weight: var(--mv-font-weight-bold);
-    padding: 2px var(--mv-spacing-xs);
+    padding: var(--mv-spacing-badge-x) var(--mv-spacing-xs);
     border-radius: var(--mv-radius-sm);
     background: var(--mv-glass-bg-dark);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
@@ -394,23 +379,23 @@
 
   .phase-concept .phase-tag {
     color: var(--mv-primitive-frost-3);
-    border-color: rgba(94, 129, 172, 0.3);
-    text-shadow: 0 0 4px rgba(94, 129, 172, 0.4);
+    border-color: var(--mv-glow-frost-3);
+    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-frost-3-strong);
   }
   .phase-design .phase-tag {
     color: var(--mv-primitive-aurora-purple);
-    border-color: rgba(180, 142, 173, 0.3);
-    text-shadow: 0 0 4px rgba(180, 142, 173, 0.4);
+    border-color: var(--mv-glow-purple);
+    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-purple-strong);
   }
   .phase-impl .phase-tag {
     color: var(--mv-primitive-aurora-green);
-    border-color: rgba(163, 190, 140, 0.3);
-    text-shadow: 0 0 4px rgba(163, 190, 140, 0.4);
+    border-color: var(--mv-glow-green);
+    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-green-strong);
   }
   .phase-verify .phase-tag {
     color: var(--mv-primitive-aurora-yellow);
-    border-color: rgba(235, 203, 139, 0.3);
-    text-shadow: 0 0 4px rgba(235, 203, 139, 0.4);
+    border-color: var(--mv-glow-yellow);
+    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-yellow-strong);
   }
 
   /* タイトル - 強化されたテキストスタイル */
@@ -428,16 +413,12 @@
     overflow: hidden;
     flex: 1;
 
-    text-shadow:
-      var(--mv-text-shadow-base),
-      0 0 12px rgba(255, 255, 255, 0.1);
+    text-shadow: var(--mv-text-shadow-base-white);
   }
 
   .node:hover .title {
     color: var(--mv-primitive-snow-storm-2);
-    text-shadow:
-      0 0 1px rgba(0, 0, 0, 0.5),
-      0 0 8px rgba(255, 255, 255, 0.1);
+    text-shadow: var(--mv-text-shadow-hover-white);
   }
 
   /* フッター - フェーズタグとメタ情報 */
@@ -449,7 +430,7 @@
     margin-top: auto;
     padding-top: var(--mv-spacing-xs);
     border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
-    min-height: 20px;
+    min-height: var(--mv-min-height-footer);
   }
 
   .meta-info {

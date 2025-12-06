@@ -747,6 +747,72 @@
   --mv-text-shadow-snow-strong: 0 0 20px rgba(136, 192, 208, 0.3);
   --mv-text-shadow-none: none;
   --mv-filter-success-glow: drop-shadow(0 0 12px rgba(163, 190, 140, 0.6));
+
+  /* ========================================
+     GridNode・GridCanvas 用シャドウ
+     ======================================== */
+  --mv-shadow-node-pending: 0 0 8px var(--mv-glow-frost-2-lighter);
+  --mv-shadow-node-ready: 0 0 8px var(--mv-glow-frost-2);
+  --mv-shadow-node-running: 0 0 8px var(--mv-glow-green-mid);
+  --mv-shadow-node-succeeded: 0 0 8px var(--mv-glow-frost-2);
+  --mv-shadow-node-failed: 0 0 8px var(--mv-glow-red);
+  --mv-shadow-node-canceled: 0 0 8px var(--mv-glow-black-mid);
+  --mv-shadow-node-blocked: 0 0 8px var(--mv-glow-purple);
+  --mv-shadow-node-hover-pending: 0 0 12px var(--mv-glow-frost-2-mid);
+  --mv-shadow-node-hover-ready: 0 0 12px var(--mv-glow-frost-2);
+  --mv-shadow-node-hover-running: 0 0 12px var(--mv-glow-green);
+  --mv-shadow-node-hover-succeeded: 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-hover-failed: 0 0 12px var(--mv-glow-red-strong);
+  --mv-shadow-node-hover-canceled: 0 0 12px var(--mv-glow-black);
+  --mv-shadow-node-hover-blocked: 0 0 12px var(--mv-glow-purple-strong);
+  --mv-shadow-node-selected-pending: 0 0 4px var(--mv-glow-frost-2-mid), 0 0 12px var(--mv-glow-frost-2);
+  --mv-shadow-node-selected-ready: 0 0 4px var(--mv-glow-frost-2), 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-selected-running: 0 0 4px var(--mv-glow-green), 0 0 12px var(--mv-glow-green-strong);
+  --mv-shadow-node-selected-succeeded: 0 0 4px var(--mv-glow-frost-2-strong), 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-selected-failed: 0 0 4px var(--mv-glow-red-strong), 0 0 12px var(--mv-glow-red-strong);
+  --mv-shadow-node-selected-canceled: 0 0 4px var(--mv-glow-black), 0 0 12px var(--mv-glow-black);
+  --mv-shadow-node-selected-blocked: 0 0 4px var(--mv-glow-purple-strong), 0 0 12px var(--mv-glow-purple-strong);
+  --mv-shadow-node-title-pending: 0 0 4px var(--mv-glow-frost-2-mid);
+  --mv-shadow-node-title-ready: 0 0 6px var(--mv-glow-frost-2);
+  --mv-shadow-node-title-running: 0 0 8px var(--mv-glow-green);
+  --mv-shadow-node-title-succeeded: 0 0 6px var(--mv-glow-frost-2);
+  --mv-shadow-node-title-failed: 0 0 6px var(--mv-glow-red);
+  --mv-shadow-node-title-canceled: 0 0 6px var(--mv-glow-black);
+  --mv-shadow-node-title-blocked: 0 0 6px var(--mv-glow-purple);
+  --mv-text-shadow-node-id: 0 0 4px var(--mv-glow-black);
+  --mv-shadow-zoom-controls: 0 0 2px var(--mv-glow-black);
+  --mv-text-shadow-zoom: 0 0 4px var(--mv-glow-black);
+
+  /* 追加サイズ */
+  --mv-size-progress-height: 2px;
+  --mv-radius-progress: 2px;
+  --mv-spacing-badge-x: 2px;
+  --mv-spacing-badge-y: 6px;
+
+  /* ConnectionLine 用 */
+  --mv-color-connection-satisfied: rgba(136, 192, 208, 0.4);
+  --mv-color-connection-unsatisfied: var(--mv-glow-black-mid);
+
+  /* BacklogPanel 用 */
+  --mv-shadow-backlog-item: 0 0 8px var(--mv-glow-black-mid);
+  --mv-shadow-backlog-item-hover: 0 0 12px var(--mv-glow-black);
+  --mv-text-shadow-backlog-title: 0 0 4px var(--mv-glow-black);
+  --mv-letter-spacing-backlog-empty: 0.08em;
+
+  /* 複合シャドウ（カンマ区切り） */
+  --mv-shadow-glass-panel-with-glow: var(--mv-shadow-glass-panel), var(--mv-shadow-glow-hover);
+  --mv-shadow-glass-panel-with-frost: var(--mv-shadow-glass-panel), var(--mv-shadow-node-ready);
+  --mv-shadow-glass-panel-with-running: var(--mv-shadow-glass-panel), var(--mv-shadow-node-running);
+  --mv-shadow-glass-panel-with-failed: var(--mv-shadow-glass-panel), var(--mv-shadow-node-failed);
+  --mv-shadow-glass-panel-with-blocked: var(--mv-shadow-glass-panel), var(--mv-shadow-node-blocked);
+  --mv-shadow-floating-with-accent: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-accent);
+  --mv-shadow-floating-with-accent-inset: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-accent), inset 0 1px 0 var(--mv-glow-frost-2-lighter);
+  --mv-shadow-phase-concept: var(--mv-shadow-glow-frost-2), 0 0 16px var(--mv-glow-frost-3);
+  --mv-shadow-phase-design: 0 0 8px var(--mv-primitive-aurora-purple), 0 0 16px var(--mv-glow-purple);
+  --mv-shadow-phase-impl: 0 0 8px var(--mv-primitive-aurora-green), 0 0 16px var(--mv-glow-green);
+  --mv-shadow-phase-verify: 0 0 8px var(--mv-primitive-aurora-yellow), 0 0 16px var(--mv-glow-yellow);
+  --mv-shadow-zoom-glow: var(--mv-shadow-glass-panel), var(--mv-shadow-zoom-controls);
+  --mv-min-height-footer: 20px;
 }
 
 /* ========================================

@@ -114,23 +114,18 @@
     transform: translateY(-3px) scale(1.02);
     background: var(--mv-glass-hover);
     border-color: var(--mv-glass-border-hover);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 12px rgba(255, 255, 255, 0.03);
+    box-shadow: var(--mv-shadow-glass-panel-with-glow);
   }
 
   .node:focus {
     outline: none;
     border-color: var(--mv-shadow-glow-accent-border);
-    box-shadow: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-accent);
+    box-shadow: var(--mv-shadow-floating-with-accent);
   }
 
   .node.selected {
     border-color: var(--mv-shadow-glow-accent-border);
-    box-shadow:
-      var(--mv-shadow-floating-lg),
-      var(--mv-shadow-glow-accent),
-      inset 0 1px 0 var(--mv-glow-frost-2-lighter);
+    box-shadow: var(--mv-shadow-floating-with-accent-inset);
     background: var(--mv-glow-frost-2-lighter);
   }
 
@@ -143,34 +138,26 @@
   .node.status-ready {
     border-left: var(--mv-border-width-default) solid
       var(--mv-color-status-ready-text);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 8px var(--mv-glow-frost-2-light);
+    box-shadow: var(--mv-shadow-glass-panel-with-frost);
   }
 
   .node.status-running {
     border-left: var(--mv-border-width-default) solid
       var(--mv-color-status-running-text);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 12px var(--mv-glow-running);
+    box-shadow: var(--mv-shadow-glass-panel-with-running);
     animation: mv-pulse var(--mv-duration-pulse) infinite;
   }
 
   .node.status-succeeded {
     border-left: var(--mv-border-width-default) solid
       var(--mv-color-status-succeeded-text);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 8px var(--mv-glow-frost-2-light);
+    box-shadow: var(--mv-shadow-glass-panel-with-frost);
   }
 
   .node.status-failed {
     border-left: var(--mv-border-width-default) solid
       var(--mv-color-status-failed-text);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 8px var(--mv-glow-red-light);
+    box-shadow: var(--mv-shadow-glass-panel-with-failed);
   }
 
   .node.status-canceled {
@@ -181,9 +168,7 @@
   .node.status-blocked {
     border-left: var(--mv-border-width-default) solid
       var(--mv-color-status-blocked-text);
-    box-shadow:
-      var(--mv-shadow-glass-panel),
-      0 0 8px rgba(180, 142, 173, 0.15);
+    box-shadow: var(--mv-shadow-glass-panel-with-blocked);
   }
 
   /* ステータスインジケーター */
@@ -203,40 +188,40 @@
 
   .status-pending .status-dot {
     background: var(--mv-color-status-pending-text);
-    box-shadow: 0 0 4px var(--mv-color-status-pending-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-pending-text);
   }
   .status-ready .status-dot {
     background: var(--mv-color-status-ready-text);
-    box-shadow: 0 0 6px var(--mv-color-status-ready-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-ready-text);
   }
   .status-running .status-dot {
     background: var(--mv-color-status-running-text);
-    box-shadow: 0 0 8px var(--mv-color-status-running-text);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-color-status-running-text);
     animation: dot-pulse 1.5s infinite ease-in-out;
   }
   .status-succeeded .status-dot {
     background: var(--mv-color-status-succeeded-text);
-    box-shadow: 0 0 6px var(--mv-color-status-succeeded-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-succeeded-text);
   }
   .status-failed .status-dot {
     background: var(--mv-color-status-failed-text);
-    box-shadow: 0 0 6px var(--mv-color-status-failed-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-failed-text);
   }
   .status-canceled .status-dot {
     background: var(--mv-color-status-canceled-text);
   }
   .status-blocked .status-dot {
     background: var(--mv-color-status-blocked-text);
-    box-shadow: 0 0 4px var(--mv-color-status-blocked-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-blocked-text);
   }
 
   @keyframes dot-pulse {
     0%,
     100% {
-      box-shadow: 0 0 4px var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-running-text);
     }
     50% {
-      box-shadow: 0 0 12px var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-glow-frost-2-md) var(--mv-color-status-running-text);
     }
   }
 
@@ -266,7 +251,7 @@
   }
   .status-failed .status-text {
     color: var(--mv-color-status-failed-text);
-    text-shadow: 0 0 8px var(--mv-glow-failed);
+    text-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-glow-failed);
   }
   .status-canceled .status-text {
     color: var(--mv-color-status-canceled-text);

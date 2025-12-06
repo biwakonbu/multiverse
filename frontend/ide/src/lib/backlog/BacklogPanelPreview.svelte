@@ -361,7 +361,7 @@
     background: var(--mv-bg-glow-red-light);
     color: var(--mv-primitive-aurora-red);
     border-color: var(--mv-glow-failed);
-    box-shadow: 0 0 8px var(--mv-glow-red);
+    box-shadow: var(--mv-shadow-backlog-item);
   }
 
   .type-badge.question {
@@ -497,7 +497,7 @@
     font-size: var(--mv-font-size-md);
     font-weight: var(--mv-font-weight-bold);
     color: var(--mv-color-text-primary);
-    text-shadow: 0 0 20px var(--mv-glow-frost-2);
+    text-shadow: var(--mv-text-shadow-frost-lg);
   }
 
   .dialog-item-title {
@@ -516,7 +516,7 @@
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--mv-letter-spacing-badge);
     margin-bottom: var(--mv-spacing-xs);
   }
 
@@ -541,7 +541,7 @@
   .dialog textarea:focus {
     outline: none;
     border-color: var(--mv-primitive-frost-2);
-    box-shadow: 0 0 12px var(--mv-glow-frost-2-mid);
+    box-shadow: var(--mv-shadow-glow-frost-2-md);
   }
 
   .dialog-actions {
