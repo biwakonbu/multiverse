@@ -6,6 +6,7 @@
   import StatusBadge from "./StatusBadge.svelte"; // Import new component
   import ProgressBar from "./ProgressBar.svelte"; // Import ProgressBar
   import { getProgressColor } from "./utils"; // Import color logic
+  import { onDestroy } from "svelte";
 
   // Props
   export let node: WBSNode;
@@ -20,6 +21,50 @@
   $: progressPercent = node.progress.percentage;
   $: progressColor = getProgressColor(progressPercent); // Get dynamic color
   $: indentStyle = `padding-left: ${node.level * 24 + 12}px`;
+
+  // Retry Logic
+  $: isRetryWait = node.task?.status === "RETRY_WAIT";
+  $: attemptCount = node.task?.attemptCount || 0;
+  $: nextRetryAt = node.task?.nextRetryAt;
+
+  let timeRemaining = "";
+  let interval: any;
+
+  function updateTimeRemaining() {
+    if (!nextRetryAt) {
+      timeRemaining = "";
+      return;
+    }
+    const now = new Date();
+    const target = new Date(nextRetryAt);
+    const diff = target.getTime() - now.getTime();
+
+    if (diff <= 0) {
+      timeRemaining = ""; // 0秒以下は表示しない（すぐにリセットされるはず）
+    } else {
+      const seconds = Math.ceil(diff / 1000);
+      timeRemaining = `${seconds}s`;
+    }
+  }
+
+  $: {
+    if (isRetryWait && nextRetryAt) {
+      updateTimeRemaining();
+      if (!interval) {
+        interval = setInterval(updateTimeRemaining, 1000);
+      }
+    } else {
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+      timeRemaining = "";
+    }
+  }
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
+  });
 
   function handleToggle(event: MouseEvent) {
     event.stopPropagation();
@@ -92,6 +137,11 @@
   <!-- ステータスバッジ（タスクのみ） -->
   {#if isTask && node.task}
     <StatusBadge status={node.task.status} />
+    {#if isRetryWait}
+      <span class="retry-info">
+        Try {attemptCount} • {timeRemaining}
+      </span>
+    {/if}
   {/if}
 
   <!-- 進捗バー -->
@@ -275,5 +325,14 @@
     color: var(--mv-color-text-muted);
     min-width: var(--mv-progress-text-width-lg);
     text-align: right;
+  }
+
+  .retry-info {
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-status-retry-wait-text);
+    margin-left: var(--mv-spacing-xs);
+    font-family: var(--mv-font-mono);
+    opacity: 0.9;
+    white-space: nowrap;
   }
 </style>

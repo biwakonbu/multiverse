@@ -203,6 +203,8 @@ export namespace orchestrator {
 	    phaseName?: string;
 	    sourceChatId?: string;
 	    acceptanceCriteria?: string[];
+	    attemptCount?: number;
+	    nextRetryAt?: any; // Go type: *time.Time
 
 	    static createFrom(source: any = {}) {
 	        return new Task(source);
@@ -225,6 +227,8 @@ export namespace orchestrator {
 	        this.phaseName = source["phaseName"];
 	        this.sourceChatId = source["sourceChatId"];
 	        this.acceptanceCriteria = source["acceptanceCriteria"];
+	        this.attemptCount = source["attemptCount"];
+	        this.nextRetryAt = this.convertValues(source["nextRetryAt"], null);
 	    }
 
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

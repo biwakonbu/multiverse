@@ -16,7 +16,6 @@ test.describe('Task Flow', () => {
     // Initially mock returns empty list
     // Check if task list container is visible but empty or says "No tasks"
     // Adjust selector based on actual UI implementation
-    // Assuming DetailPanel or similar components show something.
     // Let's check for some text or element.
     await expect(page.locator('body')).toBeVisible();
   });
