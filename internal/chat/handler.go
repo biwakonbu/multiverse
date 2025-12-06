@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/logging"
@@ -33,6 +34,8 @@ type Handler struct {
 	WorkspaceID  string
 	ProjectRoot  string
 	logger       *slog.Logger
+	events       orchestrator.EventEmitter
+	metaTimeout  time.Duration
 }
 
 // NewHandler は新しい ChatHandler を作成する
@@ -42,6 +45,7 @@ func NewHandler(
 	sessionStore *ChatSessionStore,
 	workspaceID string,
 	projectRoot string,
+	events orchestrator.EventEmitter,
 ) *Handler {
 	return &Handler{
 		Meta:         metaClient,
@@ -50,6 +54,8 @@ func NewHandler(
 		WorkspaceID:  workspaceID,
 		ProjectRoot:  projectRoot,
 		logger:       logging.WithComponent(slog.Default(), "chat-handler"),
+		events:       events,
+		metaTimeout:  30 * time.Second,
 	}
 }
 
@@ -63,12 +69,29 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 	logger := logging.WithTraceID(h.logger, ctx)
 	start := time.Now()
 
+	emitProgress := func(step, msg string) {
+		if h.events != nil {
+			h.events.Emit(orchestrator.EventChatProgress, orchestrator.ChatProgressEvent{
+				SessionID: sessionID,
+				Step:      step,
+				Message:   msg,
+				Timestamp: time.Now(),
+			})
+		}
+	}
+
+	emitFailed := func(msg string) {
+		emitProgress("Failed", msg)
+	}
+
 	logger.Info("handling chat message",
 		slog.String("session_id", sessionID),
 		slog.Int("message_length", len(message)),
 	)
 
-	// 1. ユーザーメッセージを保存
+	// 1. ユーザーメッセージを保存 (Event: processing)
+	emitProgress("Processing", "メッセージを受信しました...")
+
 	userMsg := &ChatMessage{
 		ID:        uuid.New().String(),
 		SessionID: sessionID,
@@ -77,19 +100,33 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 		Timestamp: time.Now(),
 	}
 	if err := h.SessionStore.AppendMessage(userMsg); err != nil {
+		emitFailed(fmt.Sprintf("ユーザーメッセージの保存に失敗しました: %v", err))
 		return nil, fmt.Errorf("failed to save user message: %w", err)
 	}
 
-	// 2. コンテキスト情報を収集
-	decomposeReq, err := h.buildDecomposeRequest(ctx, sessionID, message)
+	existingTasks, err := h.TaskStore.ListAllTasks()
 	if err != nil {
-		return nil, fmt.Errorf("failed to build decompose request: %w", err)
+		emitFailed(fmt.Sprintf("既存タスクの取得に失敗しました: %v", err))
+		return nil, fmt.Errorf("failed to list existing tasks: %w", err)
+	}
+	existingTaskIDs := make(map[string]struct{}, len(existingTasks))
+	for _, t := range existingTasks {
+		existingTaskIDs[t.ID] = struct{}{}
 	}
 
-	// 3. Meta-agent を呼び出してタスク分解
+	// 2. コンテキスト情報を収集 (Event: analyzing)
+	emitProgress("Analyzing", "コンテキスト情報を収集中...")
+	decomposeReq := h.buildDecomposeRequest(sessionID, message, existingTasks)
+
+	// 3. Meta-agent を呼び出してタスク分解 (Event: decomposing)
+	emitProgress("Decomposing", "Meta-agent がタスクを分解中...")
 	logger.Debug("calling meta-agent for decompose")
-	decomposeResp, err := h.Meta.Decompose(ctx, decomposeReq)
+	metaCtx, cancel := context.WithTimeout(ctx, h.metaTimeout)
+	defer cancel()
+
+	decomposeResp, err := h.Meta.Decompose(metaCtx, decomposeReq)
 	if err != nil {
+		emitFailed(fmt.Sprintf("タスク分解に失敗しました: %v", err))
 		// エラー時もアシスタントメッセージを返す
 		errMsg := &ChatMessage{
 			ID:        uuid.New().String(),
@@ -98,19 +135,24 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 			Content:   fmt.Sprintf("申し訳ありません。タスク分解中にエラーが発生しました: %v", err),
 			Timestamp: time.Now(),
 		}
-		_ = h.SessionStore.AppendMessage(errMsg)
+		if appendErr := h.SessionStore.AppendMessage(errMsg); appendErr != nil {
+			return nil, fmt.Errorf("meta-agent decompose failed: %v (assistant message save failed: %w)", err, appendErr)
+		}
 		return &ChatResponse{
 			Message: *errMsg,
 		}, fmt.Errorf("meta-agent decompose failed: %w", err)
 	}
 
-	// 4. タスクを永続化
-	generatedTasks, err := h.persistTasks(ctx, sessionID, decomposeResp)
+	// 4. タスクを永続化 (Event: persisting)
+	emitProgress("Persisting", fmt.Sprintf("%d 個のタスクを保存中...", countTotalTasks(decomposeResp)))
+	generatedTasks, err := h.persistTasks(ctx, sessionID, decomposeResp, existingTaskIDs)
 	if err != nil {
+		emitFailed(fmt.Sprintf("タスク保存に失敗しました: %v", err))
 		return nil, fmt.Errorf("failed to persist tasks: %w", err)
 	}
 
-	// 5. アシスタント応答メッセージを作成
+	// 5. アシスタント応答メッセージを作成 (Event: completed)
+	emitProgress("Completed", "処理が完了しました。")
 	responseContent := h.buildResponseContent(decomposeResp, generatedTasks)
 	taskIDs := make([]string, len(generatedTasks))
 	for i, t := range generatedTasks {
@@ -143,13 +185,7 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 }
 
 // buildDecomposeRequest は Meta-agent への分解リクエストを構築する
-func (h *Handler) buildDecomposeRequest(_ context.Context, sessionID, message string) (*meta.DecomposeRequest, error) {
-	// 既存タスクを取得
-	existingTasks, err := h.TaskStore.ListAllTasks()
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Handler) buildDecomposeRequest(sessionID, message string, existingTasks []orchestrator.Task) *meta.DecomposeRequest {
 	taskSummaries := make([]meta.ExistingTaskSummary, len(existingTasks))
 	for i, t := range existingTasks {
 		taskSummaries[i] = meta.ExistingTaskSummary{
@@ -182,11 +218,11 @@ func (h *Handler) buildDecomposeRequest(_ context.Context, sessionID, message st
 			ExistingTasks:       taskSummaries,
 			ConversationHistory: conversationHistory,
 		},
-	}, nil
+	}
 }
 
 // persistTasks は分解されたタスクを永続化する
-func (h *Handler) persistTasks(ctx context.Context, sessionID string, resp *meta.DecomposeResponse) ([]orchestrator.Task, error) {
+func (h *Handler) persistTasks(ctx context.Context, sessionID string, resp *meta.DecomposeResponse, existingTaskIDs map[string]struct{}) ([]orchestrator.Task, error) {
 	logger := logging.WithTraceID(h.logger, ctx)
 
 	// 一時ID → 正式ID のマッピング
@@ -195,21 +231,32 @@ func (h *Handler) persistTasks(ctx context.Context, sessionID string, resp *meta
 
 	now := time.Now()
 
+	// 1st pass: すべての新規タスクに正式 ID を割り当てる
 	for _, phase := range resp.Phases {
 		for _, decomposedTask := range phase.Tasks {
-			// 正式IDを生成
-			taskID := uuid.New().String()
-			idMapping[decomposedTask.ID] = taskID
+			idMapping[decomposedTask.ID] = uuid.New().String()
+		}
+	}
 
-			// 依存関係を正式IDに変換
+	// 2nd pass: 依存解決しつつ Task を構築
+	var tasksToSave []orchestrator.Task
+	var unresolvedDeps []string
+
+	for _, phase := range resp.Phases {
+		for _, decomposedTask := range phase.Tasks {
+			taskID := idMapping[decomposedTask.ID]
+
 			dependencies := make([]string, 0, len(decomposedTask.Dependencies))
 			for _, depID := range decomposedTask.Dependencies {
 				if realID, ok := idMapping[depID]; ok {
 					dependencies = append(dependencies, realID)
-				} else {
-					// 既存タスクへの依存の場合はそのまま
-					dependencies = append(dependencies, depID)
+					continue
 				}
+				if _, ok := existingTaskIDs[depID]; ok {
+					dependencies = append(dependencies, depID)
+					continue
+				}
+				unresolvedDeps = append(unresolvedDeps, depID)
 			}
 
 			task := orchestrator.Task{
@@ -227,21 +274,38 @@ func (h *Handler) persistTasks(ctx context.Context, sessionID string, resp *meta
 				AcceptanceCriteria: decomposedTask.AcceptanceCriteria,
 			}
 
-			if err := h.TaskStore.SaveTask(&task); err != nil {
-				logger.Error("failed to save task",
-					slog.String("task_id", taskID),
-					slog.Any("error", err),
-				)
-				return nil, fmt.Errorf("failed to save task %s: %w", taskID, err)
-			}
-
-			allTasks = append(allTasks, task)
-			logger.Debug("task created",
-				slog.String("task_id", taskID),
-				slog.String("title", task.Title),
-				slog.String("phase", phase.Name),
-			)
+			tasksToSave = append(tasksToSave, task)
 		}
+	}
+
+	if len(unresolvedDeps) > 0 {
+		seen := make(map[string]struct{})
+		unique := make([]string, 0, len(unresolvedDeps))
+		for _, dep := range unresolvedDeps {
+			if _, ok := seen[dep]; ok {
+				continue
+			}
+			seen[dep] = struct{}{}
+			unique = append(unique, dep)
+		}
+		return nil, fmt.Errorf("unresolved dependencies: %s", strings.Join(unique, ", "))
+	}
+
+	for _, task := range tasksToSave {
+		if err := h.TaskStore.SaveTask(&task); err != nil {
+			logger.Error("failed to save task",
+				slog.String("task_id", task.ID),
+				slog.Any("error", err),
+			)
+			return nil, fmt.Errorf("failed to save task %s: %w", task.ID, err)
+		}
+
+		allTasks = append(allTasks, task)
+		logger.Debug("task created",
+			slog.String("task_id", task.ID),
+			slog.String("title", task.Title),
+			slog.String("phase", task.PhaseName),
+		)
 	}
 
 	return allTasks, nil
@@ -302,4 +366,13 @@ func (h *Handler) CreateSession(ctx context.Context) (*ChatSession, error) {
 // GetHistory はセッションのメッセージ履歴を取得する
 func (h *Handler) GetHistory(ctx context.Context, sessionID string) ([]ChatMessage, error) {
 	return h.SessionStore.LoadMessages(sessionID)
+}
+
+// countTotalTasks counts tasks across all phases
+func countTotalTasks(resp *meta.DecomposeResponse) int {
+	count := 0
+	for _, p := range resp.Phases {
+		count += len(p.Tasks)
+	}
+	return count
 }

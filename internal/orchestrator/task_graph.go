@@ -62,6 +62,7 @@ func (m *TaskGraphManager) BuildGraph() (*TaskGraph, error) {
 	// エッジを構築し、次数を計算
 	completedStatuses := map[TaskStatus]bool{
 		TaskStatusSucceeded: true,
+		TaskStatusCompleted: true,
 		TaskStatusCanceled:  true,
 	}
 

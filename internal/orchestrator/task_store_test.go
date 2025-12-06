@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -14,6 +15,14 @@ func TestTaskStore(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	store := NewTaskStore(tmpDir)
+
+	// Verify directories are created
+	if _, err := os.Stat(store.GetTaskDir()); os.IsNotExist(err) {
+		t.Errorf("expected task dir to be created")
+	}
+	if _, err := os.Stat(store.GetAttemptDir()); os.IsNotExist(err) {
+		t.Errorf("expected attempt dir to be created")
+	}
 
 	task := &Task{
 		ID:        "task-1",
@@ -55,6 +64,34 @@ func TestTaskStore(t *testing.T) {
 	}
 }
 
+func TestTaskStore_InvalidTaskID(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	invalidIDs := []string{
+		"../escape",
+		"task/1",
+		"task\\1",
+		"task with space",
+		"..",
+	}
+
+	for _, id := range invalidIDs {
+		t.Run(id, func(t *testing.T) {
+			task := &Task{
+				ID:        id,
+				Title:     "Invalid",
+				Status:    TaskStatusPending,
+				PoolID:    "p",
+				CreatedAt: time.Now(),
+			}
+			if err := store.SaveTask(task); err == nil {
+				t.Fatalf("expected validation error for id %q", id)
+			}
+		})
+	}
+}
+
 func TestAttemptStore(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "attempt_test")
 	if err != nil {
@@ -82,6 +119,27 @@ func TestAttemptStore(t *testing.T) {
 
 	if loadedAttempt.Status != attempt.Status {
 		t.Errorf("expected Status %s, got %s", attempt.Status, loadedAttempt.Status)
+	}
+}
+
+func TestAttemptStore_InvalidIDs(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	cases := []struct {
+		name    string
+		Attempt Attempt
+	}{
+		{name: "invalid attempt id", Attempt: Attempt{ID: "../evil", TaskID: "task-1", Status: AttemptStatusRunning, StartedAt: time.Now()}},
+		{name: "invalid task id", Attempt: Attempt{ID: "attempt-1", TaskID: "task/1", Status: AttemptStatusRunning, StartedAt: time.Now()}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := store.SaveAttempt(&tc.Attempt); err == nil {
+				t.Fatalf("expected validation error for %s", tc.name)
+			}
+		})
 	}
 }
 
@@ -460,5 +518,44 @@ func TestLoadAttempt_NotFound(t *testing.T) {
 	_, err := store.LoadAttempt("non-existent-attempt")
 	if err == nil {
 		t.Error("expected error for non-existent attempt, got nil")
+	}
+}
+
+func TestTaskStore_PathTraversalIsRejected(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	badTask := &Task{
+		ID:        "../escape",
+		Title:     "Bad",
+		Status:    TaskStatusPending,
+		PoolID:    "default",
+		CreatedAt: time.Now(),
+	}
+	if err := store.SaveTask(badTask); err == nil {
+		t.Fatalf("expected error for invalid task id, got nil")
+	}
+
+	if _, err := store.LoadTask("../escape"); err == nil {
+		t.Fatalf("expected error for loading invalid task id, got nil")
+	}
+
+	// Ensure no file got created
+	if _, err := os.Stat(filepath.Join(tmpDir, "tasks", "escape.jsonl")); err == nil {
+		t.Fatalf("expected no task file to be created for invalid id")
+	}
+
+	badAttempt := &Attempt{
+		ID:        "../escape-attempt",
+		TaskID:    "task-1",
+		Status:    AttemptStatusRunning,
+		StartedAt: time.Now(),
+	}
+	if err := store.SaveAttempt(badAttempt); err == nil {
+		t.Fatalf("expected error for invalid attempt id, got nil")
+	}
+
+	if _, err := store.LoadAttempt("../escape-attempt"); err == nil {
+		t.Fatalf("expected error for loading invalid attempt id, got nil")
 	}
 }

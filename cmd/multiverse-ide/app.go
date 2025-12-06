@@ -25,6 +25,7 @@ type App struct {
 	chatHandler           *chat.Handler
 	currentWS             *ide.Workspace
 	executionOrchestrator *orchestrator.ExecutionOrchestrator
+	backlogStore          *orchestrator.BacklogStore
 }
 
 // NewApp creates a new App application struct
@@ -105,7 +106,10 @@ func (a *App) SelectWorkspace() string {
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)
 	sessionStore := chat.NewChatSessionStore(wsDir)
 	metaClient := meta.NewMockClient()
-	a.chatHandler = chat.NewHandler(metaClient, a.taskStore, sessionStore, id, ws.ProjectRoot)
+	a.chatHandler = chat.NewHandler(metaClient, a.taskStore, sessionStore, id, ws.ProjectRoot, eventEmitter)
+
+	// Initialize BacklogStore
+	a.backlogStore = orchestrator.NewBacklogStore(wsDir)
 
 	return id
 }
@@ -170,7 +174,10 @@ func (a *App) OpenWorkspaceByID(id string) string {
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)
 	sessionStore := chat.NewChatSessionStore(wsDir)
 	metaClient := meta.NewMockClient()
-	a.chatHandler = chat.NewHandler(metaClient, a.taskStore, sessionStore, id, ws.ProjectRoot)
+	a.chatHandler = chat.NewHandler(metaClient, a.taskStore, sessionStore, id, ws.ProjectRoot, eventEmitter)
+
+	// Initialize BacklogStore
+	a.backlogStore = orchestrator.NewBacklogStore(wsDir)
 
 	return id
 }
@@ -279,10 +286,11 @@ func (a *App) GetAvailablePools() []orchestrator.Pool {
 
 // ChatResponseDTO はフロントエンドに返すチャット応答
 type ChatResponseDTO struct {
-	Message        chat.ChatMessage    `json:"message"`
-	GeneratedTasks []orchestrator.Task `json:"generatedTasks"`
-	Understanding  string              `json:"understanding"`
-	Error          string              `json:"error,omitempty"`
+	Message        chat.ChatMessage         `json:"message"`
+	GeneratedTasks []orchestrator.Task      `json:"generatedTasks"`
+	Understanding  string                   `json:"understanding"`
+	Conflicts      []meta.PotentialConflict `json:"conflicts,omitempty"`
+	Error          string                   `json:"error,omitempty"`
 }
 
 // CreateChatSession は新しいチャットセッションを作成する
@@ -319,6 +327,7 @@ func (a *App) SendChatMessage(sessionID string, message string) *ChatResponseDTO
 		Message:        resp.Message,
 		GeneratedTasks: resp.GeneratedTasks,
 		Understanding:  resp.Understanding,
+		Conflicts:      resp.Conflicts,
 	}
 }
 
@@ -378,4 +387,52 @@ func (a *App) GetExecutionState() string {
 		return "IDLE"
 	}
 	return string(a.executionOrchestrator.State())
+}
+
+// ============================================================================
+// Backlog API
+// ============================================================================
+
+// GetBacklogItems returns all backlog items (unresolved).
+func (a *App) GetBacklogItems() []orchestrator.BacklogItem {
+	if a.backlogStore == nil {
+		return []orchestrator.BacklogItem{}
+	}
+
+	items, err := a.backlogStore.ListUnresolved()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to list backlog items: %v", err)
+		return []orchestrator.BacklogItem{}
+	}
+	return items
+}
+
+// GetAllBacklogItems returns all backlog items (including resolved).
+func (a *App) GetAllBacklogItems() []orchestrator.BacklogItem {
+	if a.backlogStore == nil {
+		return []orchestrator.BacklogItem{}
+	}
+
+	items, err := a.backlogStore.List()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to list backlog items: %v", err)
+		return []orchestrator.BacklogItem{}
+	}
+	return items
+}
+
+// ResolveBacklogItem marks a backlog item as resolved.
+func (a *App) ResolveBacklogItem(id string, resolution string) error {
+	if a.backlogStore == nil {
+		return fmt.Errorf("backlog store not initialized")
+	}
+	return a.backlogStore.Resolve(id, resolution)
+}
+
+// DeleteBacklogItem deletes a backlog item.
+func (a *App) DeleteBacklogItem(id string) error {
+	if a.backlogStore == nil {
+		return fmt.Errorf("backlog store not initialized")
+	}
+	return a.backlogStore.Delete(id)
 }

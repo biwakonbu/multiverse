@@ -2,12 +2,14 @@
  * タスクデータ管理ストア
  *
  * タスク一覧と選択状態をグローバルに管理
+ * Wails Events でリアルタイム更新
  */
 
 import { writable, derived } from 'svelte/store';
 import type { Task, TaskNode, TaskStatus, PoolSummary } from '../types';
 import { grid, gridToCanvas } from '../design-system';
 import { Logger } from '../services/logger';
+import { EventsOn } from '../../wailsjs/wailsjs/runtime/runtime';
 
 const log = Logger.withComponent('TaskStore');
 
@@ -136,7 +138,7 @@ export interface TaskEdge {
 export const taskEdges = derived(tasks, ($tasks): TaskEdge[] => {
   const edges: TaskEdge[] = [];
   const taskMap = new Map($tasks.map((t) => [t.id, t]));
-  const completedStatuses = new Set(['SUCCEEDED', 'CANCELED']);
+  const completedStatuses = new Set(['SUCCEEDED', 'COMPLETED', 'CANCELED']);
 
   for (const task of $tasks) {
     if (!task.dependencies || task.dependencies.length === 0) continue;
@@ -196,3 +198,26 @@ function createPoolSummariesStore() {
 }
 
 export const poolSummaries = createPoolSummariesStore();
+
+// タスク状態変更イベントの型
+interface TaskStateChangeEvent {
+  taskId: string;
+  oldStatus: TaskStatus;
+  newStatus: TaskStatus;
+  timestamp: string;
+}
+
+// Wails イベントリスナー初期化
+export function initTaskEvents(): void {
+  // task:stateChange イベントをリッスン
+  EventsOn('task:stateChange', (event: TaskStateChangeEvent) => {
+    log.info('task state changed via event', {
+      taskId: event.taskId,
+      oldStatus: event.oldStatus,
+      newStatus: event.newStatus,
+    });
+    tasks.updateTask(event.taskId, { status: event.newStatus });
+  });
+
+  log.info('task events initialized');
+}

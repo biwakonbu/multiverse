@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -74,7 +75,15 @@ type TaskStore struct {
 
 // NewTaskStore creates a new TaskStore for a specific workspace.
 func NewTaskStore(workspaceDir string) *TaskStore {
-	return &TaskStore{WorkspaceDir: workspaceDir}
+	store := &TaskStore{WorkspaceDir: workspaceDir}
+	// Ensure directories exist
+	if err := os.MkdirAll(store.GetTaskDir(), 0755); err != nil {
+		fmt.Printf("failed to create task dir: %v\n", err)
+	}
+	if err := os.MkdirAll(store.GetAttemptDir(), 0755); err != nil {
+		fmt.Printf("failed to create attempt dir: %v\n", err)
+	}
+	return store
 }
 
 // GetTaskDir returns the directory for tasks.
@@ -87,9 +96,27 @@ func (s *TaskStore) GetAttemptDir() string {
 	return filepath.Join(s.WorkspaceDir, "attempts")
 }
 
+// ensureSafeID validates IDs to prevent path traversal or absolute paths.
+func ensureSafeID(id string) error {
+	if id == "" {
+		return fmt.Errorf("id is empty")
+	}
+	if filepath.IsAbs(id) {
+		return fmt.Errorf("absolute id is not allowed")
+	}
+	if strings.Contains(id, "..") || strings.ContainsAny(id, `/\ `) {
+		return fmt.Errorf("id contains invalid path characters")
+	}
+	return nil
+}
+
 // LoadTask loads the latest state of a task by ID.
 // It reads the last line of the JSONL file.
 func (s *TaskStore) LoadTask(id string) (*Task, error) {
+	if err := ensureSafeID(id); err != nil {
+		return nil, err
+	}
+
 	path := filepath.Join(s.GetTaskDir(), id+".jsonl")
 	file, err := os.Open(path)
 	if err != nil {
@@ -124,6 +151,10 @@ func (s *TaskStore) LoadTask(id string) (*Task, error) {
 
 // SaveTask appends a new state of the task to the JSONL file.
 func (s *TaskStore) SaveTask(task *Task) error {
+	if err := ensureSafeID(task.ID); err != nil {
+		return err
+	}
+
 	dir := s.GetTaskDir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create tasks directory: %w", err)
@@ -154,6 +185,10 @@ func (s *TaskStore) SaveTask(task *Task) error {
 
 // LoadAttempt loads an attempt by ID.
 func (s *TaskStore) LoadAttempt(id string) (*Attempt, error) {
+	if err := ensureSafeID(id); err != nil {
+		return nil, err
+	}
+
 	path := filepath.Join(s.GetAttemptDir(), id+".json")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -170,6 +205,13 @@ func (s *TaskStore) LoadAttempt(id string) (*Attempt, error) {
 
 // SaveAttempt saves an attempt.
 func (s *TaskStore) SaveAttempt(attempt *Attempt) error {
+	if err := ensureSafeID(attempt.ID); err != nil {
+		return err
+	}
+	if err := ensureSafeID(attempt.TaskID); err != nil {
+		return fmt.Errorf("invalid task id: %w", err)
+	}
+
 	dir := s.GetAttemptDir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create attempts directory: %w", err)

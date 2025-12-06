@@ -4,3 +4,4 @@
 
 export * from './task';
 export * from './grid';
+export * from './chat';

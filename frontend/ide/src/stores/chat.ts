@@ -1,271 +1,158 @@
-import { writable, derived } from 'svelte/store';
+/**
+ * チャットデータ管理ストア
+ */
 
-// Wails バインディングは wails generate module で更新後に自動生成される
-// 現時点ではモック実装を提供
-
-export interface ChatMessage {
-    id: string;
-    sessionId: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: string;
-    generatedTasks?: string[];
-}
-
-export interface ChatSession {
-    id: string;
-    workspaceId: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import { writable, get } from 'svelte/store';
+import { GetChatHistory, SendChatMessage, CreateChatSession } from '../../wailsjs/go/main/App';
+import { EventsOn } from '../../wailsjs/wailsjs/runtime/runtime';
+import type { ChatMessage } from '../types';
 
 export interface ChatResponse {
     message: ChatMessage;
     generatedTasks: Array<{
         id: string;
         title: string;
-        description: string;
         status: string;
-        phaseName: string;
-        dependencies: string[];
+        // ... 他のフィールド
     }>;
     understanding: string;
+    conflicts?: Array<{
+        file: string;
+        tasks: string[];
+        warning: string;
+    }>;
     error?: string;
 }
 
-interface ChatState {
-    currentSessionId: string | null;
-    messages: ChatMessage[];
-    isLoading: boolean;
-    error: string | null;
+// Chat Log Interface
+export interface ChatLogEntry {
+    step: string;
+    message: string;
+    timestamp: string;
 }
 
-function createChatStore() {
-    const initialState: ChatState = {
-        currentSessionId: null,
-        messages: [],
-        isLoading: false,
-        error: null
-    };
+// チャットメッセージストア
+function createMessagesStore() {
+  const { subscribe, set, update } = writable<ChatMessage[]>([]);
 
-    const { subscribe, update, set } = writable<ChatState>(initialState);
+  return {
+    subscribe,
+    setMessages: (messages: ChatMessage[]) => set(messages),
+    addMessage: (message: ChatMessage) => update((msgs) => [...msgs, message]),
+    clear: () => set([]),
+  };
+}
 
-    // Wails API のダイナミックインポート（ビルド時に存在しない場合に対応）
-    let wailsApp: any = null;
+// チャットログストア
+function createChatLogStore() {
+  const { subscribe, update } = writable<ChatLogEntry[]>([]);
 
-    const loadWailsBindings = async () => {
+  return {
+    subscribe,
+    addLog: (entry: ChatLogEntry) => {
+      update((logs) => [...logs, entry]);
+    },
+    clear: () => update(() => []),
+  };
+}
+
+export const chatMessages = createMessagesStore();
+export const chatLog = createChatLogStore();
+export const currentSessionId = writable<string | null>(null);
+export const isChatLoading = writable<boolean>(false);
+export const chatError = writable<string | null>(null);
+
+// ストア
+const chatStore = {
+    // セッション作成
+    createSession: async () => {
         try {
-            // Wails バインディングを動的にインポート
-            const module = await import('../../wailsjs/go/main/App');
+            const session = await CreateChatSession();
+            if (!session?.id) return;
+
+            currentSessionId.set(session.id);
+            // セッション切替時に既存ログとメッセージをクリア
+            chatMessages.clear();
+            chatLog.clear();
+            chatError.set(null);
+
+            try {
+                const history = await GetChatHistory(session.id);
+                chatMessages.setMessages(history);
+            } catch (e) {
+                console.error('Failed to load chat history:', e);
+            }
+        } catch (e) {
+            console.error('Failed to create session:', e);
+        }
+    },
+
+    // メッセージ送信
+    sendMessage: async (content: string): Promise<ChatResponse | null> => {
+        isChatLoading.set(true);
+        chatError.set(null);
+        let sessionId: string | null = get(currentSessionId);
+
+        if (!sessionId) {
+            console.warn('No active session. Attempting to recreate...');
+            await chatStore.createSession();
+            sessionId = get(currentSessionId);
+            if (!sessionId) {
+                console.error('No active session inside sendMessage');
+                isChatLoading.set(false);
+                chatError.set('No active chat session');
+                return null;
+            }
+        }
+
+        try {
+            const response = await SendChatMessage(sessionId, content);
             
-            // window.go が存在することを確認（Storybook 等では存在しない）
-            if (!('go' in window)) {
-                console.warn('[Chat] window.go not found, using mock mode');
-                return false;
+            if (response.error) {
+                console.error('Chat error:', response.error);
+                chatError.set(response.error);
+            } else {
+                 // ユーザーメッセージとアシスタントメッセージは backend 側で保存済みなので
+                 // 履歴を再取得するか、レスポンスから追加する
+                 // ここではレスポンスから追加
+                 // user message is implicitly added by optimistic update usually, but here simple:
+                 
+                 // Wait, ChatHandler saves user message already.
+                 // We should reload history or append both manually?
+                 // Let's reload history to be safe and consistent
+                 const history = await GetChatHistory(sessionId!);
+                 chatMessages.setMessages(history);
+                 chatError.set(null);
             }
+            return response as ChatResponse;
 
-            wailsApp = module;
-            return true;
-        } catch {
-            console.warn('[Chat] Wails bindings not available, using mock mode');
-            return false;
+        } catch (e) {
+            console.error('Failed to send message:', e);
+            chatError.set(e instanceof Error ? e.message : 'Failed to send message');
+            return null;
+        } finally {
+            isChatLoading.set(false);
         }
-    };
+    }
+};
 
-    return {
-        subscribe,
+export { chatStore };
 
-        // セッション作成
-        createSession: async (): Promise<string | null> => {
-            update(s => ({ ...s, isLoading: true, error: null }));
+// Wailsイベントリスナーの初期化
+export function initChatEvents() {
+    EventsOn('chat:progress', (event: { step: string; message: string; timestamp: string }) => {
+        console.log('Chat Progress:', event);
+        chatLog.addLog({
+            step: event.step,
+            message: event.message,
+            timestamp: event.timestamp
+        });
 
-            try {
-                await loadWailsBindings();
-
-                if (wailsApp?.CreateChatSession) {
-                    const session = await wailsApp.CreateChatSession();
-                    if (session) {
-                        update(s => ({
-                            ...s,
-                            currentSessionId: session.id,
-                            messages: [],
-                            isLoading: false
-                        }));
-                        return session.id;
-                    }
-                }
-
-                // Mock fallback
-                const mockSessionId = crypto.randomUUID();
-                const systemMessage: ChatMessage = {
-                    id: crypto.randomUUID(),
-                    sessionId: mockSessionId,
-                    role: 'system',
-                    content: 'チャットセッションが開始されました。開発したい機能や解決したい課題を教えてください。',
-                    timestamp: new Date().toISOString()
-                };
-
-                update(s => ({
-                    ...s,
-                    currentSessionId: mockSessionId,
-                    messages: [systemMessage],
-                    isLoading: false
-                }));
-
-                return mockSessionId;
-            } catch (e) {
-                const error = e instanceof Error ? e.message : 'セッション作成に失敗しました';
-                update(s => ({ ...s, isLoading: false, error }));
-                return null;
-            }
-        },
-
-        // メッセージ送信
-        sendMessage: async (text: string): Promise<ChatResponse | null> => {
-            if (!text.trim()) return null;
-
-            let currentState: ChatState;
-            const unsubscribe = subscribe(s => { currentState = s; });
-            unsubscribe();
-
-            if (!currentState!.currentSessionId) {
-                console.error('[Chat] No active session');
-                return null;
-            }
-
-            const sessionId = currentState!.currentSessionId;
-
-            // Optimistic update: ユーザーメッセージを即座に表示
-            const userMessage: ChatMessage = {
-                id: crypto.randomUUID(),
-                sessionId,
-                role: 'user',
-                content: text,
-                timestamp: new Date().toISOString()
-            };
-
-            update(s => ({
-                ...s,
-                messages: [...s.messages, userMessage],
-                isLoading: true,
-                error: null
-            }));
-
-            try {
-                await loadWailsBindings();
-
-                if (wailsApp?.SendChatMessage) {
-                    const response = await wailsApp.SendChatMessage(sessionId, text);
-
-                    if (response.error) {
-                        throw new Error(response.error);
-                    }
-
-                    // アシスタント応答を追加
-                    update(s => ({
-                        ...s,
-                        messages: [...s.messages, response.message],
-                        isLoading: false
-                    }));
-
-                    return response;
-                }
-
-                // Mock fallback
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                const mockResponse: ChatResponse = {
-                    message: {
-                        id: crypto.randomUUID(),
-                        sessionId,
-                        role: 'assistant',
-                        content: `Mock: ユーザーの要求を理解しました\n\n以下の 2 個のタスクを作成しました：\n\n### 概念設計\n- **Mock概念設計タスク**: モック用の概念設計タスクです\n\n### 実装\n- **Mock実装タスク**: モック用の実装タスクです`,
-                        timestamp: new Date().toISOString(),
-                        generatedTasks: ['mock-task-1', 'mock-task-2']
-                    },
-                    generatedTasks: [
-                        {
-                            id: 'mock-task-1',
-                            title: 'Mock概念設計タスク',
-                            description: 'モック用の概念設計タスクです',
-                            status: 'PENDING',
-                            phaseName: '概念設計',
-                            dependencies: []
-                        },
-                        {
-                            id: 'mock-task-2',
-                            title: 'Mock実装タスク',
-                            description: 'モック用の実装タスクです',
-                            status: 'PENDING',
-                            phaseName: '実装',
-                            dependencies: ['mock-task-1']
-                        }
-                    ],
-                    understanding: 'Mock: ユーザーの要求を理解しました'
-                };
-
-                update(s => ({
-                    ...s,
-                    messages: [...s.messages, mockResponse.message],
-                    isLoading: false
-                }));
-
-                return mockResponse;
-            } catch (e) {
-                const error = e instanceof Error ? e.message : 'メッセージ送信に失敗しました';
-                update(s => ({ ...s, isLoading: false, error }));
-                return null;
-            }
-        },
-
-        // 履歴読み込み
-        loadHistory: async (sessionId: string): Promise<void> => {
-            update(s => ({ ...s, isLoading: true, error: null }));
-
-            try {
-                await loadWailsBindings();
-
-                if (wailsApp?.GetChatHistory) {
-                    const messages = await wailsApp.GetChatHistory(sessionId);
-                    update(s => ({
-                        ...s,
-                        currentSessionId: sessionId,
-                        messages: messages || [],
-                        isLoading: false
-                    }));
-                    return;
-                }
-
-                // Mock fallback
-                update(s => ({
-                    ...s,
-                    currentSessionId: sessionId,
-                    messages: [],
-                    isLoading: false
-                }));
-            } catch (e) {
-                const error = e instanceof Error ? e.message : '履歴の読み込みに失敗しました';
-                update(s => ({ ...s, isLoading: false, error }));
-            }
-        },
-
-        // 状態リセット
-        reset: () => {
-            set(initialState);
+        // ローディング状態の制御
+        if (event.step === 'Completed' || event.step === 'Failed') {
+            isChatLoading.set(false);
+        } else {
+            isChatLoading.set(true);
         }
-    };
+    });
 }
-
-export const chatStore = createChatStore();
-
-// 派生ストア: ローディング状態
-export const isChatLoading = derived(chatStore, $chat => $chat.isLoading);
-
-// 派生ストア: エラー状態
-export const chatError = derived(chatStore, $chat => $chat.error);
-
-// 派生ストア: 現在のセッションID
-export const currentSessionId = derived(chatStore, $chat => $chat.currentSessionId);
-
-// 派生ストア: メッセージ一覧
-export const chatMessages = derived(chatStore, $chat => $chat.messages);

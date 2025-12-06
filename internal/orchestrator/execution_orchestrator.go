@@ -55,7 +55,7 @@ func NewExecutionOrchestrator(
 		Queue:        queue,
 		EventEmitter: eventEmitter,
 		state:        ExecutionStateIdle,
-		stopCh:       make(chan struct{}),
+		stopCh:       nil,
 		resumeCh:     make(chan struct{}),
 		logger:       logging.WithComponent(slog.Default(), "execution-orchestrator"),
 	}
@@ -68,14 +68,18 @@ func (e *ExecutionOrchestrator) Start(ctx context.Context) error {
 		e.stateMu.Unlock()
 		return fmt.Errorf("already running")
 	}
+	oldState := e.state
+	// 再スタートに備え stopCh を作り直す
+	e.stopCh = make(chan struct{})
+	stopCh := e.stopCh // ゴルーチンに渡すローカルコピー
 	e.state = ExecutionStateRunning
 	e.stateMu.Unlock()
 
-	e.emitStateChange(ExecutionStateIdle, ExecutionStateRunning)
+	e.emitStateChange(oldState, ExecutionStateRunning)
 	e.logger.Info("execution orchestrator started")
 
 	// Start the loop in a goroutine
-	go e.runLoop(ctx)
+	go e.runLoop(ctx, stopCh)
 
 	return nil
 }
@@ -121,10 +125,13 @@ func (e *ExecutionOrchestrator) Stop() error {
 	}
 	oldState := e.state
 	e.state = ExecutionStateIdle
+	stopCh := e.stopCh
+	e.stopCh = nil
 	e.stateMu.Unlock()
 
-	// Signal stop if we had a dedicated channel, but for simple loop checking state is fine
-	// For immediate stop, we might want a cancel context, but let's keep it simple for MVP
+	if stopCh != nil {
+		close(stopCh) // runLoop を確実に終了させる
+	}
 
 	e.emitStateChange(oldState, ExecutionStateIdle)
 	e.logger.Info("execution orchestrator stopped")
@@ -148,7 +155,7 @@ func (e *ExecutionOrchestrator) emitStateChange(oldState, newState ExecutionStat
 	}
 }
 
-func (e *ExecutionOrchestrator) runLoop(ctx context.Context) {
+func (e *ExecutionOrchestrator) runLoop(ctx context.Context, stopCh <-chan struct{}) {
 	ticker := time.NewTicker(2 * time.Second) // Poll every 2s
 	defer ticker.Stop()
 
@@ -157,6 +164,9 @@ func (e *ExecutionOrchestrator) runLoop(ctx context.Context) {
 		case <-ctx.Done():
 			e.logger.Info("context canceled, stopping loop")
 			_ = e.Stop()
+			return
+		case <-stopCh:
+			e.logger.Info("stop signal received, stopping loop")
 			return
 		case <-ticker.C:
 			// Check state
@@ -205,6 +215,7 @@ func (e *ExecutionOrchestrator) processJob(ctx context.Context, job *ipc.Job) {
 
 	// Execute Task
 	// Update status via Scheduler or straight here? Executor updates status.
+	oldStatus := task.Status
 	attempt, err := e.Executor.ExecuteTask(ctx, task)
 
 	// Emit Task State Change
@@ -214,13 +225,15 @@ func (e *ExecutionOrchestrator) processJob(ctx context.Context, job *ipc.Job) {
 	// Let's emit here for UI updates
 	if e.EventEmitter != nil {
 		// Fetch latest status
-		task, _ = e.TaskStore.LoadTask(job.TaskID)
-		e.EventEmitter.Emit(EventTaskStateChange, TaskStateChangeEvent{
-			TaskID:    task.ID,
-			OldStatus: TaskStatusReady, // Probably
-			NewStatus: task.Status,
-			Timestamp: time.Now(),
-		})
+		latestTask, loadErr := e.TaskStore.LoadTask(job.TaskID)
+		if loadErr == nil && latestTask != nil {
+			e.EventEmitter.Emit(EventTaskStateChange, TaskStateChangeEvent{
+				TaskID:    latestTask.ID,
+				OldStatus: oldStatus,
+				NewStatus: latestTask.Status,
+				Timestamp: time.Now(),
+			})
+		}
 	}
 
 	if err != nil {

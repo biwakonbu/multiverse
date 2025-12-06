@@ -120,7 +120,7 @@ export const viewMode = createViewModeStore();
 
 // タスクの完了判定
 function isTaskCompleted(status: TaskStatus): boolean {
-  return status === 'SUCCEEDED' || status === 'CANCELED';
+  return status === 'SUCCEEDED' || status === 'COMPLETED' || status === 'CANCELED';
 }
 
 // 進捗を計算

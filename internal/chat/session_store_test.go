@@ -321,3 +321,33 @@ func TestChatSessionStore_AppendMessage_WithGeneratedTasks(t *testing.T) {
 		t.Errorf("expected 3 generated tasks, got %d", len(loaded[0].GeneratedTasks))
 	}
 }
+
+func TestChatSessionStore_PathTraversalIsRejected(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewChatSessionStore(tmpDir)
+
+	badID := "../evil"
+
+	if _, err := store.CreateSession(badID, "ws"); err == nil {
+		t.Fatalf("expected error for invalid session id, got nil")
+	}
+
+	msg := &ChatMessage{
+		ID:        "m1",
+		SessionID: badID,
+		Role:      "user",
+		Content:   "hi",
+		Timestamp: time.Now(),
+	}
+	if err := store.AppendMessage(msg); err == nil {
+		t.Fatalf("expected error for append with invalid session id, got nil")
+	}
+
+	if _, err := store.LoadMessages(badID); err == nil {
+		t.Fatalf("expected error for load with invalid session id, got nil")
+	}
+
+	if _, err := os.Stat(filepath.Join(tmpDir, "chat", "evil.jsonl")); err == nil {
+		t.Fatalf("expected no file to be created for invalid session id")
+	}
+}

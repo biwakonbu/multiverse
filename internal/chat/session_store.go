@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -42,6 +43,20 @@ func (s *ChatSessionStore) GetChatDir() string {
 	return filepath.Join(s.WorkspaceDir, "chat")
 }
 
+// ensureSafeSessionID validates the sessionID to avoid path traversal.
+func ensureSafeSessionID(sessionID string) error {
+	if sessionID == "" {
+		return fmt.Errorf("sessionID is empty")
+	}
+	if filepath.IsAbs(sessionID) {
+		return fmt.Errorf("absolute sessionID is not allowed")
+	}
+	if strings.Contains(sessionID, "..") || strings.ContainsAny(sessionID, `/\`) {
+		return fmt.Errorf("sessionID contains invalid path characters")
+	}
+	return nil
+}
+
 // getSessionFilePath はセッションファイルのパスを返す
 func (s *ChatSessionStore) getSessionFilePath(sessionID string) string {
 	return filepath.Join(s.GetChatDir(), sessionID+".jsonl")
@@ -54,6 +69,10 @@ func (s *ChatSessionStore) getSessionMetaFilePath(sessionID string) string {
 
 // CreateSession は新しいチャットセッションを作成する
 func (s *ChatSessionStore) CreateSession(id, workspaceID string) (*ChatSession, error) {
+	if err := ensureSafeSessionID(id); err != nil {
+		return nil, err
+	}
+
 	dir := s.GetChatDir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create chat directory: %w", err)
@@ -107,6 +126,10 @@ func (s *ChatSessionStore) LoadSession(sessionID string) (*ChatSession, error) {
 
 // AppendMessage はメッセージをセッションに追加する
 func (s *ChatSessionStore) AppendMessage(msg *ChatMessage) error {
+	if err := ensureSafeSessionID(msg.SessionID); err != nil {
+		return err
+	}
+
 	dir := s.GetChatDir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create chat directory: %w", err)
@@ -140,6 +163,10 @@ func (s *ChatSessionStore) AppendMessage(msg *ChatMessage) error {
 
 // LoadMessages はセッションの全メッセージを読み込む
 func (s *ChatSessionStore) LoadMessages(sessionID string) ([]ChatMessage, error) {
+	if err := ensureSafeSessionID(sessionID); err != nil {
+		return nil, err
+	}
+
 	path := s.getSessionFilePath(sessionID)
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {

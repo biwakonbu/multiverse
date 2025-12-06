@@ -162,6 +162,14 @@ export namespace orchestrator {
 	    startedAt?: any;
 	    // Go type: time
 	    doneAt?: any;
+	    // v2.0 拡張フィールド
+	    description?: string;
+	    dependencies?: string[];
+	    parentId?: string;
+	    wbsLevel?: number;
+	    phaseName?: string;
+	    sourceChatId?: string;
+	    acceptanceCriteria?: string[];
 
 	    static createFrom(source: any = {}) {
 	        return new Task(source);
@@ -177,6 +185,13 @@ export namespace orchestrator {
 	        this.updatedAt = this.convertValues(source["updatedAt"], null);
 	        this.startedAt = this.convertValues(source["startedAt"], null);
 	        this.doneAt = this.convertValues(source["doneAt"], null);
+	        this.description = source["description"];
+	        this.dependencies = source["dependencies"];
+	        this.parentId = source["parentId"];
+	        this.wbsLevel = source["wbsLevel"];
+	        this.phaseName = source["phaseName"];
+	        this.sourceChatId = source["sourceChatId"];
+	        this.acceptanceCriteria = source["acceptanceCriteria"];
 	    }
 
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

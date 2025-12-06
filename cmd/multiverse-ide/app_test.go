@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/biwakonbu/agent-runner/internal/chat"
 	"github.com/biwakonbu/agent-runner/internal/ide"
+	"github.com/biwakonbu/agent-runner/internal/meta"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator"
 )
 
@@ -380,5 +383,52 @@ func TestRemoveWorkspace(t *testing.T) {
 	loadedWS := app.GetWorkspace(wsID)
 	if loadedWS != nil {
 		t.Error("workspace should be removed")
+	}
+}
+
+func TestSendChatMessage(t *testing.T) {
+	// Setup temporary directory for workspace
+	tmpDir, err := os.MkdirTemp("", "app_chat_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Initialize dependencies
+	taskStore := orchestrator.NewTaskStore(tmpDir)
+	sessionStore := chat.NewChatSessionStore(tmpDir)
+	metaClient := meta.NewMockClient()
+
+	// Initialize Handler manually
+	handler := chat.NewHandler(metaClient, taskStore, sessionStore, "test-ws-id", tmpDir, nil)
+
+	// Initialize App with the handler
+	app := NewApp() // This sets workspaceStore
+	app.chatHandler = handler
+	app.taskStore = taskStore      // needed for list tasks context
+	app.ctx = context.Background() // Fix panic due to nil context
+
+	// 1. Create Session
+	session := app.CreateChatSession()
+	if session == nil {
+		t.Fatal("CreateChatSession returned nil")
+	}
+	if session.ID == "" {
+		t.Error("Session ID should not be empty")
+	}
+
+	// 2. Send Message
+	resp := app.SendChatMessage(session.ID, "Make a delicious ramen website")
+
+	if resp.Error != "" {
+		t.Errorf("SendChatMessage returned error: %s", resp.Error)
+	}
+
+	if len(resp.GeneratedTasks) == 0 {
+		t.Error("Expected generated tasks, got 0")
+	}
+
+	if resp.Understanding == "" {
+		t.Error("Expected understanding, got empty string")
 	}
 }

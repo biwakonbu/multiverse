@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import WorkspaceSelector from "./lib/WorkspaceSelector.svelte";
+  import TitleBar from "./lib/TitleBar.svelte";
   import { Toolbar } from "./lib/toolbar";
   import { WBSListView, WBSGraphView } from "./lib/wbs";
   import {
@@ -16,6 +17,10 @@
   import { ListTasks, GetPoolSummaries } from "../wailsjs/go/main/App";
   import FloatingChatWindow from "./lib/components/chat/FloatingChatWindow.svelte";
   import { initExecutionEvents } from "./stores/executionStore";
+  import { initTaskEvents } from "./stores/taskStore";
+  import { initChatEvents } from "./stores/chat";
+  import { initBacklogEvents, unresolvedCount } from "./stores/backlogStore";
+  import BacklogPanel from "./lib/backlog/BacklogPanel.svelte";
 
   const log = Logger.withComponent("App");
 
@@ -25,6 +30,9 @@
   // Chat State
   let isChatVisible = true;
   let chatPosition = { x: 0, y: 0 };
+
+  // Backlog State
+  let isBacklogVisible = false;
 
   onMount(() => {
     // Calculate initial position (Bottom-Right)
@@ -36,7 +44,11 @@
       x: window.innerWidth - width - padding,
       y: window.innerHeight - height - padding,
     };
+    // Wails Events 初期化
     initExecutionEvents();
+    initTaskEvents();
+    initChatEvents();
+    initBacklogEvents();
   });
 
   // タスク一覧を読み込み
@@ -55,6 +67,13 @@
           updatedAt: t.updatedAt,
           startedAt: t.startedAt,
           doneAt: t.doneAt,
+          description: t.description,
+          dependencies: t.dependencies,
+          parentId: t.parentId,
+          wbsLevel: t.wbsLevel,
+          phaseName: t.phaseName as Task["phaseName"],
+          sourceChatId: t.sourceChatId,
+          acceptanceCriteria: t.acceptanceCriteria,
         })
       );
       log.debug("tasks loaded", { count: taskList.length });
@@ -86,9 +105,9 @@
     workspaceId = event.detail;
     log.info("workspace selected", { workspaceId });
     loadData();
-    // 2秒間隔でポーリング
-    interval = setInterval(loadData, 2000);
-    log.info("polling started", { interval: 2000 });
+    // 10秒間隔でポーリング（Wails Events でリアルタイム更新されるためフォールバック）
+    interval = setInterval(loadData, 10000);
+    log.info("polling started", { interval: 10000 });
   }
 
   onDestroy(() => {
@@ -100,6 +119,7 @@
 </script>
 
 <main class="app">
+  <TitleBar />
   {#if !workspaceId}
     <WorkspaceSelector on:selected={onWorkspaceSelected} />
   {:else}
@@ -148,6 +168,31 @@
         aria-label="Open Chat"
       >
         💬
+      </div>
+    {/if}
+
+    <!-- バックログ表示ボタン -->
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <div
+      class="backlog-fab"
+      class:has-items={$unresolvedCount > 0}
+      on:click={() => (isBacklogVisible = !isBacklogVisible)}
+      on:keydown={(e) => e.key === "Enter" && (isBacklogVisible = !isBacklogVisible)}
+      role="button"
+      tabindex="0"
+      aria-label="Toggle Backlog"
+    >
+      {#if $unresolvedCount > 0}
+        <span class="backlog-count">{$unresolvedCount}</span>
+      {:else}
+        &#9776;
+      {/if}
+    </div>
+
+    <!-- バックログパネル -->
+    {#if isBacklogVisible}
+      <div class="backlog-sidebar">
+        <BacklogPanel />
       </div>
     {/if}
   {/if}
@@ -212,4 +257,48 @@
   }
 
   /* タスク作成モーダルは削除済み */
+
+  .backlog-fab {
+    position: fixed;
+    bottom: var(--mv-spacing-lg);
+    left: var(--mv-spacing-lg);
+    width: var(--mv-icon-size-xxxl);
+    height: var(--mv-icon-size-xxxl);
+    background: var(--mv-color-surface-primary);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
+    border-radius: var(--mv-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--mv-shadow-card);
+    cursor: pointer;
+    z-index: 1000;
+    font-size: var(--mv-icon-size-md);
+    transition: all var(--mv-transition-hover);
+  }
+
+  .backlog-fab:hover {
+    background: var(--mv-color-surface-hover);
+  }
+
+  .backlog-fab.has-items {
+    background: var(--mv-color-status-failed-bg);
+    border-color: var(--mv-color-status-failed-text);
+  }
+
+  .backlog-count {
+    font-size: var(--mv-font-size-sm);
+    font-weight: var(--mv-font-weight-bold);
+    color: var(--mv-color-status-failed-text);
+  }
+
+  .backlog-sidebar {
+    position: fixed;
+    top: 80px; /* Toolbar の下 */
+    left: 0;
+    bottom: 0;
+    width: 320px;
+    z-index: 100;
+    box-shadow: var(--mv-shadow-modal);
+  }
 </style>

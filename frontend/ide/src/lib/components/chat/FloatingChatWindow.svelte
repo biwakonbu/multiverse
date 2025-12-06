@@ -2,14 +2,24 @@
   import { createEventDispatcher, onMount } from "svelte";
   import ChatMessage from "./ChatMessage.svelte";
   import ChatInput from "./ChatInput.svelte";
-  import { chatStore, chatMessages, isChatLoading } from "../../../stores/chat";
+  import {
+    chatStore,
+    chatMessages,
+    isChatLoading,
+    chatLog,
+    currentSessionId,
+    chatError,
+  } from "../../../stores/chat";
+  import { get } from "svelte/store";
+  import type { ChatResponse } from "../../../stores/chat";
 
   export let initialPosition = { x: 20, y: 20 };
 
   let position = { ...initialPosition };
   let isDragging = false;
-  let windowEl: HTMLElement | undefined;
-  let contentEl: HTMLElement | undefined;
+  let windowEl: HTMLElement | null = null;
+  let contentEl: HTMLElement | null = null;
+  let conflicts: NonNullable<ChatResponse["conflicts"]> = [];
 
   // Tabs
   const tabs = ["General", "Log"];
@@ -66,9 +76,28 @@
   // チャット送信処理
   async function handleSend(e: CustomEvent<string>) {
     const text = e.detail;
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      console.warn("FloatingChatWindow: empty text");
+      return;
+    }
+
+    const currentId = get(currentSessionId);
+
+    // セッションIDがない場合は再作成を試みる
+    if (!currentId) {
+      console.warn("Session ID is missing, attempting to recreate...");
+      await chatStore.createSession();
+      if (!get(currentSessionId)) {
+        console.error("Failed to create session.");
+        alert(
+          "Chat session initialization failed. Please try reloading the workspace."
+        );
+        return;
+      }
+    }
 
     const response = await chatStore.sendMessage(text);
+    conflicts = response?.conflicts ?? [];
 
     // タスクが生成された場合はイベントを発行
     if (response?.generatedTasks && response.generatedTasks.length > 0) {
@@ -126,6 +155,11 @@
   {#if !isMinimized}
     <div class="content" bind:this={contentEl}>
       {#if activeTab === "General"}
+        {#if $chatError}
+          <div class="error-banner" role="alert">
+            {$chatError}
+          </div>
+        {/if}
         {#each $chatMessages as msg (msg.id)}
           <ChatMessage
             role={msg.role}
@@ -140,19 +174,37 @@
             <span class="dot"></span>
           </div>
         {/if}
+        {#if conflicts.length > 0}
+          <div class="conflicts-card">
+            <div class="conflicts-header">検出されたコンフリクト</div>
+            <ul>
+              {#each conflicts as conflict}
+                <li>
+                  <div class="conflict-file">{conflict.file}</div>
+                  <div class="conflict-warning">{conflict.warning}</div>
+                  {#if conflict.tasks?.length}
+                    <div class="conflict-tasks">関連タスク: {conflict.tasks.join(", ")}</div>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       {:else if activeTab === "Log"}
         <div class="log-placeholder">
-          <ChatMessage
-            role="system"
-            content="[System] Log tab selected."
-            timestamp={new Date().toISOString()}
-          />
-          {#each $chatMessages.filter((m) => m.role === "system") as msg (msg.id)}
-            <ChatMessage
-              role={msg.role}
-              content={msg.content}
-              timestamp={msg.timestamp}
-            />
+          <div class="log-entry system">
+            <span class="timestamp">{new Date().toLocaleTimeString()}</span>
+            <span class="step">[System]</span>
+            <span class="message">Log tab selected.</span>
+          </div>
+          {#each $chatLog as log}
+            <div class="log-entry">
+              <span class="timestamp"
+                >{new Date(log.timestamp).toLocaleTimeString()}</span
+              >
+              <span class="step">[{log.step}]</span>
+              <span class="message">{log.message}</span>
+            </div>
           {/each}
         </div>
       {/if}
@@ -360,5 +412,87 @@
   .log-placeholder {
     display: flex;
     flex-direction: column;
+    gap: var(--mv-spacing-xs);
+  }
+
+  .log-entry {
+    display: flex;
+    gap: var(--mv-spacing-xs);
+    font-family: var(--mv-font-mono);
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
+    padding: var(--mv-spacing-xxs);
+    border-bottom: 1px solid var(--mv-glass-border-subtle);
+  }
+
+  .log-entry .timestamp {
+    color: var(--mv-color-text-secondary);
+    min-width: 60px;
+  }
+
+  .log-entry .step {
+    color: var(--mv-primitive-frost-2);
+    font-weight: bold;
+    min-width: 80px;
+  }
+
+  .log-entry .message {
+    color: var(--mv-color-text-primary);
+    word-break: break-all;
+  }
+
+  .error-banner {
+    background: var(--mv-color-surface-danger);
+    color: var(--mv-color-text-on-danger);
+    padding: var(--mv-spacing-sm) var(--mv-spacing-md);
+    border-radius: var(--mv-radius-sm);
+    margin-bottom: var(--mv-spacing-sm);
+    font-size: var(--mv-font-size-sm);
+    border: 1px solid var(--mv-color-border-strong);
+  }
+
+  .conflicts-card {
+    margin-top: var(--mv-spacing-md);
+    padding: var(--mv-spacing-md);
+    background: var(--mv-color-surface-secondary);
+    border: 1px solid var(--mv-color-border-default);
+    border-radius: var(--mv-radius-md);
+    box-shadow: var(--mv-shadow-card);
+  }
+
+  .conflicts-header {
+    font-weight: 600;
+    margin-bottom: var(--mv-spacing-xs);
+  }
+
+  .conflicts-card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-xs);
+  }
+
+  .conflicts-card li {
+    padding: var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-sm);
+    background: var(--mv-color-surface-primary);
+    border: 1px solid var(--mv-color-border-default);
+  }
+
+  .conflict-file {
+    font-weight: 600;
+  }
+
+  .conflict-warning {
+    font-size: var(--mv-font-size-sm);
+    color: var(--mv-color-text-secondary);
+  }
+
+  .conflict-tasks {
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-tertiary);
+    margin-top: var(--mv-spacing-xxs);
   }
 </style>

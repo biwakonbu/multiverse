@@ -93,6 +93,7 @@ func (s *Scheduler) allDependenciesSatisfied(task *Task) bool {
 
 	completedStatuses := map[TaskStatus]bool{
 		TaskStatusSucceeded: true,
+		TaskStatusCompleted: true,
 		TaskStatusCanceled:  true,
 	}
 

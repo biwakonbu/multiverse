@@ -33,6 +33,7 @@ func (w *WailsEventEmitter) Emit(eventName string, data any) {
 const (
 	EventTaskStateChange      = "task:stateChange"
 	EventExecutionStateChange = "execution:stateChange"
+	EventChatProgress         = "chat:progress"
 )
 
 // TaskStateChangeEvent represents a task state change event
@@ -48,4 +49,12 @@ type ExecutionStateChangeEvent struct {
 	OldState  ExecutionState `json:"oldState"`
 	NewState  ExecutionState `json:"newState"`
 	Timestamp time.Time      `json:"timestamp"`
+}
+
+// ChatProgressEvent represents a progress update during chat processing
+type ChatProgressEvent struct {
+	SessionID string    `json:"sessionId"`
+	Step      string    `json:"step"`    // e.g. "Decomposing", "Persisting"
+	Message   string    `json:"message"` // Human readable message
+	Timestamp time.Time `json:"timestamp"`
 }
