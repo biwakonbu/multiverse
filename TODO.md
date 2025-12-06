@@ -8,8 +8,8 @@ Based on PRD v2.0
 
 | Phase | Status | 備考 |
 |-------|--------|------|
-| Phase 1: チャット→タスク生成 | 🟡 進行中 | Week 1 完了、Week 2 作業中 |
-| Phase 2: 依存グラフ・WBS表示 | ⚪ 未着手 | Phase 1 完了後 |
+| Phase 1: チャット→タスク生成 | 🟢 ほぼ完了 | E2Eテストのみ残 |
+| Phase 2: 依存グラフ・WBS表示 | 🟡 進行中 | Week 3 完了、Week 4 作業中 |
 | Phase 3: 自律実行ループ | ⚪ 未着手 | Phase 2 完了後 |
 
 ---
@@ -65,27 +65,27 @@ Based on PRD v2.0
 
 #### 2.1 チャットUI連携
 
-- [ ] `frontend/ide/src/lib/components/chat/FloatingChatWindow.svelte`
-  - [ ] Wails API 呼び出し（SendChatMessage）
-  - [ ] 応答メッセージの表示
-  - [ ] タスク生成結果のインライン表示
-- [ ] `frontend/ide/src/stores/chat.ts`
-  - [ ] セッション管理
-  - [ ] メッセージ履歴管理
-  - [ ] Wails API 連携
+- [x] `frontend/ide/src/lib/components/chat/FloatingChatWindow.svelte`
+  - [x] Wails API 呼び出し（SendChatMessage）
+  - [x] 応答メッセージの表示
+  - [x] タスク生成結果のインライン表示
+- [x] `frontend/ide/src/stores/chat.ts`
+  - [x] セッション管理
+  - [x] メッセージ履歴管理
+  - [x] Wails API 連携
 
 #### 2.2 タスク表示更新
 
-- [ ] `frontend/ide/src/stores/taskStore.ts`
-  - [ ] 新規タスク追加時の状態更新
-  - [ ] 依存関係情報の保持
-- [ ] `frontend/ide/src/lib/grid/GridNode.svelte`
-  - [ ] フェーズ別色分け（概念設計/実装設計/実装）
+- [x] `frontend/ide/src/stores/taskStore.ts`
+  - [x] 新規タスク追加時の状態更新
+  - [x] 依存関係情報の保持（taskEdges, blockedTasks, readyTasks）
+- [x] `frontend/ide/src/lib/grid/GridNode.svelte`
+  - [x] フェーズ別色分け（概念設計/実装設計/実装/検証）
 
 #### 2.3 テスト
 
-- [ ] ChatHandler ユニットテスト
-- [ ] Meta-agent decompose モックテスト
+- [x] ChatHandler ユニットテスト（handler_test.go）
+- [x] Meta-agent decompose モックテスト（MockMetaClient）
 - [ ] E2E テスト（チャット→タスク生成フロー）
 
 ---
@@ -96,15 +96,22 @@ Based on PRD v2.0
 
 #### 3.1 TaskGraphManager
 
-- [ ] `internal/orchestrator/task_graph.go` (新規)
-  - [ ] `TaskGraphManager` 構造体
-  - [ ] `TaskGraph` 構造体
-  - [ ] `GraphNode` 構造体
-  - [ ] `TaskEdge` 構造体
-  - [ ] `BuildGraph()` メソッド
-  - [ ] `GetExecutionOrder()` メソッド（トポロジカルソート）
-  - [ ] `GetBlockedTasks()` メソッド
-  - [ ] サイクル検出ロジック
+- [x] `internal/orchestrator/task_graph.go` (新規)
+  - [x] `TaskGraphManager` 構造体
+  - [x] `TaskGraph` 構造体
+  - [x] `GraphNode` 構造体
+  - [x] `TaskEdge` 構造体
+  - [x] `BuildGraph()` メソッド
+  - [x] `GetExecutionOrder()` メソッド（トポロジカルソート）
+  - [x] `GetBlockedTasks()` メソッド
+  - [x] `GetReadyTasks()` メソッド
+  - [x] `DetectCycle()` メソッド（サイクル検出）
+  - [x] `GetTaskDependencyInfo()` メソッド
+- [x] `internal/orchestrator/task_graph_test.go` (新規)
+  - [x] BuildGraph テスト
+  - [x] GetExecutionOrder テスト
+  - [x] サイクル検出テスト
+  - [x] ブロックタスク検出テスト
 
 #### 3.2 Scheduler 拡張
 
@@ -115,12 +122,14 @@ Based on PRD v2.0
 
 #### 3.3 ConnectionLine コンポーネント
 
-- [ ] `frontend/ide/src/lib/grid/ConnectionLine.svelte` (新規)
-  - [ ] SVG パス計算
-  - [ ] 依存状態による色分け
-  - [ ] 矢印マーカー
-- [ ] `frontend/ide/src/lib/grid/GridCanvas.svelte`
-  - [ ] ConnectionLine のレンダリング
+- [x] `frontend/ide/src/lib/grid/ConnectionLine.svelte` (新規)
+  - [x] SVG ベジェ曲線パス計算
+  - [x] 依存状態による色分け（satisfied: 緑, unsatisfied: オレンジ破線）
+  - [x] 矢印マーカー
+  - [x] ダッシュアニメーション（未満の依存）
+- [x] `frontend/ide/src/lib/grid/GridCanvas.svelte`
+  - [x] ConnectionLine のレンダリング
+  - [x] 矢印マーカー定義（SVG defs）
 
 ### Week 4: WBS・視覚化
 
@@ -224,6 +233,6 @@ Based on PRD v2.0
 
 ## 次のアクション
 
-1. **Phase 1 Week 1** から開始
-2. まず `internal/orchestrator/task_store.go` の Task 構造体を拡張
-3. 次に `internal/meta/protocol.go` に decompose プロトコルを追加
+1. **Phase 2 Week 4**: WBS ビュー実装
+2. **Phase 2 完了**: Scheduler 拡張（依存チェック）
+3. **Phase 3 開始**: ExecutionOrchestrator 実装

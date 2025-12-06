@@ -194,6 +194,40 @@ jobIDs, err := queue.ListJobs(poolID) // キュー内ジョブ一覧
 - Scheduler + TaskStore + FilesystemQueue の連携テスト
 - `test/integration/` で実施（予定）
 
+## TaskGraphManager
+
+タスク間の依存関係をグラフとして管理する。
+
+### 主要機能
+
+- **BuildGraph()**: 全タスクから依存グラフを構築
+- **GetExecutionOrder()**: トポロジカルソートによる実行順序を返す
+- **GetBlockedTasks()**: 依存が満たされていないタスクを返す
+- **GetReadyTasks()**: 実行可能タスク（PENDING で全依存満）を返す
+- **DetectCycle()**: サイクル検出、関与ノードを返す
+
+### データ構造
+
+```go
+type TaskGraph struct {
+    Nodes map[string]*GraphNode
+    Edges []TaskEdge
+}
+
+type GraphNode struct {
+    Task       *Task
+    InDegree   int      // 入次数
+    OutDegree  int      // 出次数
+    Dependents []string // このタスクに依存しているタスクID
+}
+
+type TaskEdge struct {
+    From      string // 依存元タスクID
+    To        string // 依存先タスクID
+    Satisfied bool   // 依存が満たされているか
+}
+```
+
 ## 拡張予定
 
 ### 短期
@@ -201,11 +235,11 @@ jobIDs, err := queue.ListJobs(poolID) // キュー内ジョブ一覧
 - [ ] ファイルロックによる並行アクセス制御
 - [ ] Worker → Orchestrator の結果キュー実装
 - [ ] Attempt のライフサイクル管理
+- [ ] Scheduler と TaskGraphManager の連携
 
 ### 長期
 
 - [ ] Worker Pool 設定の永続化
-- [ ] タスク依存関係管理
 - [ ] 優先度ベーススケジューリング
 
 ## 関連ドキュメント

@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import GridNode from './GridNode.svelte';
+  import ConnectionLine from './ConnectionLine.svelte';
   import { viewport, drag, canvasTransform, zoomPercent } from '../../stores';
-  import { taskNodes, gridBounds } from '../../stores';
+  import { taskNodes, gridBounds, taskEdges } from '../../stores';
   import { zoom as zoomConfig } from '../../design-system';
 
   let containerRef: HTMLDivElement;
@@ -108,6 +109,43 @@
     </svg>
   </div>
 
+  <!-- 接続線レイヤー（ノードの下に表示） -->
+  <svg class="connections-layer" style="transform: {$canvasTransform};">
+    <defs>
+      <!-- 矢印マーカー（満たされた依存） -->
+      <marker
+        id="arrowhead-satisfied"
+        markerWidth="10"
+        markerHeight="7"
+        refX="9"
+        refY="3.5"
+        orient="auto"
+      >
+        <polygon
+          points="0 0, 10 3.5, 0 7"
+          fill="var(--mv-color-status-succeeded-border)"
+        />
+      </marker>
+      <!-- 矢印マーカー（未満の依存） -->
+      <marker
+        id="arrowhead-unsatisfied"
+        markerWidth="10"
+        markerHeight="7"
+        refX="9"
+        refY="3.5"
+        orient="auto"
+      >
+        <polygon
+          points="0 0, 10 3.5, 0 7"
+          fill="var(--mv-color-status-blocked-border)"
+        />
+      </marker>
+    </defs>
+    {#each $taskEdges as edge (`${edge.from}-${edge.to}`)}
+      <ConnectionLine {edge} />
+    {/each}
+  </svg>
+
   <!-- ノードレイヤー -->
   <div class="nodes-layer" style="transform: {$canvasTransform};">
     {#each $taskNodes as node (node.task.id)}
@@ -152,6 +190,18 @@
   .grid-pattern {
     width: 100%;
     height: 100%;
+  }
+
+  .connections-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 0 0;
+    pointer-events: none;
+    overflow: visible;
+    padding: var(--mv-spacing-xl);
   }
 
   .nodes-layer {
