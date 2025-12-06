@@ -8,7 +8,6 @@
 
   let position = { ...initialPosition };
   let isDragging = false;
-  let dragOffset = { x: 0, y: 0 };
   let windowEl: HTMLElement | undefined;
   let contentEl: HTMLElement | undefined;
 
@@ -47,22 +46,16 @@
     if (!windowEl) return;
 
     isDragging = true;
-    const rect = windowEl.getBoundingClientRect();
-    dragOffset = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-
     window.addEventListener("mouseup", stopDrag);
   }
 
   function onMouseMove(e: MouseEvent) {
     if (!isDragging) return;
 
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-
-    position = { x: newX, y: newY };
+    position = {
+      x: position.x + e.movementX,
+      y: position.y + e.movementY,
+    };
   }
 
   function stopDrag() {
@@ -184,7 +177,8 @@
     /* Assertive Border */
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
     border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-top);
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-bottom);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-bottom);
 
     border-radius: var(--mv-radius-lg);
 
@@ -214,7 +208,8 @@
     user-select: none;
     flex-shrink: 0;
     background: transparent;
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-subtle);
   }
 
   .header:active {

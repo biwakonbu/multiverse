@@ -55,10 +55,10 @@
   }
 
   .timestamp {
-    color: var(--mv-primitive-snow-storm-0); /* Brighter grey */
-    font-size: 10px;
-    opacity: 0.8; /* Much more visible */
-    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    color: var(--mv-primitive-snow-storm-0);
+    font-size: var(--mv-font-size-timestamp);
+    opacity: 0.8;
+    text-shadow: var(--mv-text-shadow-timestamp);
   }
 
   /* Content Block */

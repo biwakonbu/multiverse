@@ -15,6 +15,7 @@
   // @ts-ignore - Wails自動生成ファイル
   import { ListTasks, GetPoolSummaries } from "../wailsjs/go/main/App";
   import FloatingChatWindow from "./lib/components/chat/FloatingChatWindow.svelte";
+  import { initExecutionEvents } from "./stores/executionStore";
 
   const log = Logger.withComponent("App");
 
@@ -35,6 +36,7 @@
       x: window.innerWidth - width - padding,
       y: window.innerHeight - height - padding,
     };
+    initExecutionEvents();
   });
 
   // タスク一覧を読み込み

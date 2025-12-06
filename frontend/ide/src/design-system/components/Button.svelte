@@ -136,14 +136,10 @@
     --btn-bg: var(--mv-primitive-frost-2);
     --btn-border: var(--mv-primitive-frost-3);
     --btn-text: var(--mv-color-text-primary);
-    --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -1px 0 rgba(34, 48, 56, 0.25),
-      0 8px 18px -10px rgba(143, 191, 187, 0.35);
+    --btn-shadow: var(--mv-btn-shadow-primary);
     --btn-bg-hover: var(--mv-primitive-frost-1);
     --btn-border-hover: var(--mv-primitive-frost-1);
-    --btn-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      inset 0 -1px 0 rgba(34, 48, 56, 0.28),
-      0 10px 22px -12px rgba(136, 192, 208, 0.45);
+    --btn-shadow-hover: var(--mv-btn-shadow-primary-hover);
     --btn-bg-active: var(--mv-primitive-frost-3);
     --btn-border-active: var(--mv-primitive-frost-3);
   }
@@ -176,14 +172,10 @@
     --btn-bg: var(--mv-color-status-failed-border);
     --btn-border: var(--mv-color-status-failed-border);
     --btn-text: var(--mv-color-text-primary);
-    --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      inset 0 -1px 0 rgba(58, 28, 28, 0.3),
-      0 8px 18px -12px rgba(201, 123, 123, 0.45);
+    --btn-shadow: var(--mv-btn-shadow-danger);
     --btn-bg-hover: var(--mv-color-status-failed-text);
     --btn-border-hover: var(--mv-color-status-failed-text);
-    --btn-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -1px 0 rgba(58, 28, 28, 0.35),
-      0 10px 20px -12px rgba(218, 126, 135, 0.5);
+    --btn-shadow-hover: var(--mv-btn-shadow-danger-hover);
     --btn-bg-active: var(--mv-primitive-pastel-red);
     --btn-border-active: var(--mv-primitive-pastel-red);
   }

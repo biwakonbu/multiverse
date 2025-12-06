@@ -18,12 +18,13 @@ import (
 
 // App struct
 type App struct {
-	ctx            context.Context
-	workspaceStore *ide.WorkspaceStore
-	taskStore      *orchestrator.TaskStore
-	scheduler      *orchestrator.Scheduler
-	chatHandler    *chat.Handler
-	currentWS      *ide.Workspace
+	ctx                   context.Context
+	workspaceStore        *ide.WorkspaceStore
+	taskStore             *orchestrator.TaskStore
+	scheduler             *orchestrator.Scheduler
+	chatHandler           *chat.Handler
+	currentWS             *ide.Workspace
+	executionOrchestrator *orchestrator.ExecutionOrchestrator
 }
 
 // NewApp creates a new App application struct
@@ -86,6 +87,21 @@ func (a *App) SelectWorkspace() string {
 	queue := ipc.NewFilesystemQueue(wsDir)
 	a.scheduler = orchestrator.NewScheduler(a.taskStore, queue)
 
+	// Initialize Execution Environment
+	agentRunnerPath := "agent-runner"
+	if _, err := os.Stat("agent-runner"); err == nil {
+		agentRunnerPath, _ = filepath.Abs("agent-runner")
+	}
+	executor := orchestrator.NewExecutor(agentRunnerPath, a.taskStore)
+	eventEmitter := orchestrator.NewWailsEventEmitter(a.ctx)
+	a.executionOrchestrator = orchestrator.NewExecutionOrchestrator(
+		a.scheduler,
+		executor,
+		a.taskStore,
+		queue,
+		eventEmitter,
+	)
+
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)
 	sessionStore := chat.NewChatSessionStore(wsDir)
 	metaClient := meta.NewMockClient()
@@ -135,6 +151,21 @@ func (a *App) OpenWorkspaceByID(id string) string {
 	a.taskStore = orchestrator.NewTaskStore(wsDir)
 	queue := ipc.NewFilesystemQueue(wsDir)
 	a.scheduler = orchestrator.NewScheduler(a.taskStore, queue)
+
+	// Initialize Execution Environment
+	agentRunnerPath := "agent-runner"
+	if _, err := os.Stat("agent-runner"); err == nil {
+		agentRunnerPath, _ = filepath.Abs("agent-runner")
+	}
+	executor := orchestrator.NewExecutor(agentRunnerPath, a.taskStore)
+	eventEmitter := orchestrator.NewWailsEventEmitter(a.ctx)
+	a.executionOrchestrator = orchestrator.NewExecutionOrchestrator(
+		a.scheduler,
+		executor,
+		a.taskStore,
+		queue,
+		eventEmitter,
+	)
 
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)
 	sessionStore := chat.NewChatSessionStore(wsDir)
@@ -303,4 +334,48 @@ func (a *App) GetChatHistory(sessionID string) []chat.ChatMessage {
 		return []chat.ChatMessage{}
 	}
 	return messages
+}
+
+// ============================================================================
+// Execution Control API
+// ============================================================================
+
+// StartExecution starts the autonomous execution loop.
+func (a *App) StartExecution() error {
+	if a.executionOrchestrator == nil {
+		return fmt.Errorf("execution orchestrator not initialized")
+	}
+	return a.executionOrchestrator.Start(a.ctx)
+}
+
+// PauseExecution pauses the autonomous execution loop.
+func (a *App) PauseExecution() error {
+	if a.executionOrchestrator == nil {
+		return fmt.Errorf("execution orchestrator not initialized")
+	}
+	return a.executionOrchestrator.Pause()
+}
+
+// ResumeExecution resumes the autonomous execution loop.
+func (a *App) ResumeExecution() error {
+	if a.executionOrchestrator == nil {
+		return fmt.Errorf("execution orchestrator not initialized")
+	}
+	return a.executionOrchestrator.Resume()
+}
+
+// StopExecution stops the autonomous execution loop.
+func (a *App) StopExecution() error {
+	if a.executionOrchestrator == nil {
+		return fmt.Errorf("execution orchestrator not initialized")
+	}
+	return a.executionOrchestrator.Stop()
+}
+
+// GetExecutionState returns the current execution state.
+func (a *App) GetExecutionState() string {
+	if a.executionOrchestrator == nil {
+		return "IDLE"
+	}
+	return string(a.executionOrchestrator.State())
 }

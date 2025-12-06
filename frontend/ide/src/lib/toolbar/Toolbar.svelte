@@ -1,8 +1,14 @@
 <script lang="ts">
-  import { taskCountsByStatus, poolSummaries, viewMode, overallProgress } from "../../stores";
+  import {
+    taskCountsByStatus,
+    poolSummaries,
+    viewMode,
+    overallProgress,
+  } from "../../stores";
   import type { TaskStatus } from "../../types";
   import BrandText from "../components/brand/BrandText.svelte";
   import ProgressBar from "../wbs/ProgressBar.svelte";
+  import ExecutionControls from "./ExecutionControls.svelte";
 
   // ステータスサマリの表示設定（フォールバック用）
   const statusDisplay: {
@@ -66,7 +72,11 @@
   </div>
 
   <!-- 右側：進捗・ビュー切替 -->
+  <!-- 右側：進捗・ビュー切替 -->
   <div class="toolbar-right">
+    <!-- 実行コントロール -->
+    <ExecutionControls />
+
     <!-- 進捗率バー -->
     <div class="progress-section">
       <ProgressBar percentage={$overallProgress.percentage} size="mini" />
