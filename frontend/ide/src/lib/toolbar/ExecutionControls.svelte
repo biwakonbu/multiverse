@@ -68,13 +68,7 @@
     display: flex;
     align-items: center;
     gap: var(--mv-spacing-sm);
-    padding: var(--mv-spacing-xxs) var(--mv-spacing-sm);
-    background: var(--mv-color-surface-secondary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-sm);
   }
-
-  /* Adjust button spacing/layout if needed, but Button component should handle it. */
 
   .state-indicator {
     display: flex;
@@ -99,12 +93,7 @@
   }
 
   .status-dot.paused {
-    background: var(
-      --mv-color-status-ready-text
-    ); /* Use Ready color (Cyan) for paused? or Warning? Original used warning text color which might be undefined in snippet */
-    background: var(
-      --mv-primitive-aurora-yellow
-    ); /* Explicitly yellow for paused */
+    background: var(--mv-primitive-aurora-yellow);
   }
 
   .status-text {

@@ -72,12 +72,12 @@
 
   /* サイズ */
   .size-small {
-    padding: 2px 6px;
+    padding: var(--mv-spacing-xxxs) var(--mv-spacing-xs);
     font-size: var(--mv-font-size-xxs);
   }
 
   .size-medium {
-    padding: 4px 8px;
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     font-size: var(--mv-font-size-xs);
   }
 
@@ -94,23 +94,23 @@
     --badge-text: var(--mv-color-text-secondary);
   }
   .color-success {
-    --badge-bg: rgba(163, 190, 140, 0.2);
+    --badge-bg: var(--mv-color-status-running-bg);
     --badge-border: var(--mv-primitive-aurora-green);
     --badge-text: var(--mv-primitive-aurora-green);
     --badge-glow: var(--mv-color-glow-running);
   }
   .color-warning {
-    --badge-bg: rgba(235, 203, 139, 0.2);
+    --badge-bg: var(--mv-color-status-pending-bg);
     --badge-border: var(--mv-primitive-aurora-yellow);
     --badge-text: var(--mv-primitive-aurora-yellow);
   }
   .color-danger {
-    --badge-bg: rgba(191, 97, 106, 0.2);
+    --badge-bg: var(--mv-color-status-failed-bg);
     --badge-border: var(--mv-primitive-aurora-red);
     --badge-text: var(--mv-primitive-aurora-red);
   }
   .color-info {
-    --badge-bg: rgba(136, 192, 208, 0.2);
+    --badge-bg: var(--mv-color-status-ready-bg);
     --badge-border: var(--mv-primitive-frost-2);
     --badge-text: var(--mv-primitive-frost-2);
   }
@@ -125,14 +125,14 @@
   /* Default: Flat/Solid-ish */
   .variant-default {
     background: var(--badge-bg);
-    border: 1px solid var(--badge-border);
+    border: var(--mv-border-width-thin) solid var(--badge-border);
     color: var(--badge-text);
   }
 
   /* Outline: Transparent bg */
   .variant-outline {
     background: transparent;
-    border: 1px solid var(--badge-border);
+    border: var(--mv-border-width-thin) solid var(--badge-border);
     color: var(--badge-text);
   }
 
@@ -146,18 +146,18 @@
       var(--badge-bg),
       transparent 50%
     ); /* make it subtler */
-    border: 1px solid color-mix(in srgb, var(--badge-border), transparent 30%);
+    border: var(--mv-border-width-thin) solid color-mix(in srgb, var(--badge-border), transparent 30%);
     color: var(--badge-text);
-    box-shadow: 0 0 8px var(--badge-bg); /* subtle glow */
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--badge-bg); /* subtle glow */
     backdrop-filter: blur(4px);
   }
 
   /* パルスドット */
   .pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: currentColor;
+    width: var(--mv-status-dot-size);
+    height: var(--mv-status-dot-size);
+    border-radius: var(--mv-radius-full);
+    background-color: var(--badge-text);
     animation: pulse 1.5s infinite;
   }
 

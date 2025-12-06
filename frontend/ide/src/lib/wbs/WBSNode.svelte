@@ -119,10 +119,11 @@
   on:keydown={handleKeydown}
 >
   <!-- Indentation Guides -->
+  <!-- stylelint-disable-next-line scale-unlimited/declaration-strict-value -->
   {#each indentGuides as _, i}
     <div
       class="indent-guide"
-      style="left: {i * INDENT_WIDTH + INDENT_BASE + INDENT_WIDTH / 2 - 1}px"
+      style:left="{i * INDENT_WIDTH + INDENT_BASE + INDENT_WIDTH / 2 - 1}px"
     ></div>
   {/each}
 
@@ -194,7 +195,7 @@
     height: var(--mv-wbs-node-height);
     padding-right: var(--mv-spacing-md);
     cursor: pointer;
-    border-bottom: 1px solid transparent; /* Separator placeholder */
+    border-bottom: var(--mv-border-width-thin) solid transparent;
     transition:
       background-color var(--mv-transition-hover),
       border-color var(--mv-transition-hover),
@@ -207,7 +208,7 @@
 
   /* Zebra Striping (Subtle) */
   .wbs-node.is-odd {
-    background: rgba(255, 255, 255, 0.015);
+    background: var(--mv-glass-active);
   }
 
   /* Indentation Guide */
@@ -215,7 +216,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 2px;
+    width: var(--mv-spacing-xxxs);
     background: linear-gradient(
       to bottom,
       transparent,
@@ -225,7 +226,7 @@
     );
     opacity: 0.5;
     pointer-events: none;
-    z-index: 1; /* Ensure visible above background */
+    z-index: 1;
   }
 
   /* Hover Effects */
@@ -237,23 +238,21 @@
   .wbs-node:focus {
     outline: none;
     background: var(--mv-glass-hover-strong);
-    box-shadow: inset 2px 0 0 var(--mv-color-interactive-primary);
+    box-shadow: var(--mv-shadow-inset-focus) var(--mv-color-interactive-primary);
   }
 
   /* Selected State */
   .wbs-node.selected {
     background: var(--mv-glass-active);
     color: var(--mv-color-text-primary);
-    box-shadow:
-      inset 2px 0 0 var(--mv-color-interactive-primary),
-      var(--mv-shadow-glow-sm);
+    box-shadow: var(--mv-shadow-wbs-node-selected);
   }
 
   /* Phase Node Styling */
   .wbs-node.is-phase {
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-color-text-primary);
-    border-bottom: 1px solid var(--mv-glass-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
   }
 
   .wbs-node.is-phase:hover {
@@ -297,8 +296,8 @@
   }
 
   .chevron {
-    width: 14px;
-    height: 14px;
+    width: var(--mv-icon-size-xs);
+    height: var(--mv-icon-size-xs);
     transition: transform var(--mv-duration-fast) var(--mv-easing-spring);
   }
 
@@ -312,29 +311,29 @@
 
   /* Phase Indicator */
   .phase-indicator {
-    width: 3px;
-    height: 14px;
-    border-radius: 2px;
+    width: var(--mv-spacing-xxxs);
+    height: var(--mv-icon-size-xs);
+    border-radius: var(--mv-spacing-xxxs);
     flex-shrink: 0;
     opacity: 0.9;
-    box-shadow: 0 0 5px var(--phase-color);
+    box-shadow: var(--mv-shadow-phase-glow-sm) var(--phase-color);
   }
 
   .phase-concept .phase-indicator {
     background: var(--mv-primitive-frost-3);
-    box-shadow: 0 0 8px var(--mv-primitive-frost-3);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-primitive-frost-3);
   }
   .phase-design .phase-indicator {
     background: var(--mv-primitive-aurora-purple);
-    box-shadow: 0 0 8px var(--mv-primitive-aurora-purple);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-primitive-aurora-purple);
   }
   .phase-impl .phase-indicator {
     background: var(--mv-primitive-aurora-green);
-    box-shadow: 0 0 8px var(--mv-primitive-aurora-green);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-primitive-aurora-green);
   }
   .phase-verify .phase-indicator {
     background: var(--mv-primitive-aurora-yellow);
-    box-shadow: 0 0 8px var(--mv-primitive-aurora-yellow);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-primitive-aurora-yellow);
   }
 
   /* Node Label */

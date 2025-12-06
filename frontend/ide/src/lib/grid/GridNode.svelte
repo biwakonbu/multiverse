@@ -139,33 +139,30 @@
     position: absolute;
     inset: 0;
     border-radius: var(--mv-radius-md);
-    background: var(--mv-color-surface-node); /* Fallback */
-    background: rgba(30, 34, 42, 0.6);
+    background: var(--mv-glass-bg);
     backdrop-filter: blur(8px);
     border: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--mv-shadow-card);
     transition: all var(--mv-duration-fast);
   }
 
   .node:hover .node-glass {
-    background: rgba(35, 40, 50, 0.7);
+    background: var(--mv-glass-hover);
     border-color: var(--mv-color-border-default);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--mv-shadow-ambient-lg);
   }
 
   /* 選択状態 */
   .node.selected .node-glass {
     border-color: var(--mv-color-interactive-primary);
-    box-shadow:
-      0 0 0 1px var(--mv-color-interactive-primary),
-      0 8px 24px rgba(0, 0, 0, 0.3);
-    background: rgba(35, 40, 50, 0.8);
+    box-shadow: var(--mv-shadow-selected);
+    background: var(--mv-glass-hover-strong);
   }
 
   /* ノードグロー (実行中など) */
   .node-glow {
     position: absolute;
-    inset: -4px;
+    inset: calc(-1 * var(--mv-spacing-xxs));
     border-radius: var(--mv-radius-lg);
     opacity: 0;
     transition: opacity var(--mv-duration-normal);
@@ -219,27 +216,27 @@
     top: 0;
     left: var(--mv-spacing-sm);
     right: var(--mv-spacing-sm);
-    height: 2px;
+    height: var(--mv-spacing-xxxs);
     background: var(--mv-color-border-subtle);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    border-radius: 0 0 2px 2px;
+    box-shadow: var(--mv-shadow-badge);
+    border-radius: 0 0 var(--mv-spacing-xxxs) var(--mv-spacing-xxxs);
   }
 
   .phase-concept .phase-indicator-top {
     background: var(--mv-primitive-frost-3);
-    box-shadow: 0 0 4px var(--mv-primitive-frost-3);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-primitive-frost-3);
   }
   .phase-design .phase-indicator-top {
     background: var(--mv-primitive-aurora-purple);
-    box-shadow: 0 0 4px var(--mv-primitive-aurora-purple);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-primitive-aurora-purple);
   }
   .phase-impl .phase-indicator-top {
     background: var(--mv-primitive-aurora-green);
-    box-shadow: 0 0 4px var(--mv-primitive-aurora-green);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-primitive-aurora-green);
   }
   .phase-verify .phase-indicator-top {
     background: var(--mv-primitive-aurora-yellow);
-    box-shadow: 0 0 4px var(--mv-primitive-aurora-yellow);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-primitive-aurora-yellow);
   }
 
   /* ヘッダー */
@@ -247,27 +244,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 16px;
+    height: var(--mv-indicator-size-lg);
   }
 
   .status-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--mv-status-dot-size);
   }
 
   .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+    width: var(--mv-status-dot-size);
+    height: var(--mv-status-dot-size);
+    border-radius: var(--mv-radius-full);
     background: var(--mv-color-text-muted);
-    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--mv-text-shadow-subtle);
   }
 
   .status-text {
-    font-size: 9px;
+    font-size: var(--mv-font-size-xxs);
     font-weight: var(--mv-font-weight-bold);
-    letter-spacing: 0.05em;
+    letter-spacing: var(--mv-letter-spacing-count);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
   }
@@ -282,7 +279,7 @@
 
   .node.status-ready .status-dot {
     background: var(--mv-color-status-ready-text);
-    box-shadow: 0 0 4px var(--mv-color-status-ready-text);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-color-status-ready-text);
   }
   .node.status-ready .status-text {
     color: var(--mv-color-status-ready-text);
@@ -290,16 +287,16 @@
 
   .node.status-running .status-dot {
     background: var(--mv-color-status-running-text);
-    box-shadow: 0 0 6px var(--mv-color-status-running-text);
+    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-running-text);
   }
   .node.status-running .status-text {
     color: var(--mv-color-status-running-text);
-    text-shadow: 0 0 4px rgba(163, 190, 140, 0.4);
+    text-shadow: var(--mv-text-shadow-green-content);
   }
 
   .node.status-succeeded .status-dot {
     background: var(--mv-color-status-succeeded-text);
-    box-shadow: 0 0 4px var(--mv-color-status-succeeded-text);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-color-status-succeeded-text);
   }
   .node.status-succeeded .status-text {
     color: var(--mv-color-status-succeeded-text);
@@ -307,7 +304,7 @@
 
   .node.status-failed .status-dot {
     background: var(--mv-color-status-failed-text);
-    box-shadow: 0 0 4px var(--mv-color-status-failed-text);
+    box-shadow: var(--mv-shadow-phase-indicator-glow) var(--mv-color-status-failed-text);
   }
   .node.status-failed .status-text {
     color: var(--mv-color-status-failed-text);
@@ -322,30 +319,30 @@
 
   /* フェーズタグ */
   .phase-tag {
-    font-size: 8px;
+    font-size: var(--mv-font-size-xxs);
     font-weight: var(--mv-font-weight-bold);
-    padding: 1px 4px;
-    border-radius: 2px;
-    background: rgba(255, 255, 255, 0.05);
+    padding: var(--mv-border-width-thin) var(--mv-spacing-xxs);
+    border-radius: var(--mv-spacing-xxxs);
+    background: var(--mv-glass-active);
     color: var(--mv-color-text-muted);
-    letter-spacing: 0.05em;
+    letter-spacing: var(--mv-letter-spacing-count);
   }
 
   .phase-concept .phase-tag {
     color: var(--mv-primitive-frost-3);
-    background: rgba(94, 129, 172, 0.1);
+    background: var(--mv-glass-active);
   }
   .phase-design .phase-tag {
     color: var(--mv-primitive-aurora-purple);
-    background: rgba(180, 142, 173, 0.1);
+    background: var(--mv-glass-active);
   }
   .phase-impl .phase-tag {
     color: var(--mv-primitive-aurora-green);
-    background: rgba(163, 190, 140, 0.1);
+    background: var(--mv-glass-active);
   }
   .phase-verify .phase-tag {
     color: var(--mv-primitive-aurora-yellow);
-    background: rgba(235, 203, 139, 0.1);
+    background: var(--mv-glass-active);
   }
 
   /* タイトル */
@@ -353,7 +350,7 @@
     font-size: var(--mv-font-size-sm);
     font-weight: var(--mv-font-weight-medium);
     color: var(--mv-color-text-primary);
-    line-height: 1.4;
+    line-height: var(--mv-line-height-tight);
 
     /* 3行まで表示 */
     display: -webkit-box;
@@ -363,7 +360,7 @@
     overflow: hidden;
     flex: 1;
 
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: var(--mv-text-shadow-base);
   }
 
   /* フッター */
@@ -372,7 +369,7 @@
     align-items: center;
     justify-content: space-between;
     font-family: var(--mv-font-mono);
-    font-size: 9px;
+    font-size: var(--mv-font-size-xxs);
     color: var(--mv-color-text-disabled);
     margin-top: auto;
   }
@@ -384,11 +381,11 @@
   .deps-indicator {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--mv-spacing-xxxs);
     opacity: 0.8;
   }
 
   .deps-arrow {
-    font-size: 10px;
+    font-size: var(--mv-font-size-xs);
   }
 </style>

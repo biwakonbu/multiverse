@@ -9,11 +9,9 @@
   import BrandText from "../components/brand/BrandText.svelte";
   import ProgressBar from "../wbs/ProgressBar.svelte";
   import ExecutionControls from "./ExecutionControls.svelte";
-  import Button from "../../design-system/components/Button.svelte";
-  import Badge from "../../design-system/components/Badge.svelte";
   import { Network, ListTree } from "lucide-svelte";
 
-  // Badge status type
+  // Badge status type (no longer directly used for badges, but conceptually for styling)
   type BadgeStatus =
     | "pending"
     | "ready"
@@ -23,7 +21,7 @@
     | "canceled"
     | "blocked";
 
-  // TaskStatus → BadgeStatus マッピング
+  // TaskStatus → BadgeStatus マッピング (no longer directly used for badges)
   const statusToLower: Record<string, BadgeStatus> = {
     PENDING: "pending",
     READY: "ready",
@@ -34,23 +32,31 @@
     BLOCKED: "blocked",
   };
 
-  // ステータスサマリの表示設定
+  // ステータスサマリの表示設定（フォールバック用）
   const statusDisplay: {
     key: TaskStatus;
     label: string;
     showCount: boolean;
-    color:
-      | "primary"
-      | "secondary"
-      | "success"
-      | "warning"
-      | "danger"
-      | "info"
-      | "neutral";
+    cssClass: string;
   }[] = [
-    { key: "RUNNING", label: "実行中", showCount: true, color: "success" },
-    { key: "PENDING", label: "待機", showCount: true, color: "warning" },
-    { key: "FAILED", label: "失敗", showCount: true, color: "danger" },
+    {
+      key: "RUNNING",
+      label: "RUNNING",
+      showCount: true,
+      cssClass: "running",
+    },
+    {
+      key: "PENDING",
+      label: "PENDING",
+      showCount: true,
+      cssClass: "pending",
+    },
+    {
+      key: "FAILED",
+      label: "FAILED",
+      showCount: true,
+      cssClass: "failed",
+    },
   ];
 
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
@@ -58,204 +64,298 @@
   $: isGraphMode = $viewMode === "graph";
 </script>
 
-<header class="toolbar">
+<header class="toolbar crystal-hud">
   <!-- 左側：ブランド -->
-  <div class="toolbar-left">
+  <div class="toolbar-section left">
     <BrandText size="sm" />
   </div>
 
-  <!-- 中央：Pool別サマリ or ステータスサマリ -->
-  <div class="toolbar-center">
-    {#if hasPoolSummaries}
-      <!-- Pool別サマリ -->
-      <div class="pool-summary">
+  <!-- 中央：Holographic Data Strip -->
+  <div class="toolbar-section center">
+    <div class="holographic-strip">
+      {#if hasPoolSummaries}
         {#each $poolSummaries as pool (pool.poolId)}
-          <Badge variant="glass" color="neutral" size="medium">
-            <span class="pool-name">{pool.poolId}</span>
-            <span class="pool-separator">:</span>
+          <!-- Pool ID -->
+          <div class="holo-group">
+            <span class="holo-label">POOL</span>
+            <span class="holo-value pool-id">{pool.poolId}</span>
+          </div>
+
+          <div class="holo-divider"></div>
+
+          <!-- Stats -->
+          <div class="holo-stats">
             {#if pool.running > 0}
-              <span class="pool-stat running">{pool.running} 実行中</span>
+              <div class="holo-stat running">
+                <span class="stat-value">{pool.running}</span>
+                <span class="stat-label">RUN</span>
+              </div>
             {/if}
             {#if pool.queued > 0}
-              <span class="pool-stat queued">{pool.queued} 待機</span>
+              <div class="holo-stat pending">
+                <span class="stat-value">{pool.queued}</span>
+                <span class="stat-label">WAIT</span>
+              </div>
             {/if}
             {#if pool.failed > 0}
-              <span class="pool-stat failed">{pool.failed} 失敗</span>
+              <div class="holo-stat failed">
+                <span class="stat-value">{pool.failed}</span>
+                <span class="stat-label">FAIL</span>
+              </div>
             {/if}
             {#if pool.running === 0 && pool.queued === 0 && pool.failed === 0}
-              <span class="pool-stat idle">{pool.total} タスク</span>
+              <div class="holo-stat idle">
+                <span class="stat-value">{pool.total}</span>
+                <span class="stat-label">TASKS</span>
+              </div>
             {/if}
-          </Badge>
+          </div>
         {/each}
-      </div>
-    {:else}
-      <!-- フォールバック: ステータス別サマリ -->
-      <div class="status-summary">
-        {#each statusDisplay as { key, label, showCount, color }}
+      {:else}
+        <!-- Fallback Status Strip -->
+        {#each statusDisplay as { key, label, showCount, cssClass }}
           {#if showCount && $taskCountsByStatus[key] > 0}
-            <Badge variant="glass" {color} {label}>
-              <span class="status-count">{$taskCountsByStatus[key]}</span>
-            </Badge>
+            <div class="holo-stat {cssClass}">
+              <span class="stat-value">{$taskCountsByStatus[key]}</span>
+              <span class="stat-label">{label}</span>
+            </div>
+            <div class="holo-divider-sm"></div>
           {/if}
         {/each}
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
 
-  <!-- 右側：進捗・ビュー切替 -->
-  <div class="toolbar-right">
-    <!-- 実行コントロール -->
-    <ExecutionControls />
-
-    <!-- 進捗率バー -->
-    <div class="progress-section">
-      <ProgressBar percentage={$overallProgress.percentage} size="mini" />
-      <span class="progress-text">{$overallProgress.percentage}%</span>
+  <!-- 右側：Command Capsule & View Switch -->
+  <div class="toolbar-section right">
+    <!-- Command Capsule -->
+    <div class="command-capsule">
+      <ExecutionControls />
     </div>
 
-    <!-- ビュー切替 -->
-    <div class="view-toggle">
-      <Button
-        variant={isGraphMode ? "secondary" : "ghost"}
-        size="small"
+    <!-- Progress -->
+    <div class="progress-module">
+      <ProgressBar percentage={$overallProgress.percentage} size="mini" />
+      <span class="progress-readout">{$overallProgress.percentage}%</span>
+    </div>
+
+    <!-- Segmented Crystal Switch -->
+    <div class="crystal-switch">
+      <button
+        class="switch-item"
+        class:active={isGraphMode}
         on:click={() => viewMode.setGraph()}
-        title="グラフビュー"
+        title="Graph View"
       >
-        <Network size="14" />
-        <span>Graph</span>
-      </Button>
-      <Button
-        variant={!isGraphMode ? "secondary" : "ghost"}
-        size="small"
+        <Network size="16" />
+      </button>
+      <button
+        class="switch-item"
+        class:active={!isGraphMode}
         on:click={() => viewMode.setWBS()}
-        title="WBSビュー"
+        title="WBS View"
       >
-        <ListTree size="14" />
-        <span>WBS</span>
-      </Button>
+        <ListTree size="16" />
+      </button>
     </div>
   </div>
 </header>
 ```
 
 <style>
-  .toolbar {
+  :global(:root) {
+    --hud-font: "Rajdhani", sans-serif;
+    --hud-glass-bg: var(--mv-glass-bg);
+    --hud-glass-border: var(--mv-glass-border-strong);
+    --hud-glass-highlight: var(--mv-glass-active);
+    --hud-neon-blue: var(--mv-primitive-frost-1);
+    --hud-neon-green: var(--mv-primitive-aurora-green);
+    --hud-neon-red: var(--mv-primitive-aurora-red);
+    --hud-neon-yellow: var(--mv-primitive-aurora-yellow);
+  }
+
+  .crystal-hud {
     display: flex;
     align-items: center;
     justify-content: space-between;
     height: var(--mv-layout-toolbar-height);
-    padding: 0 var(--mv-spacing-lg);
+    padding: 0 var(--mv-spacing-xl);
 
-    /* Crystal HUD Style */
-    background: var(--mv-glass-bg);
-    backdrop-filter: blur(12px);
-    border-bottom: var(--mv-border-width-thin) solid
-      var(--mv-glass-border-subtle);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    background: var(--hud-glass-bg);
+    backdrop-filter: blur(16px);
+    border-bottom: var(--mv-border-width-thin) solid var(--hud-glass-border);
+    box-shadow: var(--mv-shadow-ambient-lg);
 
-    flex-shrink: 0;
-    gap: var(--mv-spacing-md);
-    position: relative;
+    font-family: var(--hud-font);
     z-index: 100;
   }
 
-  .toolbar-left,
-  .toolbar-center,
-  .toolbar-right {
+  .toolbar-section {
     display: flex;
     align-items: center;
-    gap: var(--mv-spacing-sm);
+    gap: var(--mv-spacing-lg);
   }
 
-  .toolbar-left {
+  .toolbar-section.left {
+    flex: 0 0 auto;
+  }
+  .toolbar-section.center {
     flex: 1;
-    justify-content: flex-start;
-  }
-
-  .toolbar-center {
-    flex: 2;
     justify-content: center;
   }
-
-  .toolbar-right {
-    flex: 1;
+  .toolbar-section.right {
+    flex: 0 0 auto;
     justify-content: flex-end;
-    gap: var(--mv-spacing-md);
   }
 
-  /* ステータスサマリ */
-  .status-summary {
+  /* Holographic Data Strip */
+  .holographic-strip {
     display: flex;
-    gap: var(--mv-spacing-sm);
-  }
-
-  .status-count {
-    font-weight: var(--mv-font-weight-bold);
-    margin-right: var(--mv-spacing-xxs);
-  }
-
-  /* Pool別サマリ */
-  .pool-summary {
-    display: flex;
+    align-items: center;
     gap: var(--mv-spacing-md);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-md);
+    border-radius: var(--mv-spacing-xl);
+    background: var(--mv-glass-bg-dark);
+    box-shadow: var(--mv-shadow-inset-darker);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border);
   }
 
-  .pool-name {
+  .holo-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--mv-status-dot-size);
+  }
+
+  .holo-label {
+    font-size: var(--mv-font-size-sm);
     font-weight: var(--mv-font-weight-semibold);
-    color: var(--mv-color-text-primary);
-    font-family: var(--mv-font-mono);
+    color: var(--mv-color-text-muted);
+    letter-spacing: var(--mv-letter-spacing-tab);
   }
 
-  .pool-separator {
-    color: var(--mv-color-text-muted);
+  .holo-value {
+    font-size: var(--mv-font-size-lg);
+    font-weight: var(--mv-font-weight-bold);
+    color: var(--mv-color-text-primary);
+  }
+
+  .pool-id {
+    color: var(--hud-neon-blue);
+    text-shadow: var(--mv-text-shadow-cyan);
+  }
+
+  .holo-divider {
+    width: var(--mv-border-width-thin);
+    height: var(--mv-indicator-size-lg);
+    background: var(--mv-color-border-subtle);
+    opacity: 0.5;
+  }
+
+  .holo-divider-sm {
+    width: var(--mv-border-width-thin);
+    height: var(--mv-indicator-size-md);
+    background: var(--mv-color-border-subtle);
+    opacity: 0.3;
     margin: 0 var(--mv-spacing-xxs);
   }
 
-  .pool-stat {
-    margin-left: var(--mv-spacing-xs);
-    font-weight: var(--mv-font-weight-medium);
+  .holo-stats {
+    display: flex;
+    gap: var(--mv-spacing-md);
   }
 
-  .pool-stat.running {
-    color: var(--mv-color-status-running-text);
-    text-shadow: 0 0 5px var(--mv-color-status-running-glow);
+  .holo-stat {
+    display: flex;
+    align-items: baseline;
+    gap: var(--mv-spacing-xxs);
+    line-height: 1;
   }
 
-  .pool-stat.queued {
-    color: var(--mv-color-status-pending-text);
+  .stat-value {
+    font-size: var(--mv-font-size-xl);
+    font-weight: var(--mv-font-weight-bold);
   }
 
-  .pool-stat.failed {
-    color: var(--mv-color-status-failed-text);
+  .stat-label {
+    font-size: var(--mv-font-size-sm);
+    font-weight: var(--mv-font-weight-semibold);
+    opacity: 0.8;
+    letter-spacing: var(--mv-letter-spacing-count);
   }
 
-  .pool-stat.idle {
+  .holo-stat.running {
+    color: var(--hud-neon-green);
+    text-shadow: var(--mv-text-shadow-green);
+  }
+  .holo-stat.pending {
+    color: var(--hud-neon-yellow);
+  }
+  .holo-stat.failed {
+    color: var(--hud-neon-red);
+    text-shadow: var(--mv-text-shadow-purple);
+  }
+  .holo-stat.idle {
     color: var(--mv-color-text-muted);
   }
 
-  /* 進捗バー（ミニ） - styles handled by ProgressBar component */
-  .progress-section {
+  /* Command Capsule */
+  .command-capsule {
+    display: flex;
+    align-items: center;
+    padding: var(--mv-spacing-xxxs);
+    background: var(--mv-glass-border);
+    border-radius: var(--mv-radius-lg);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-active);
+  }
+
+  /* Progress Module */
+  .progress-module {
     display: flex;
     align-items: center;
     gap: var(--mv-spacing-xs);
   }
-
-  .progress-text {
-    font-size: var(--mv-font-size-xs);
-    font-family: var(--mv-font-mono);
-    color: var(--mv-color-text-muted);
-    min-width: var(--mv-progress-text-width-sm);
+  .progress-readout {
+    font-family: var(--hud-font);
+    font-weight: var(--mv-font-weight-semibold);
+    font-size: var(--mv-font-size-md);
+    color: var(--mv-color-text-secondary);
+    min-width: var(--mv-zoom-label-min-width);
     text-align: right;
   }
 
-  /* ビュー切り替え - Cleaned up to rely on Button component */
-  .view-toggle {
+  /* Segmented Crystal Switch */
+  .crystal-switch {
     display: flex;
-    gap: var(--mv-spacing-xxs);
-    /* Remove background/border to let Buttons stand on glass */
-    /* background: var(--mv-color-surface-secondary); */
-    /* border: var(--mv-border-width-thin) solid var(--mv-color-border-default); */
-    /* border-radius: var(--mv-radius-sm); */
-    /* padding: 2px; */
+    padding: var(--mv-spacing-xxxs);
+    gap: var(--mv-spacing-xxxs);
+    background: var(--mv-glass-bg-darker);
+    border-radius: var(--mv-spacing-xl);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-active);
+  }
+
+  .switch-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mv-size-action-btn);
+    height: var(--mv-size-action-btn);
+    border: none;
+    border-radius: var(--mv-radius-full);
+    background: transparent;
+    color: var(--mv-color-text-muted);
+    cursor: pointer;
+    transition: all var(--mv-duration-normal) cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .switch-item:hover {
+    color: var(--mv-color-text-primary);
+    background: var(--mv-glass-active);
+  }
+
+  .switch-item.active {
+    color: var(--mv-color-text-primary);
+    background: var(--mv-glass-active);
+    box-shadow: var(--mv-shadow-badge);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-hover);
   }
 </style>
