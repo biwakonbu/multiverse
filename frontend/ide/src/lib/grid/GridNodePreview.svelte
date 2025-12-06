@@ -35,6 +35,7 @@
     FAILED: '失敗',
     CANCELED: 'キャンセル',
     BLOCKED: 'ブロック',
+    RETRY_WAIT: 'リトライ待機',
   };
 
   // CSS クラス用の小文字変換

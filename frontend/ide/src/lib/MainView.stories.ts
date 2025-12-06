@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "IDE本体のメインビュー。Toolbar、WBS/Graphビュー、DetailPanel、チャットウィンドウを含むワークスペース画面。",
+          "IDE本体のメインビュー。Toolbar、WBS/Graphビュー、チャットウィンドウを含むワークスペース画面。",
       },
     },
   },
@@ -68,6 +68,7 @@ function countByStatus(tasks: Task[]): Record<TaskStatus, number> {
     FAILED: 0,
     CANCELED: 0,
     BLOCKED: 0,
+    RETRY_WAIT: 0,
   };
   for (const task of tasks) {
     counts[task.status]++;
@@ -380,6 +381,7 @@ export const EmptyProject: Story = {
       FAILED: 0,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
     selectedTask: null,
     showChat: true,

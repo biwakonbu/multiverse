@@ -36,9 +36,10 @@
     FAILED: 0,
     CANCELED: 0,
     BLOCKED: 0,
+    RETRY_WAIT: 0,
   };
 
-  // 詳細パネル (現在非表示のため未使用だが、Storybookのargs型エラー回避のため残す)
+  // 選択中タスク（ストア同期用。UI描画では未使用）
   export let selectedTask: Task | null = null;
 
   // モーダル・チャット
@@ -92,20 +93,6 @@
       </div>
     {/if}
 
-    <!-- 詳細パネル (一旦無効化中) -->
-    <!--
-    {#if selectedTask}
-       <div class="detail-panel-overlay">
-        <DetailPanelPreview
-          task={selectedTask}
-          {attempts}
-          isRunning={isTaskRunning}
-          on:close={handleClosePanel}
-          on:run={handleRunTask}
-        />
-       </div>
-    {/if}
-    -->
   </div>
 
   <!-- チャットウィンドウ -->

@@ -54,6 +54,7 @@ export const Default: Story = {
       FAILED: 0,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
 };
@@ -76,6 +77,7 @@ export const WithPoolSummaries: Story = {
       FAILED: 1,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {
@@ -102,6 +104,7 @@ export const WithStatusSummary: Story = {
       FAILED: 1,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {
@@ -130,6 +133,7 @@ export const HighProgress: Story = {
       FAILED: 0,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {
@@ -159,6 +163,7 @@ export const AllCompleted: Story = {
       FAILED: 0,
       CANCELED: 0,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {
@@ -187,6 +192,7 @@ export const WBSMode: Story = {
       FAILED: 0,
       CANCELED: 0,
       BLOCKED: 4,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {
@@ -216,6 +222,7 @@ export const ManyFailures: Story = {
       FAILED: 8,
       CANCELED: 2,
       BLOCKED: 0,
+      RETRY_WAIT: 0,
     },
   },
   parameters: {

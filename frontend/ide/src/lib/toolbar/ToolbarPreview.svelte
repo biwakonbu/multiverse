@@ -21,6 +21,7 @@
     FAILED: 0,
     CANCELED: 0,
     BLOCKED: 0,
+    RETRY_WAIT: 0,
   };
 
   // ステータスサマリの表示設定（フォールバック用）
