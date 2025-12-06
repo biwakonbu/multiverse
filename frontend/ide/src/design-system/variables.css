@@ -290,6 +290,25 @@
   --mv-shadow-tab-active-inset: 0 calc(-1 * var(--mv-border-width-default)) 0 0 var(--mv-primitive-aurora-yellow) inset;
 
   /* ========================================
+     プログレスバー
+     ======================================== */
+  --mv-progress-bar-height-sm: 6px;
+  --mv-progress-bar-height-md: 8px;
+  --mv-progress-bar-width-mini: 60px;
+  --mv-progress-bar-width-sm: 80px;
+  --mv-progress-text-width-sm: 32px;
+  --mv-progress-text-width-md: 48px;
+  --mv-progress-text-width-lg: 80px;
+
+  /* ========================================
+     WBS ツリー
+     ======================================== */
+  --mv-wbs-node-height: 36px;
+  --mv-wbs-toggle-size: 20px;
+  --mv-wbs-toggle-icon-size: 10px;
+  --mv-wbs-phase-bar-width: 4px;
+
+  /* ========================================
      トランスフォーム
      ======================================== */
   --mv-transform-hover-lift: translateY(-2px);

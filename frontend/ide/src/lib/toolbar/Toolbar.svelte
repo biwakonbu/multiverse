@@ -1,7 +1,14 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { Button } from '../../design-system';
-  import { viewport, zoomPercent, taskCountsByStatus, poolSummaries } from '../../stores';
+  import {
+    viewport,
+    zoomPercent,
+    taskCountsByStatus,
+    poolSummaries,
+    viewMode,
+    overallProgress,
+  } from '../../stores';
   import type { TaskStatus } from '../../types';
 
   const dispatch = createEventDispatcher<{
@@ -19,8 +26,13 @@
     dispatch('createTask');
   }
 
+  function toggleViewMode() {
+    viewMode.toggle();
+  }
+
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
   $: hasPoolSummaries = $poolSummaries.length > 0;
+  $: isGraphMode = $viewMode === 'graph';
 </script>
 
 <header class="toolbar">
@@ -73,32 +85,67 @@
     {/if}
   </div>
 
-  <!-- 右側：ズームコントロール -->
+  <!-- 右側：進捗・ビュー切替・ズームコントロール -->
   <div class="toolbar-right">
-    <div class="zoom-controls">
-      <Button
-        variant="ghost"
-        size="small"
-        on:click={() => viewport.zoomOut()}
-        label="−"
-      />
-
-      <button
-        class="zoom-value"
-        on:click={() => viewport.reset()}
-        aria-label="ズームリセット"
-        title="リセット (0)"
-      >
-        {$zoomPercent}%
-      </button>
-
-      <Button
-        variant="ghost"
-        size="small"
-        on:click={() => viewport.zoomIn()}
-        label="+"
-      />
+    <!-- 進捗率バー -->
+    <div class="progress-section">
+      <div class="progress-bar-mini">
+        <div class="progress-fill" style:--progress="{$overallProgress.percentage}%"></div>
+      </div>
+      <span class="progress-text">{$overallProgress.percentage}%</span>
     </div>
+
+    <!-- ビュー切り替え -->
+    <div class="view-toggle">
+      <button
+        class="view-btn"
+        class:active={isGraphMode}
+        on:click={() => viewMode.setGraph()}
+        aria-label="グラフビュー"
+        title="グラフビュー"
+      >
+        <span class="view-icon">◇</span>
+        Graph
+      </button>
+      <button
+        class="view-btn"
+        class:active={!isGraphMode}
+        on:click={() => viewMode.setWBS()}
+        aria-label="WBSビュー"
+        title="WBSビュー"
+      >
+        <span class="view-icon">≡</span>
+        WBS
+      </button>
+    </div>
+
+    <!-- ズームコントロール（グラフモードのみ表示） -->
+    {#if isGraphMode}
+      <div class="zoom-controls">
+        <Button
+          variant="ghost"
+          size="small"
+          on:click={() => viewport.zoomOut()}
+          label="−"
+        />
+
+        <button
+          class="zoom-value"
+          on:click={() => viewport.reset()}
+          aria-label="ズームリセット"
+          title="リセット (0)"
+        >
+          {$zoomPercent}%
+        </button>
+
+        <Button
+          variant="ghost"
+          size="small"
+          on:click={() => viewport.zoomIn()}
+          label="+"
+        />
+      </div>
+    {/if}
   </div>
 </header>
 
@@ -263,5 +310,75 @@
 
   .pool-stat.idle {
     color: var(--mv-color-text-muted);
+  }
+
+  /* 進捗バー（ミニ） */
+  .progress-section {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xs);
+  }
+
+  .progress-bar-mini {
+    width: var(--mv-progress-bar-width-mini);
+    height: var(--mv-progress-bar-height-sm);
+    background: var(--mv-color-surface-secondary);
+    border-radius: var(--mv-radius-sm);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: var(--progress, 0%);
+    background: var(--mv-color-status-succeeded-border);
+    border-radius: var(--mv-radius-sm);
+    transition: width var(--mv-duration-slow);
+  }
+
+  .progress-text {
+    font-size: var(--mv-font-size-xs);
+    font-family: var(--mv-font-mono);
+    color: var(--mv-color-text-muted);
+    min-width: var(--mv-progress-text-width-sm);
+    text-align: right;
+  }
+
+  /* ビュー切り替え */
+  .view-toggle {
+    display: flex;
+    background: var(--mv-color-surface-secondary);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
+    border-radius: var(--mv-radius-sm);
+    overflow: hidden;
+  }
+
+  .view-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xxs);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-sm);
+    font-size: var(--mv-font-size-xs);
+    font-weight: var(--mv-font-weight-medium);
+    color: var(--mv-color-text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition:
+      background-color var(--mv-transition-hover),
+      color var(--mv-transition-hover);
+  }
+
+  .view-btn:hover {
+    color: var(--mv-color-text-primary);
+    background: var(--mv-color-surface-hover);
+  }
+
+  .view-btn.active {
+    color: var(--mv-color-text-primary);
+    background: var(--mv-color-surface-primary);
+  }
+
+  .view-icon {
+    font-size: var(--mv-font-size-sm);
   }
 </style>

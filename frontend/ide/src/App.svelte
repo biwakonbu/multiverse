@@ -5,12 +5,14 @@
   import { GridCanvas } from "./lib/grid";
   import { Toolbar } from "./lib/toolbar";
   import { DetailPanel } from "./lib/panel";
+  import { WBSView } from "./lib/wbs";
   import { Button } from "./design-system";
   import {
     tasks,
     selectedTask,
     selectedTaskId,
     poolSummaries,
+    viewMode,
   } from "./stores";
   import { Logger } from "./services/logger";
   import type { Task, PoolSummary } from "./types";
@@ -128,8 +130,12 @@
 
     <!-- メインコンテンツ -->
     <div class="main-content">
-      <!-- グリッドキャンバス -->
-      <GridCanvas />
+      <!-- Graph/WBS ビュー切り替え -->
+      {#if $viewMode === 'graph'}
+        <GridCanvas />
+      {:else}
+        <WBSView />
+      {/if}
 
       <!-- 詳細パネル -->
       <DetailPanel />

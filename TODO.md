@@ -9,7 +9,7 @@ Based on PRD v2.0
 | Phase | Status | 備考 |
 |-------|--------|------|
 | Phase 1: チャット→タスク生成 | 🟢 ほぼ完了 | E2Eテストのみ残 |
-| Phase 2: 依存グラフ・WBS表示 | 🟡 進行中 | Week 3 完了、Week 4 作業中 |
+| Phase 2: 依存グラフ・WBS表示 | 🟢 ほぼ完了 | Week 3-4 完了、Scheduler拡張のみ残 |
 | Phase 3: 自律実行ループ | ⚪ 未着手 | Phase 2 完了後 |
 
 ---
@@ -135,18 +135,18 @@ Based on PRD v2.0
 
 #### 4.1 WBS ビュー
 
-- [ ] `frontend/ide/src/lib/wbs/WBSView.svelte` (新規)
-  - [ ] ツリー構造表示
-  - [ ] 折りたたみ/展開
-  - [ ] マイルストーン表示
-- [ ] `frontend/ide/src/lib/wbs/WBSNode.svelte` (新規)
-- [ ] `frontend/ide/src/stores/wbsStore.ts` (新規)
+- [x] `frontend/ide/src/lib/wbs/WBSView.svelte` (新規)
+  - [x] ツリー構造表示
+  - [x] 折りたたみ/展開
+  - [x] マイルストーン表示
+- [x] `frontend/ide/src/lib/wbs/WBSNode.svelte` (新規)
+- [x] `frontend/ide/src/stores/wbsStore.ts` (新規)
 
 #### 4.2 進捗率表示
 
-- [ ] `frontend/ide/src/lib/toolbar/Toolbar.svelte`
-  - [ ] 進捗率バー
-  - [ ] Graph/WBS 切り替えボタン
+- [x] `frontend/ide/src/lib/toolbar/Toolbar.svelte`
+  - [x] 進捗率バー
+  - [x] Graph/WBS 切り替えボタン
 
 ---
 
