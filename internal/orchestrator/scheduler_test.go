@@ -393,3 +393,134 @@ func TestScheduler_AllDependenciesSatisfied(t *testing.T) {
 		}
 	})
 }
+
+func TestScheduler_ScheduleTask_NotSchedulable(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+	queue := ipc.NewFilesystemQueue(tmpDir)
+	scheduler := NewScheduler(store, queue)
+
+	now := time.Now()
+
+	// すでに RUNNING 状態のタスク
+	task := &Task{
+		ID:        "running-task",
+		Title:     "Running Task",
+		Status:    TaskStatusRunning,
+		PoolID:    "default",
+		CreatedAt: now,
+	}
+	if err := store.SaveTask(task); err != nil {
+		t.Fatalf("failed to save task: %v", err)
+	}
+
+	err := scheduler.ScheduleTask("running-task")
+	if err == nil {
+		t.Error("expected error for non-schedulable task")
+	}
+}
+
+func TestScheduler_ScheduleTask_NotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+	queue := ipc.NewFilesystemQueue(tmpDir)
+	scheduler := NewScheduler(store, queue)
+
+	err := scheduler.ScheduleTask("non-existent-task")
+	if err == nil {
+		t.Error("expected error for non-existent task")
+	}
+}
+
+func TestScheduler_ScheduleTask_FromBlocked(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+	queue := ipc.NewFilesystemQueue(tmpDir)
+	scheduler := NewScheduler(store, queue)
+
+	now := time.Now()
+
+	// 依存タスクを完了状態で作成
+	depTask := &Task{
+		ID:        "dep-task-for-blocked",
+		Title:     "Dependency",
+		Status:    TaskStatusSucceeded,
+		PoolID:    "default",
+		CreatedAt: now,
+	}
+
+	// BLOCKED 状態のタスク
+	blockedTask := &Task{
+		ID:           "blocked-task-to-schedule",
+		Title:        "Blocked Task",
+		Status:       TaskStatusBlocked,
+		PoolID:       "default",
+		CreatedAt:    now,
+		Dependencies: []string{"dep-task-for-blocked"},
+	}
+
+	if err := store.SaveTask(depTask); err != nil {
+		t.Fatalf("failed to save dep task: %v", err)
+	}
+	if err := store.SaveTask(blockedTask); err != nil {
+		t.Fatalf("failed to save blocked task: %v", err)
+	}
+
+	// BLOCKED からスケジュール可能（依存は満たされている）
+	err := scheduler.ScheduleTask("blocked-task-to-schedule")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	task, _ := store.LoadTask("blocked-task-to-schedule")
+	if task.Status != TaskStatusReady {
+		t.Errorf("expected status READY, got %s", task.Status)
+	}
+}
+
+func TestScheduler_ScheduleTask_AlreadyBlocked(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+	queue := ipc.NewFilesystemQueue(tmpDir)
+	scheduler := NewScheduler(store, queue)
+
+	now := time.Now()
+
+	// 依存タスクを未完了状態で作成
+	depTask := &Task{
+		ID:        "pending-dep",
+		Title:     "Pending Dependency",
+		Status:    TaskStatusPending,
+		PoolID:    "default",
+		CreatedAt: now,
+	}
+
+	// すでに BLOCKED 状態のタスク
+	blockedTask := &Task{
+		ID:           "already-blocked",
+		Title:        "Already Blocked",
+		Status:       TaskStatusBlocked,
+		PoolID:       "default",
+		CreatedAt:    now,
+		Dependencies: []string{"pending-dep"},
+	}
+
+	if err := store.SaveTask(depTask); err != nil {
+		t.Fatalf("failed to save dep task: %v", err)
+	}
+	if err := store.SaveTask(blockedTask); err != nil {
+		t.Fatalf("failed to save blocked task: %v", err)
+	}
+
+	// すでに BLOCKED なのでステータス更新せずエラーを返す
+	err := scheduler.ScheduleTask("already-blocked")
+	if err == nil {
+		t.Error("expected error for blocked task with unsatisfied dependencies")
+	}
+
+	// ステータスは BLOCKED のまま
+	task, _ := store.LoadTask("already-blocked")
+	if task.Status != TaskStatusBlocked {
+		t.Errorf("expected status BLOCKED, got %s", task.Status)
+	}
+}

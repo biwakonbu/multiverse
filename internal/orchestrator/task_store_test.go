@@ -312,3 +312,153 @@ func TestDefaultPoolsContent(t *testing.T) {
 		}
 	}
 }
+
+func TestListTasksBySourceChat(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	now := time.Now()
+	chatID1 := "chat-session-1"
+	chatID2 := "chat-session-2"
+
+	tasks := []*Task{
+		{ID: "task-1", Title: "Task 1", Status: TaskStatusPending, PoolID: "default", CreatedAt: now, SourceChatID: &chatID1},
+		{ID: "task-2", Title: "Task 2", Status: TaskStatusPending, PoolID: "default", CreatedAt: now, SourceChatID: &chatID1},
+		{ID: "task-3", Title: "Task 3", Status: TaskStatusPending, PoolID: "default", CreatedAt: now, SourceChatID: &chatID2},
+		{ID: "task-4", Title: "Task 4", Status: TaskStatusPending, PoolID: "default", CreatedAt: now}, // SourceChatID なし
+	}
+
+	for _, task := range tasks {
+		if err := store.SaveTask(task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+	}
+
+	// chat-session-1 のタスクを取得
+	result, err := store.ListTasksBySourceChat("chat-session-1")
+	if err != nil {
+		t.Fatalf("ListTasksBySourceChat failed: %v", err)
+	}
+	if len(result) != 2 {
+		t.Errorf("expected 2 tasks for chat-session-1, got %d", len(result))
+	}
+
+	// chat-session-2 のタスクを取得
+	result, err = store.ListTasksBySourceChat("chat-session-2")
+	if err != nil {
+		t.Fatalf("ListTasksBySourceChat failed: %v", err)
+	}
+	if len(result) != 1 {
+		t.Errorf("expected 1 task for chat-session-2, got %d", len(result))
+	}
+
+	// 存在しない chat ID
+	result, err = store.ListTasksBySourceChat("non-existent")
+	if err != nil {
+		t.Fatalf("ListTasksBySourceChat failed: %v", err)
+	}
+	if len(result) != 0 {
+		t.Errorf("expected 0 tasks for non-existent chat, got %d", len(result))
+	}
+}
+
+func TestListAllTasks(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	// 空のディレクトリ
+	tasks, err := store.ListAllTasks()
+	if err != nil {
+		t.Fatalf("ListAllTasks failed on empty dir: %v", err)
+	}
+	if len(tasks) != 0 {
+		t.Errorf("expected 0 tasks, got %d", len(tasks))
+	}
+
+	now := time.Now()
+	taskList := []*Task{
+		{ID: "task-1", Title: "Task 1", Status: TaskStatusPending, PoolID: "default", CreatedAt: now},
+		{ID: "task-2", Title: "Task 2", Status: TaskStatusRunning, PoolID: "default", CreatedAt: now},
+		{ID: "task-3", Title: "Task 3", Status: TaskStatusSucceeded, PoolID: "codegen", CreatedAt: now},
+	}
+
+	for _, task := range taskList {
+		if err := store.SaveTask(task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+	}
+
+	tasks, err = store.ListAllTasks()
+	if err != nil {
+		t.Fatalf("ListAllTasks failed: %v", err)
+	}
+	if len(tasks) != 3 {
+		t.Errorf("expected 3 tasks, got %d", len(tasks))
+	}
+}
+
+func TestListTasksByStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	now := time.Now()
+	taskList := []*Task{
+		{ID: "task-1", Title: "Task 1", Status: TaskStatusPending, PoolID: "default", CreatedAt: now},
+		{ID: "task-2", Title: "Task 2", Status: TaskStatusPending, PoolID: "default", CreatedAt: now},
+		{ID: "task-3", Title: "Task 3", Status: TaskStatusRunning, PoolID: "default", CreatedAt: now},
+		{ID: "task-4", Title: "Task 4", Status: TaskStatusSucceeded, PoolID: "default", CreatedAt: now},
+	}
+
+	for _, task := range taskList {
+		if err := store.SaveTask(task); err != nil {
+			t.Fatalf("failed to save task: %v", err)
+		}
+	}
+
+	// PENDING タスク
+	pending, err := store.ListTasksByStatus(TaskStatusPending)
+	if err != nil {
+		t.Fatalf("ListTasksByStatus failed: %v", err)
+	}
+	if len(pending) != 2 {
+		t.Errorf("expected 2 pending tasks, got %d", len(pending))
+	}
+
+	// RUNNING タスク
+	running, err := store.ListTasksByStatus(TaskStatusRunning)
+	if err != nil {
+		t.Fatalf("ListTasksByStatus failed: %v", err)
+	}
+	if len(running) != 1 {
+		t.Errorf("expected 1 running task, got %d", len(running))
+	}
+
+	// BLOCKED タスク（なし）
+	blocked, err := store.ListTasksByStatus(TaskStatusBlocked)
+	if err != nil {
+		t.Fatalf("ListTasksByStatus failed: %v", err)
+	}
+	if len(blocked) != 0 {
+		t.Errorf("expected 0 blocked tasks, got %d", len(blocked))
+	}
+}
+
+func TestLoadTask_NotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	_, err := store.LoadTask("non-existent-task")
+	if err == nil {
+		t.Error("expected error for non-existent task, got nil")
+	}
+}
+
+func TestLoadAttempt_NotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	_, err := store.LoadAttempt("non-existent-attempt")
+	if err == nil {
+		t.Error("expected error for non-existent attempt, got nil")
+	}
+}
