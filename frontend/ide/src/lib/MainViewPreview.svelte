@@ -7,13 +7,10 @@
    */
   import { createEventDispatcher } from "svelte";
   import ToolbarPreview from "./toolbar/ToolbarPreview.svelte";
-  import DetailPanelPreview from "./panel/DetailPanelPreview.svelte";
   import { WBSListView, WBSGraphView } from "./wbs";
-  import { Button } from "../design-system";
-  import TaskCreatePreview from "./TaskCreatePreview.svelte";
   import FloatingChatWindow from "./components/chat/FloatingChatWindow.svelte";
   import { tasks, selectedTaskId } from "../stores/taskStore";
-  import type { Task, TaskStatus, PoolSummary, Attempt } from "../types";
+  import type { Task, TaskStatus, PoolSummary } from "../types";
 
   const dispatch = createEventDispatcher();
 
@@ -21,7 +18,6 @@
 
   // ビュー設定
   export let viewMode: "graph" | "wbs" = "wbs";
-  export let zoomPercent = 100;
 
   // タスクデータ
   export let taskList: Task[] = [];
@@ -44,11 +40,8 @@
 
   // 詳細パネル (現在非表示のため未使用だが、Storybookのargs型エラー回避のため残す)
   export let selectedTask: Task | null = null;
-  export let attempts: Attempt[] = [];
-  export let isTaskRunning = false;
 
   // モーダル・チャット
-  export let showCreateModal = false;
   export let showChat = true;
   export let chatPosition = { x: 600, y: 300 };
 
@@ -60,22 +53,6 @@
     } else {
       selectedTaskId.clear();
     }
-  }
-
-  function handleCreateTask() {
-    dispatch("createTask");
-  }
-
-  function handleCloseModal() {
-    dispatch("closeModal");
-  }
-
-  function handleClosePanel() {
-    dispatch("closePanel");
-  }
-
-  function handleRunTask() {
-    dispatch("runTask");
   }
 
   function handleCloseChat() {
@@ -92,11 +69,9 @@
   <div class="toolbar-overlay">
     <ToolbarPreview
       {viewMode}
-      {zoomPercent}
       {overallProgress}
       {poolSummaries}
       {taskCountsByStatus}
-      on:createTask={handleCreateTask}
     />
   </div>
 
@@ -132,32 +107,6 @@
     {/if}
     -->
   </div>
-
-  <!-- タスク作成モーダル -->
-  {#if showCreateModal}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <div class="modal-overlay" on:click={handleCloseModal} role="presentation">
-      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-      <div
-        class="modal-content"
-        on:click|stopPropagation
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-task-title"
-      >
-        <header class="modal-header">
-          <h2 id="create-task-title">新規タスク作成</h2>
-          <Button
-            variant="ghost"
-            size="small"
-            on:click={handleCloseModal}
-            label="×"
-          />
-        </header>
-        <TaskCreatePreview />
-      </div>
-    </div>
-  {/if}
 
   <!-- チャットウィンドウ -->
   {#if showChat}
@@ -247,42 +196,5 @@
     flex-direction: column;
   }
 
-  /* モーダルオーバーレイ */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--mv-color-surface-overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: var(--mv-color-surface-primary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-lg);
-    width: 100%;
-    max-width: var(--mv-container-max-width-sm);
-    max-height: var(--mv-container-max-height-modal);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--mv-spacing-md);
-    border-bottom: var(--mv-border-width-thin) solid
-      var(--mv-color-border-subtle);
-  }
-
-  .modal-header h2 {
-    font-size: var(--mv-font-size-lg);
-    font-weight: var(--mv-font-weight-semibold);
-    color: var(--mv-color-text-primary);
-    margin: 0;
-  }
+  /* モーダルは削除済み */
 </style>

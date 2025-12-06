@@ -16,132 +16,172 @@
   $: progressColor = getProgressColor(percentage);
 </script>
 
-<header class="wbs-header">
-  <div class="header-title">
-    <h2>Work Breakdown Structure</h2>
-    <span class="task-count">
-      {completed} / {total} Tasks Completed
-    </span>
-  </div>
+<div class="wbs-header">
+  <div class="header-content">
+    <div class="header-info">
+      <h2 class="title">WBS</h2>
 
-  <div class="header-progress">
-    <ProgressBar {percentage} size="md" />
-    <span
-      class="progress-percentage"
-      style:color={progressColor.fill}
-      style:text-shadow={progressColor.textShadowMd}
-    >
-      <span class="progress-first-digit">{progressParts.first}</span>
-      <span class="progress-rest-digits">{progressParts.rest}</span>
-      <span class="progress-symbol">%</span>
-    </span>
-  </div>
+      <div class="progress-section">
+        <ProgressBar {percentage} size="sm" />
+        <span
+          class="progress-percentage"
+          style:color={progressColor.fill}
+          style:text-shadow={progressColor.textShadowMd}
+        >
+          <span class="progress-first-digit">{progressParts.first}</span>
+          <span class="progress-rest-digits">{progressParts.rest}</span>
+          <span class="progress-symbol">%</span>
+        </span>
+        <span class="task-count">
+          {completed}/{total}
+        </span>
+      </div>
+    </div>
 
-  <div class="header-actions">
-    <button
-      class="action-btn"
-      on:click={() => expandedNodes.expandAll()}
-      title="Expand All"
-    >
-      ↕ Expand All
-    </button>
-    <button
-      class="action-btn"
-      on:click={() => expandedNodes.collapseAll()}
-      title="Collapse All"
-    >
-      ⇕ Collapse All
-    </button>
+    <div class="header-actions">
+      <button
+        class="action-btn"
+        on:click={() => expandedNodes.expandAll()}
+        title="Expand All"
+      >
+        <span class="icon">↕</span>
+      </button>
+      <button
+        class="action-btn"
+        on:click={() => expandedNodes.collapseAll()}
+        title="Collapse All"
+      >
+        <span class="icon">⇕</span>
+      </button>
+    </div>
   </div>
-</header>
+</div>
 
 <style>
   .wbs-header {
-    display: flex;
-    flex-direction: column;
-    gap: var(--mv-spacing-sm);
-    padding: var(--mv-spacing-md);
-    border-bottom: var(--mv-border-width-thin) solid
-      var(--mv-color-border-subtle);
-    background: var(--mv-color-surface-hover);
-    flex-shrink: 0;
+    display: inline-flex;
+    padding: var(--mv-spacing-sm) var(--mv-spacing-xl);
+
+    /* Phantom Glass: No border, just blur and tint */
+    background: var(--mv-glass-bg);
+    backdrop-filter: blur(24px);
+
+    /* Micro Frame: Barely visible edge to define volume */
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border);
+    border-radius: var(--mv-radius-lg);
+
+    /* Soft ambient shadow + Inner highlight for glass edge */
+    box-shadow: var(--mv-shadow-glass-panel);
+
+    pointer-events: auto;
+    margin: var(--mv-spacing-md);
+    min-width: var(--mv-min-width-wbs-header);
+    align-items: center;
   }
 
-  .header-title {
-    display: flex;
-    align-items: baseline;
-    gap: var(--mv-spacing-sm);
-  }
-
-  .header-title h2 {
-    font-size: var(--mv-font-size-lg);
-    font-weight: var(--mv-font-weight-semibold);
-    color: var(--mv-color-text-primary);
-    margin: 0;
-  }
-
-  .task-count {
-    font-size: var(--mv-font-size-sm);
-    color: var(--mv-color-text-muted);
-  }
-
-  .header-progress {
+  .header-content {
     display: flex;
     align-items: center;
+    gap: var(--mv-spacing-xxl); /* Wide breathing room */
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-info {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xl);
+  }
+
+  .title {
+    font-size: var(--mv-font-size-xs);
+    font-weight: var(--mv-font-weight-bold);
+    color: var(--mv-color-text-secondary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: var(--mv-letter-spacing-title);
+    opacity: 0.6;
+  }
+
+  .progress-section {
+    display: flex;
+    align-items: center; /* Align center for compact look */
     gap: var(--mv-spacing-sm);
   }
 
   .progress-percentage {
     display: flex;
     align-items: baseline;
-    font-family: var(--mv-font-display); /* Back to Orbitron */
-    color: var(--mv-progress-text-color);
-    min-width: var(--mv-progress-text-width-md);
-    justify-content: flex-end;
-    text-shadow: var(--mv-text-shadow-glow);
+    font-family: var(--mv-font-display);
     line-height: 1;
     font-style: italic;
+    filter: var(--mv-filter-drop-shadow);
   }
 
   .progress-first-digit {
-    font-size: calc(var(--mv-font-size-xl) * 1.15); /* Exactly 1.15x */
+    font-size: var(--mv-font-size-xl);
     font-weight: var(--mv-font-weight-bold);
   }
 
   .progress-rest-digits {
-    font-size: var(--mv-font-size-xl);
-    font-weight: var(--mv-font-weight-bold); /* Bold */
+    font-size: var(--mv-font-size-lg);
+    font-weight: var(--mv-font-weight-bold);
   }
 
   .progress-symbol {
-    font-size: var(--mv-font-size-xl);
+    font-size: var(--mv-font-size-sm);
     font-weight: var(--mv-font-weight-bold);
-    margin-left: var(--mv-spacing-xxxs);
-    opacity: 0.8;
-    font-style: italic;
+    margin-left: var(--mv-margin-progress-symbol);
+    opacity: 0.6;
+  }
+
+  .task-count {
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
+    font-family: var(--mv-font-mono);
+    margin-left: var(--mv-spacing-lg);
+    opacity: 0.5;
+    letter-spacing: var(--mv-letter-spacing-count);
   }
 
   .header-actions {
     display: flex;
-    gap: var(--mv-spacing-xs);
+    gap: var(--mv-spacing-sm);
+    padding-left: var(--mv-spacing-xl);
+    height: var(--mv-size-header-actions);
+    align-items: center;
   }
 
   .action-btn {
-    padding: var(--mv-spacing-xxs) var(--mv-spacing-sm);
-    font-size: var(--mv-font-size-xs);
-    font-weight: var(--mv-font-weight-medium);
-    color: var(--mv-color-text-secondary);
-    background: var(--mv-color-surface-primary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mv-size-action-btn);
+    height: var(--mv-size-action-btn);
+    padding: 0;
+    font-size: var(--mv-font-size-sm);
+    color: var(--mv-color-text-muted);
+    background: transparent;
+    border: none;
+    border-radius: var(--mv-radius-circle);
     cursor: pointer;
-    transition:
-      background-color var(--mv-transition-hover),
-      color var(--mv-transition-hover);
+    transition: all var(--mv-transition-hover);
   }
 
   .action-btn:hover {
-    background: var(--mv-color-surface-hover);
     color: var(--mv-color-text-primary);
+    background: var(--mv-glass-hover);
+    box-shadow: var(--mv-shadow-glow-hover);
+    transform: scale(1.1);
+  }
+
+  .action-btn:active {
+    background: var(--mv-glass-active);
+    transform: scale(0.95);
+  }
+
+  .icon {
+    line-height: 1;
+    display: block;
   }
 </style>

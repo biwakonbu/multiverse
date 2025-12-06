@@ -29,15 +29,15 @@
   }
 
   img {
-    width: var(--mv-size-full);
-    height: var(--mv-size-full);
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    filter: drop-shadow(var(--mv-brand-logo-shadow));
+    filter: var(--mv-filter-drop-shadow-brand);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 
   .brand-logo:hover img {
     transform: translateY(-4px) scale(1.05) rotate(-3deg);
-    filter: drop-shadow(var(--mv-brand-logo-shadow-hover));
+    filter: var(--mv-filter-drop-shadow-brand-hover);
   }
 </style>

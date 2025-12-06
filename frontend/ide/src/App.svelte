@@ -1,12 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import WorkspaceSelector from "./lib/WorkspaceSelector.svelte";
-  import TaskCreate from "./lib/TaskCreate.svelte";
-  import { GridCanvas } from "./lib/grid";
   import { Toolbar } from "./lib/toolbar";
-  import { DetailPanel } from "./lib/panel";
   import { WBSListView, WBSGraphView } from "./lib/wbs";
-  import { Button } from "./design-system";
   import {
     tasks,
     selectedTask,
@@ -23,7 +19,6 @@
   const log = Logger.withComponent("App");
 
   let workspaceId: string | null = null;
-  let showCreateModal = false;
   let interval: ReturnType<typeof setInterval> | null = null;
 
   // Chat State
@@ -94,25 +89,6 @@
     log.info("polling started", { interval: 2000 });
   }
 
-  // タスク作成モーダルを開く
-  function handleCreateTask() {
-    log.debug("opening create task modal");
-    showCreateModal = true;
-  }
-
-  // タスク作成完了
-  function onTaskCreated() {
-    log.info("task created, refreshing task list");
-    showCreateModal = false;
-    loadTasks();
-  }
-
-  // タスク作成キャンセル
-  function onCreateCancel() {
-    log.debug("create task cancelled");
-    showCreateModal = false;
-  }
-
   onDestroy(() => {
     if (interval) {
       log.info("polling stopped");
@@ -126,7 +102,7 @@
     <WorkspaceSelector on:selected={onWorkspaceSelected} />
   {:else}
     <!-- ツールバー -->
-    <Toolbar on:createTask={handleCreateTask} />
+    <Toolbar />
 
     <!-- メインコンテンツ -->
     <!-- メインコンテンツ -->
@@ -149,32 +125,6 @@
       <!-- 詳細パネルはフローティングまたはオーバーレイとして扱う (一旦非表示/必要に応じて表示実装) -->
       <!-- <DetailPanel /> -->
     </div>
-
-    <!-- タスク作成モーダル -->
-    {#if showCreateModal}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <div class="modal-overlay" on:click={onCreateCancel} role="presentation">
-        <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-        <div
-          class="modal-content"
-          on:click|stopPropagation
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="create-task-title"
-        >
-          <header class="modal-header">
-            <h2 id="create-task-title">新規タスク作成</h2>
-            <Button
-              variant="ghost"
-              size="small"
-              on:click={onCreateCancel}
-              label="×"
-            />
-          </header>
-          <TaskCreate on:created={onTaskCreated} />
-        </div>
-      </div>
-    {/if}
 
     <!-- チャットウィンドウ -->
     {#if isChatVisible}
@@ -259,42 +209,5 @@
     flex-direction: column;
   }
 
-  /* モーダルオーバーレイ */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--mv-color-surface-overlay);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .modal-content {
-    background: var(--mv-color-surface-primary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-lg);
-    width: 100%;
-    max-width: var(--mv-container-max-width-sm);
-    max-height: var(--mv-container-max-height-modal);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--mv-spacing-md);
-    border-bottom: var(--mv-border-width-thin) solid
-      var(--mv-color-border-subtle);
-  }
-
-  .modal-header h2 {
-    font-size: var(--mv-font-size-lg);
-    font-weight: var(--mv-font-weight-semibold);
-    color: var(--mv-color-text-primary);
-    margin: 0;
-  }
+  /* タスク作成モーダルは削除済み */
 </style>

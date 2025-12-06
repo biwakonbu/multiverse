@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import BrandLogo from "../brand/BrandLogo.svelte"; // Verify path
 
   export let disabled = false;
 
@@ -23,39 +24,53 @@
 </script>
 
 <div class="chat-input-container">
-  <span class="prompt-icon">&gt;</span>
   <div class="input-wrapper">
     <textarea
       bind:value
-      placeholder="何か話す..."
+      placeholder="Ask Multiverse..."
       class="transparent-input"
       class:disabled
       on:keydown={handleKeydown}
-      rows="2"
+      rows="1"
       {disabled}
     ></textarea>
   </div>
+  <button
+    class="send-btn"
+    on:click={handleSend}
+    disabled={disabled || !value.trim()}
+    aria-label="Send"
+  >
+    <div class="logo-wrapper">
+      <BrandLogo size="sm" />
+    </div>
+  </button>
 </div>
 
 <style>
   .chat-input-container {
     display: flex;
-    align-items: flex-start; /* Align to top for multi-line */
-    gap: var(--mv-spacing-xs);
-    padding: var(--mv-spacing-xs);
-    background: var(--mv-color-surface-overlay);
-    border-top: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
-  }
-
-  .prompt-icon {
-    color: var(--mv-primitive-frost-1); /* User color */
-    font-weight: bold;
-    font-family: var(--mv-font-mono);
-    margin-top: var(--mv-spacing-xxs); /* Align with first line of text */
+    align-items: flex-end;
+    gap: var(--mv-spacing-sm);
+    padding: var(--mv-spacing-sm);
+    background: transparent;
   }
 
   .input-wrapper {
     flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-radius: var(--mv-radius-md);
+    padding: var(--mv-spacing-xs) var(--mv-spacing-md);
+    transition: all var(--mv-duration-fast);
+  }
+
+  .input-wrapper:focus-within {
+    background: var(--mv-glass-bg-darker);
+    border-color: var(--mv-glass-border-hover);
+    box-shadow: var(--mv-shadow-ambient-sm);
   }
 
   .transparent-input {
@@ -64,21 +79,70 @@
     border: none;
     color: var(--mv-color-text-primary);
     font-family: var(--mv-font-sans);
-    font-size: var(--mv-font-size-md);
+    font-size: var(--mv-font-size-sm);
     outline: none;
-    text-shadow: var(--mv-border-width-thin) var(--mv-border-width-thin) var(--mv-border-width-thin) var(--mv-primitive-deep-0);
-    resize: none; /* User can't resize manually, fixed to rows */
+    resize: none;
     display: block;
-    line-height: var(--mv-line-height-normal);
+    line-height: var(--mv-line-height-relaxed);
+    min-height: var(--mv-min-height-input);
+    max-height: var(--mv-max-height-input);
+    padding: 0;
   }
 
   .transparent-input::placeholder {
     color: var(--mv-color-text-disabled);
-    opacity: 0.6;
+    opacity: 0.5;
+    font-style: italic;
   }
 
   .transparent-input.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--mv-size-send-btn);
+    height: var(--mv-size-send-btn);
+    padding: 0;
+    background: transparent;
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-radius: var(--mv-radius-circle);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+  }
+
+  .send-btn:not(:disabled):hover {
+    background: var(--mv-glass-hover);
+    transform: scale(1.1);
+    box-shadow: var(--mv-shadow-glow-accent);
+    border-color: var(--mv-shadow-glow-accent-border);
+  }
+
+  .send-btn:not(:disabled):hover .logo-wrapper {
+    filter: var(--mv-shadow-glow-accent-strong);
+  }
+
+  .send-btn:active {
+    transform: scale(0.95);
+    background: var(--mv-glass-active);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .logo-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.8;
   }
 </style>

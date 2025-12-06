@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/svelte";
 import MainViewPreview from "./MainViewPreview.svelte";
-import type { Task, TaskStatus, Attempt } from "../types";
+import type { Task, TaskStatus } from "../types";
 
 const meta = {
   title: "IDE/MainView",
@@ -11,7 +11,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "IDE本体のメインビュー。Toolbar、WBS/Graphビュー、DetailPanel、チャットウィンドウ、タスク作成モーダルを含む完全なワークスペース画面。",
+          "IDE本体のメインビュー。Toolbar、WBS/Graphビュー、DetailPanel、チャットウィンドウを含むワークスペース画面。",
       },
     },
   },
@@ -20,14 +20,6 @@ const meta = {
       control: { type: "select" },
       options: ["graph", "wbs"],
       description: "表示モード（Graph / WBS）",
-    },
-    zoomPercent: {
-      control: { type: "number", min: 25, max: 200, step: 25 },
-      description: "ズーム率（%）",
-    },
-    showCreateModal: {
-      control: "boolean",
-      description: "タスク作成モーダル表示",
     },
     showChat: {
       control: "boolean",
@@ -62,24 +54,6 @@ function createTask(
     wbsLevel: opts.wbsLevel || 3,
     phaseName: opts.phaseName || "実装",
     acceptanceCriteria: opts.acceptanceCriteria || [],
-  };
-}
-
-// ヘルパー: Attempt を生成
-function createAttempt(
-  id: string,
-  taskId: string,
-  status: "STARTING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "TIMEOUT" | "CANCELED",
-  errorSummary?: string
-): Attempt {
-  const now = new Date().toISOString();
-  return {
-    id,
-    taskId,
-    status,
-    startedAt: now,
-    finishedAt: status !== "RUNNING" && status !== "STARTING" ? now : undefined,
-    errorSummary,
   };
 }
 
@@ -125,7 +99,6 @@ const projectStartTasks: Task[] = [
 export const ProjectStart: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: projectStartTasks,
     poolSummaries: [
       { poolId: "codegen", running: 1, queued: 2, failed: 0, total: 4, counts: {} },
@@ -133,9 +106,6 @@ export const ProjectStart: Story = {
     overallProgress: calcProgress(projectStartTasks),
     taskCountsByStatus: countByStatus(projectStartTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -166,7 +136,6 @@ const developmentInProgressTasks: Task[] = [
 export const DevelopmentInProgress: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: developmentInProgressTasks,
     poolSummaries: [
       { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
@@ -175,9 +144,6 @@ export const DevelopmentInProgress: Story = {
     overallProgress: calcProgress(developmentInProgressTasks),
     taskCountsByStatus: countByStatus(developmentInProgressTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -206,15 +172,9 @@ const selectedTaskData = createTask("task-5", "ユーザー認証機能", "RUNNI
   dependencies: ["task-3", "task-4"],
 });
 
-const selectedTaskAttempts: Attempt[] = [
-  createAttempt("attempt-1", "task-5", "FAILED", "TypeScript コンパイルエラー: Property 'token' does not exist"),
-  createAttempt("attempt-2", "task-5", "RUNNING"),
-];
-
 export const TaskSelected: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: developmentInProgressTasks,
     poolSummaries: [
       { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
@@ -222,9 +182,6 @@ export const TaskSelected: Story = {
     overallProgress: calcProgress(developmentInProgressTasks),
     taskCountsByStatus: countByStatus(developmentInProgressTasks),
     selectedTask: selectedTaskData,
-    attempts: selectedTaskAttempts,
-    isTaskRunning: true,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -256,21 +213,9 @@ const failedTaskData = createTask("task-5", "ユーザー認証機能", "FAILED"
   description: "JWT ベースのユーザー認証機能を実装する。",
 });
 
-const failedTaskAttempts: Attempt[] = [
-  createAttempt("attempt-1", "task-5", "FAILED", "npm install failed: ERESOLVE could not resolve dependency tree"),
-  createAttempt("attempt-2", "task-5", "FAILED", "TypeScript コンパイルエラー: Module '@auth/core' not found"),
-  createAttempt(
-    "attempt-3",
-    "task-5",
-    "FAILED",
-    "テスト失敗: Expected status 200 but received 401\n\nStack trace:\n  at AuthController.login (src/auth/auth.controller.ts:45:12)\n  at processTicksAndRejections (node:internal/process/task_queues:95:5)"
-  ),
-];
-
 export const ErrorState: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: errorStateTasks,
     poolSummaries: [
       { poolId: "codegen", running: 1, queued: 0, failed: 2, total: 4, counts: {} },
@@ -278,9 +223,6 @@ export const ErrorState: Story = {
     overallProgress: calcProgress(errorStateTasks),
     taskCountsByStatus: countByStatus(errorStateTasks),
     selectedTask: failedTaskData,
-    attempts: failedTaskAttempts,
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -313,7 +255,6 @@ const nearCompletionTasks: Task[] = [
 export const NearCompletion: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: nearCompletionTasks,
     poolSummaries: [
       { poolId: "codegen", running: 0, queued: 0, failed: 0, total: 8, counts: {} },
@@ -322,9 +263,6 @@ export const NearCompletion: Story = {
     overallProgress: calcProgress(nearCompletionTasks),
     taskCountsByStatus: countByStatus(nearCompletionTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -357,7 +295,6 @@ const completedTasks: Task[] = [
 export const ProjectCompleted: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: completedTasks,
     poolSummaries: [
       { poolId: "codegen", running: 0, queued: 0, failed: 0, total: 8, counts: {} },
@@ -366,9 +303,6 @@ export const ProjectCompleted: Story = {
     overallProgress: { total: 12, completed: 12, percentage: 100 },
     taskCountsByStatus: countByStatus(completedTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: false,
     chatPosition: { x: 600, y: 300 },
   },
@@ -382,38 +316,10 @@ export const ProjectCompleted: Story = {
   },
 };
 
-// === Story: タスク作成モーダル表示 ===
-export const CreateTaskModal: Story = {
-  args: {
-    viewMode: "wbs",
-    zoomPercent: 100,
-    taskList: projectStartTasks,
-    poolSummaries: [
-      { poolId: "codegen", running: 1, queued: 2, failed: 0, total: 4, counts: {} },
-    ],
-    overallProgress: calcProgress(projectStartTasks),
-    taskCountsByStatus: countByStatus(projectStartTasks),
-    selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: true,
-    showChat: true,
-    chatPosition: { x: 600, y: 300 },
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: "タスク作成モーダルが表示された状態。",
-      },
-    },
-  },
-};
-
 // === Story: Graph ビュー ===
 export const GraphView: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     taskList: developmentInProgressTasks,
     poolSummaries: [
       { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
@@ -421,9 +327,6 @@ export const GraphView: Story = {
     overallProgress: calcProgress(developmentInProgressTasks),
     taskCountsByStatus: countByStatus(developmentInProgressTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -431,7 +334,7 @@ export const GraphView: Story = {
     docs: {
       description: {
         story:
-          "Graph ビューモード。タスクを2D俯瞰で依存関係グラフとして表示。ズームコントロールが有効。",
+          "Graph ビューモード。タスクを2D俯瞰で依存関係グラフとして表示。",
       },
     },
   },
@@ -441,7 +344,6 @@ export const GraphView: Story = {
 export const ChatHidden: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: developmentInProgressTasks,
     poolSummaries: [
       { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
@@ -449,9 +351,6 @@ export const ChatHidden: Story = {
     overallProgress: calcProgress(developmentInProgressTasks),
     taskCountsByStatus: countByStatus(developmentInProgressTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: false,
     chatPosition: { x: 600, y: 300 },
   },
@@ -469,7 +368,6 @@ export const ChatHidden: Story = {
 export const EmptyProject: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: [],
     poolSummaries: [],
     overallProgress: { total: 0, completed: 0, percentage: 0 },
@@ -484,9 +382,6 @@ export const EmptyProject: Story = {
       BLOCKED: 0,
     },
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },
@@ -524,7 +419,6 @@ for (let i = 0; i < 50; i++) {
 export const LargeProject: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     taskList: largeTasks,
     poolSummaries: [
       { poolId: "codegen", running: 3, queued: 10, failed: 0, total: 38, counts: {} },
@@ -533,9 +427,6 @@ export const LargeProject: Story = {
     overallProgress: calcProgress(largeTasks),
     taskCountsByStatus: countByStatus(largeTasks),
     selectedTask: null,
-    attempts: [],
-    isTaskRunning: false,
-    showCreateModal: false,
     showChat: true,
     chatPosition: { x: 600, y: 300 },
   },

@@ -82,19 +82,35 @@
 </button>
 
 <style>
-  .button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--mv-spacing-xs);
-    border: var(--mv-border-width-thin) solid transparent;
-    border-radius: var(--mv-radius-md);
-    font-family: var(--mv-font-sans);
-    font-weight: var(--mv-font-weight-medium);
-    cursor: pointer;
-    transition: var(--mv-transition-hover);
-    white-space: nowrap;
-  }
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mv-spacing-xs);
+  border: var(--mv-border-width-thin) solid var(--btn-border, transparent);
+  border-radius: var(--mv-radius-md);
+  font-family: var(--mv-font-sans);
+  font-weight: var(--mv-font-weight-medium);
+  cursor: pointer;
+  transition: var(--mv-transition-hover), transform 120ms ease;
+  white-space: nowrap;
+  background: var(--btn-bg, var(--mv-color-surface-secondary));
+  color: var(--btn-text, var(--mv-color-text-primary));
+  box-shadow: var(--btn-shadow, none);
+}
+
+.button:hover:not(.disabled) {
+  background: var(--btn-bg-hover, var(--btn-bg, var(--mv-color-surface-secondary)));
+  border-color: var(--btn-border-hover, var(--btn-border, var(--mv-color-border-default)));
+  color: var(--btn-text-hover, var(--btn-text, var(--mv-color-text-primary)));
+  box-shadow: var(--btn-shadow-hover, var(--btn-shadow, none));
+}
+
+.button:active:not(.disabled) {
+  background: var(--btn-bg-active, var(--btn-bg-hover, var(--btn-bg, var(--mv-color-surface-secondary))));
+  border-color: var(--btn-border-active, var(--btn-border-hover, var(--btn-border, var(--mv-color-border-default))));
+  transform: translateY(1px);
+}
 
   /* サイズ */
   .size-small {
@@ -117,56 +133,69 @@
 
   /* Primary バリアント */
   .variant-primary {
-    background: var(--mv-color-status-running-border);
-    border-color: var(--mv-color-status-running-border);
-    color: var(--mv-color-surface-app);
-  }
-
-  .variant-primary:hover:not(.disabled) {
-    background: var(--mv-color-status-running-text);
-    border-color: var(--mv-color-status-running-text);
+    --btn-bg: var(--mv-primitive-frost-2);
+    --btn-border: var(--mv-primitive-frost-3);
+    --btn-text: var(--mv-color-text-primary);
+    --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(34, 48, 56, 0.25),
+      0 8px 18px -10px rgba(143, 191, 187, 0.35);
+    --btn-bg-hover: var(--mv-primitive-frost-1);
+    --btn-border-hover: var(--mv-primitive-frost-1);
+    --btn-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(34, 48, 56, 0.28),
+      0 10px 22px -12px rgba(136, 192, 208, 0.45);
+    --btn-bg-active: var(--mv-primitive-frost-3);
+    --btn-border-active: var(--mv-primitive-frost-3);
   }
 
   /* Secondary バリアント */
   .variant-secondary {
-    background: var(--mv-color-surface-secondary);
-    border-color: var(--mv-color-border-default);
-    color: var(--mv-color-text-primary);
-  }
-
-  .variant-secondary:hover:not(.disabled) {
-    background: var(--mv-color-surface-hover);
-    border-color: var(--mv-color-border-strong);
+  --btn-bg: var(--mv-color-surface-secondary);
+  --btn-border: var(--mv-color-border-default);
+  --btn-text: var(--mv-color-text-primary);
+  --btn-shadow: 0 0 0 1px var(--mv-color-border-default);
+  --btn-bg-hover: var(--mv-color-surface-hover);
+  --btn-border-hover: var(--mv-color-border-strong);
+  --btn-shadow-hover: 0 0 0 1px var(--mv-color-border-strong);
+  --btn-bg-active: var(--mv-color-surface-primary);
   }
 
   /* Ghost バリアント */
   .variant-ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--mv-color-text-secondary);
-  }
-
-  .variant-ghost:hover:not(.disabled) {
-    background: var(--mv-color-surface-hover);
-    color: var(--mv-color-text-primary);
+    --btn-bg: transparent;
+    --btn-border: var(--mv-color-border-subtle);
+    --btn-text: var(--mv-color-text-secondary);
+    --btn-bg-hover: var(--mv-color-surface-hover);
+    --btn-border-hover: var(--mv-color-border-default);
+    --btn-text-hover: var(--mv-color-text-primary);
+    --btn-bg-active: var(--mv-color-surface-primary);
   }
 
   /* Danger バリアント */
   .variant-danger {
-    background: var(--mv-color-status-failed-border);
-    border-color: var(--mv-color-status-failed-border);
-    color: var(--mv-color-text-primary);
-  }
-
-  .variant-danger:hover:not(.disabled) {
-    background: var(--mv-color-status-failed-text);
-    border-color: var(--mv-color-status-failed-text);
+    --btn-bg: var(--mv-color-status-failed-border);
+    --btn-border: var(--mv-color-status-failed-border);
+    --btn-text: var(--mv-color-text-primary);
+    --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      inset 0 -1px 0 rgba(58, 28, 28, 0.3),
+      0 8px 18px -12px rgba(201, 123, 123, 0.45);
+    --btn-bg-hover: var(--mv-color-status-failed-text);
+    --btn-border-hover: var(--mv-color-status-failed-text);
+    --btn-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(58, 28, 28, 0.35),
+      0 10px 20px -12px rgba(218, 126, 135, 0.5);
+    --btn-bg-active: var(--mv-primitive-pastel-red);
+    --btn-border-active: var(--mv-primitive-pastel-red);
   }
 
   /* 無効状態 */
   .disabled {
-    opacity: 0.5;
+  opacity: 0.6;
     cursor: not-allowed;
+  background: var(--mv-color-surface-secondary);
+  border-color: var(--mv-color-border-subtle);
+  color: var(--mv-color-text-disabled);
+  box-shadow: none;
   }
 
   /* フォーカス状態 */

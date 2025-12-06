@@ -1,20 +1,8 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import { Button } from "../../design-system";
-  import {
-    viewport,
-    zoomPercent,
-    taskCountsByStatus,
-    poolSummaries,
-    viewMode,
-    overallProgress,
-  } from "../../stores";
+  import { taskCountsByStatus, poolSummaries, viewMode, overallProgress } from "../../stores";
   import type { TaskStatus } from "../../types";
+  import BrandText from "../components/brand/BrandText.svelte";
   import ProgressBar from "../wbs/ProgressBar.svelte";
-
-  const dispatch = createEventDispatcher<{
-    createTask: void;
-  }>();
 
   // ステータスサマリの表示設定（フォールバック用）
   const statusDisplay: {
@@ -27,28 +15,15 @@
     { key: "FAILED", label: "失敗", showCount: true },
   ];
 
-  function handleCreateTask() {
-    dispatch("createTask");
-  }
-
-  function toggleViewMode() {
-    viewMode.toggle();
-  }
-
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
   $: hasPoolSummaries = $poolSummaries.length > 0;
   $: isGraphMode = $viewMode === "graph";
 </script>
 
 <header class="toolbar">
-  <!-- 左側：タイトルと操作 -->
+  <!-- 左側：ブランド -->
   <div class="toolbar-left">
-    <h1 class="app-title">multiverse IDE</h1>
-
-    <Button variant="primary" size="small" on:click={handleCreateTask}>
-      <span class="btn-icon">+</span>
-      新規タスク
-    </Button>
+    <BrandText size="sm" />
   </div>
 
   <!-- 中央：Pool別サマリ or ステータスサマリ -->
@@ -90,7 +65,7 @@
     {/if}
   </div>
 
-  <!-- 右側：進捗・ビュー切替・ズームコントロール -->
+  <!-- 右側：進捗・ビュー切替 -->
   <div class="toolbar-right">
     <!-- 進捗率バー -->
     <div class="progress-section">
@@ -98,7 +73,7 @@
       <span class="progress-text">{$overallProgress.percentage}%</span>
     </div>
 
-    <!-- ビュー切り替え -->
+    <!-- ビュー切替 -->
     <div class="view-toggle">
       <button
         class="view-btn"
@@ -121,34 +96,6 @@
         WBS
       </button>
     </div>
-
-    <!-- ズームコントロール（グラフモードのみ表示） -->
-    {#if isGraphMode}
-      <div class="zoom-controls">
-        <Button
-          variant="ghost"
-          size="small"
-          on:click={() => viewport.zoomOut()}
-          label="−"
-        />
-
-        <button
-          class="zoom-value"
-          on:click={() => viewport.reset()}
-          aria-label="ズームリセット"
-          title="リセット (0)"
-        >
-          {$zoomPercent}%
-        </button>
-
-        <Button
-          variant="ghost"
-          size="small"
-          on:click={() => viewport.zoomIn()}
-          label="+"
-        />
-      </div>
-    {/if}
   </div>
 </header>
 
@@ -170,11 +117,12 @@
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: var(--mv-spacing-md);
+    gap: var(--mv-spacing-sm);
   }
 
   .toolbar-left {
     flex: 1;
+    justify-content: flex-start;
   }
 
   .toolbar-center {
@@ -185,6 +133,7 @@
   .toolbar-right {
     flex: 1;
     justify-content: flex-end;
+    gap: var(--mv-spacing-md);
   }
 
   .app-title {
@@ -235,34 +184,6 @@
 
   .status-label {
     font-weight: var(--mv-font-weight-normal);
-  }
-
-  /* ズームコントロール */
-  .zoom-controls {
-    display: flex;
-    align-items: center;
-    gap: var(--mv-spacing-xxs);
-    background: var(--mv-color-surface-secondary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-glow-ambient); /* ボーダーをグロー色に */
-    border-radius: var(--mv-radius-sm);
-    padding: var(--mv-spacing-xxs);
-    box-shadow: var(--mv-shadow-node-glow); /* 常時微発光 */
-  }
-
-  .zoom-value {
-    min-width: var(--mv-spacing-xxl);
-    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
-    font-size: var(--mv-font-size-xs);
-    font-family: var(--mv-font-mono);
-    color: var(--mv-color-text-secondary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .zoom-value:hover {
-    color: var(--mv-color-text-primary);
   }
 
   /* Pool別サマリ */

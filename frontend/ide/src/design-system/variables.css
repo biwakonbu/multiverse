@@ -481,6 +481,92 @@
   --mv-color-accent-primary-alpha: rgba(136, 192, 208, 0.3);
   --mv-color-accent-primary-alpha-strong: rgba(136, 192, 208, 0.6);
   --mv-color-shadow-medium: rgba(0, 0, 0, 0.3);
+
+  /* ========================================
+     ガラスモーフィズム用（Phantom Glass スタイル）
+     ======================================== */
+  --mv-glass-bg: rgba(22, 24, 30, 0.4);
+  --mv-glass-bg-dark: rgba(0, 0, 0, 0.2);
+  --mv-glass-bg-darker: rgba(0, 0, 0, 0.3);
+  --mv-glass-border: rgba(255, 255, 255, 0.02);
+  --mv-glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --mv-glass-border-light: rgba(255, 255, 255, 0.1);
+  --mv-glass-border-hover: rgba(255, 255, 255, 0.15);
+  --mv-glass-highlight: rgba(255, 255, 255, 0.08);
+  --mv-glass-hover: rgba(255, 255, 255, 0.1);
+  --mv-glass-hover-strong: rgba(255, 255, 255, 0.2);
+  --mv-glass-active: rgba(255, 255, 255, 0.05);
+  --mv-shadow-ambient-lg: 0 12px 40px rgba(0, 0, 0, 0.25);
+  --mv-shadow-ambient-sm: 0 0 12px rgba(255, 255, 255, 0.05);
+  --mv-shadow-glow-hover: 0 0 12px rgba(255, 255, 255, 0.05);
+  --mv-shadow-glow-accent: 0 0 16px rgba(136, 192, 208, 0.3);
+  --mv-shadow-glow-accent-border: rgba(136, 192, 208, 0.4);
+  --mv-shadow-glow-accent-strong: 0 0 4px rgba(136, 192, 208, 0.5);
+  --mv-shadow-lift-sm: 0 0 10px rgba(0, 0, 0, 0.1);
+  --mv-filter-drop-shadow: drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
+  --mv-filter-drop-shadow-brand: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+  --mv-filter-drop-shadow-brand-hover: drop-shadow(0 15px 30px rgba(136, 192, 208, 0.3));
+  --mv-filter-drop-shadow-brand-text: drop-shadow(0 0 15px rgba(136, 192, 208, 0.3));
+  --mv-filter-drop-shadow-brand-text-hover: drop-shadow(0 0 20px rgba(136, 192, 208, 0.6));
+
+  /* ========================================
+     追加サイズ変数
+     ======================================== */
+  --mv-size-action-btn: 32px;
+  --mv-size-send-btn: 36px;
+  --mv-size-header-actions: 24px;
+  --mv-size-control-btn: 24px;
+  --mv-size-scrollbar: 4px;
+  --mv-size-loading-dot: 6px;
+  --mv-size-floating-header: 48px;
+  --mv-min-width-wbs-header: 240px;
+  --mv-min-height-input: 24px;
+  --mv-max-height-input: 120px;
+  --mv-margin-progress-symbol: 2px;
+  --mv-letter-spacing-title: 0.2em;
+  --mv-letter-spacing-count: 0.05em;
+  --mv-letter-spacing-tab: 0.1em;
+
+  /* ========================================
+     テキストシャドウ（セマンティック）
+     ======================================== */
+  --mv-text-shadow-base: 0 0 2px rgba(0, 0, 0, 0.8);
+  --mv-text-shadow-cyan: 0 0 8px rgba(136, 192, 208, 0.6);
+  --mv-text-shadow-cyan-content: 0 0 4px rgba(136, 192, 208, 0.4);
+  --mv-text-shadow-green: 0 0 8px rgba(163, 190, 140, 0.6);
+  --mv-text-shadow-green-content: 0 0 4px rgba(163, 190, 140, 0.4);
+  --mv-text-shadow-purple: 0 0 8px rgba(180, 142, 173, 0.6);
+  --mv-text-shadow-purple-content: 0 0 4px rgba(180, 142, 173, 0.4);
+
+  /* ========================================
+     ガラスモーフィズム追加
+     ======================================== */
+  --mv-glass-bg-chat: rgba(22, 24, 30, 0.5);
+  --mv-glass-bg-minimized: rgba(22, 24, 30, 0.7);
+  --mv-glass-border-strong: rgba(255, 255, 255, 0.08);
+  --mv-glass-border-top: rgba(255, 255, 255, 0.15);
+  --mv-glass-border-bottom: rgba(0, 0, 0, 0.2);
+  --mv-glass-border-separator: rgba(255, 255, 255, 0.03);
+  --mv-glass-border-tab: rgba(136, 192, 208, 0.2);
+  --mv-glass-tab-bg: rgba(136, 192, 208, 0.1);
+  --mv-glass-close-bg: rgba(191, 97, 106, 0.15);
+  --mv-glass-close-border: rgba(191, 97, 106, 0.3);
+  --mv-glass-scrollbar: rgba(255, 255, 255, 0.1);
+  --mv-glass-scrollbar-hover: rgba(255, 255, 255, 0.2);
+  --mv-glass-footer: rgba(0, 0, 0, 0.1);
+  --mv-shadow-floating-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --mv-shadow-tab-glow: 0 0 12px rgba(136, 192, 208, 0.15);
+  --mv-border-radius-scrollbar: 2px;
+
+  /* 複合シャドウ */
+  --mv-shadow-glass-panel: 0 12px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --mv-shadow-floating-panel: 0 16px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* ========================================
+     アクセントカラー（セマンティック）
+     ======================================== */
+  --mv-color-accent-primary: var(--mv-primitive-frost-1);
+  --mv-color-accent-secondary: var(--mv-primitive-frost-3);
 }
 
 /* ========================================

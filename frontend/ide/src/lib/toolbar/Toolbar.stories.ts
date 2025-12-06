@@ -12,10 +12,6 @@ const meta = {
       options: ["graph", "wbs"],
       description: "表示モード",
     },
-    zoomPercent: {
-      control: { type: "number", min: 25, max: 200, step: 25 },
-      description: "ズーム率（%）",
-    },
     overallProgress: {
       control: "object",
       description: "全体進捗",
@@ -34,7 +30,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "IDEのメインツールバー。タイトル、新規タスクボタン、ステータスサマリ、進捗バー、ビュー切替、ズームコントロールを表示します。",
+          "IDEのメインツールバー。ブランド表示、ステータスサマリ、進捗バー、ビュー切替を表示します。",
       },
     },
   },
@@ -47,7 +43,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 0, completed: 0, total: 0 },
     poolSummaries: [],
     taskCountsByStatus: {
@@ -67,7 +62,6 @@ export const Default: Story = {
 export const WithPoolSummaries: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 45, completed: 9, total: 20 },
     poolSummaries: [
       { poolId: "codegen", running: 2, queued: 5, failed: 1, total: 15 },
@@ -97,7 +91,6 @@ export const WithPoolSummaries: Story = {
 export const WithStatusSummary: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 30, completed: 3, total: 10 },
     poolSummaries: [],
     taskCountsByStatus: {
@@ -124,7 +117,6 @@ export const WithStatusSummary: Story = {
 export const HighProgress: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 85, completed: 17, total: 20 },
     poolSummaries: [
       { poolId: "codegen", running: 1, queued: 2, failed: 0, total: 15 },
@@ -153,7 +145,6 @@ export const HighProgress: Story = {
 export const AllCompleted: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 100, completed: 20, total: 20 },
     poolSummaries: [
       { poolId: "codegen", running: 0, queued: 0, failed: 0, total: 15 },
@@ -183,7 +174,6 @@ export const AllCompleted: Story = {
 export const WBSMode: Story = {
   args: {
     viewMode: "wbs",
-    zoomPercent: 100,
     overallProgress: { percentage: 50, completed: 10, total: 20 },
     poolSummaries: [
       { poolId: "codegen", running: 1, queued: 4, failed: 0, total: 15 },
@@ -208,65 +198,10 @@ export const WBSMode: Story = {
   },
 };
 
-// ズームイン状態
-export const ZoomedIn: Story = {
-  args: {
-    viewMode: "graph",
-    zoomPercent: 150,
-    overallProgress: { percentage: 50, completed: 10, total: 20 },
-    poolSummaries: [],
-    taskCountsByStatus: {
-      PENDING: 5,
-      READY: 0,
-      RUNNING: 2,
-      SUCCEEDED: 10,
-      COMPLETED: 0,
-      FAILED: 3,
-      CANCELED: 0,
-      BLOCKED: 0,
-    },
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: "ズームイン状態（150%）。",
-      },
-    },
-  },
-};
-
-// ズームアウト状態
-export const ZoomedOut: Story = {
-  args: {
-    viewMode: "graph",
-    zoomPercent: 50,
-    overallProgress: { percentage: 25, completed: 5, total: 20 },
-    poolSummaries: [],
-    taskCountsByStatus: {
-      PENDING: 10,
-      READY: 0,
-      RUNNING: 3,
-      SUCCEEDED: 5,
-      COMPLETED: 0,
-      FAILED: 2,
-      CANCELED: 0,
-      BLOCKED: 0,
-    },
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: "ズームアウト状態（50%）。",
-      },
-    },
-  },
-};
-
 // エラーが多い状態
 export const ManyFailures: Story = {
   args: {
     viewMode: "graph",
-    zoomPercent: 100,
     overallProgress: { percentage: 40, completed: 8, total: 20 },
     poolSummaries: [
       { poolId: "codegen", running: 0, queued: 2, failed: 5, total: 15 },

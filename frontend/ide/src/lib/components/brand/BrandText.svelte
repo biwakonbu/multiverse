@@ -28,17 +28,23 @@
   }
 
   .text {
-    background: var(--mv-brand-gradient);
+    /* グラデーションはCSS変数を使用 */
+    background: linear-gradient(
+      135deg,
+      var(--mv-primitive-snow-storm-2) 0%,
+      var(--mv-primitive-frost-1) 40%,
+      var(--mv-primitive-frost-3) 100%
+    );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(var(--mv-brand-shadow));
+    filter: var(--mv-filter-drop-shadow-brand-text);
     position: relative;
     z-index: 1;
     transition: filter 0.3s ease;
   }
 
   .brand-text:hover .text {
-    filter: drop-shadow(var(--mv-brand-shadow-hover));
+    filter: var(--mv-filter-drop-shadow-brand-text-hover);
   }
 </style>

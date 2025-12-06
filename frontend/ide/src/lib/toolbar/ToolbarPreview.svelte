@@ -1,23 +1,17 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { Button } from "../../design-system";
   import type { TaskStatus, PoolSummary } from "../../types";
 
   const dispatch = createEventDispatcher<{
-    createTask: void;
-    zoomIn: void;
-    zoomOut: void;
-    zoomReset: void;
     viewModeChange: "graph" | "wbs";
   }>();
 
-  import BrandFull from "../components/brand/BrandFull.svelte";
+  import BrandText from "../components/brand/BrandText.svelte";
 
   // Props（Store依存を排除）
   export let poolSummaries: PoolSummary[] = [];
   export let overallProgress = { percentage: 0, completed: 0, total: 0 };
   export let viewMode: "graph" | "wbs" = "graph";
-  export let zoomPercent = 100;
   export let taskCountsByStatus: Record<TaskStatus, number> = {
     PENDING: 0,
     READY: 0,
@@ -40,22 +34,6 @@
     { key: "FAILED", label: "失敗", showCount: true },
   ];
 
-  function handleCreateTask() {
-    dispatch("createTask");
-  }
-
-  function handleZoomIn() {
-    dispatch("zoomIn");
-  }
-
-  function handleZoomOut() {
-    dispatch("zoomOut");
-  }
-
-  function handleZoomReset() {
-    dispatch("zoomReset");
-  }
-
   function setGraphMode() {
     dispatch("viewModeChange", "graph");
   }
@@ -70,14 +48,9 @@
 </script>
 
 <header class="toolbar">
-  <!-- 左側：タイトルと操作 -->
+  <!-- 左側：ブランド -->
   <div class="toolbar-left">
-    <BrandFull size="sm" />
-
-    <Button variant="primary" size="small" on:click={handleCreateTask}>
-      <span class="btn-icon">+</span>
-      新規タスク
-    </Button>
+    <BrandText size="sm" />
   </div>
 
   <!-- 中央：Pool別サマリ or ステータスサマリ -->
@@ -119,7 +92,7 @@
     {/if}
   </div>
 
-  <!-- 右側：進捗・ビュー切替・ズームコントロール -->
+  <!-- 右側：進捗・ビュー切替 -->
   <div class="toolbar-right">
     <!-- 進捗率バー -->
     <div class="progress-section">
@@ -132,7 +105,7 @@
       <span class="progress-text">{overallProgress.percentage}%</span>
     </div>
 
-    <!-- ビュー切り替え -->
+    <!-- ビュー切替 -->
     <div class="view-toggle">
       <button
         class="view-btn"
@@ -155,34 +128,6 @@
         WBS
       </button>
     </div>
-
-    <!-- ズームコントロール（グラフモードのみ表示） -->
-    {#if isGraphMode}
-      <div class="zoom-controls">
-        <Button
-          variant="ghost"
-          size="small"
-          on:click={handleZoomOut}
-          label="−"
-        />
-
-        <button
-          class="zoom-value"
-          on:click={handleZoomReset}
-          aria-label="ズームリセット"
-          title="リセット (0)"
-        >
-          {zoomPercent}%
-        </button>
-
-        <Button
-          variant="ghost"
-          size="small"
-          on:click={handleZoomIn}
-          label="+"
-        />
-      </div>
-    {/if}
   </div>
 </header>
 
@@ -204,11 +149,12 @@
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: var(--mv-spacing-md);
+    gap: var(--mv-spacing-sm);
   }
 
   .toolbar-left {
     flex: 1;
+    justify-content: flex-start;
   }
 
   .toolbar-center {
@@ -219,18 +165,7 @@
   .toolbar-right {
     flex: 1;
     justify-content: flex-end;
-  }
-
-  .app-title {
-    font-size: var(--mv-font-size-lg);
-    font-weight: var(--mv-font-weight-semibold);
-    color: var(--mv-color-text-primary);
-    margin: 0;
-  }
-
-  .btn-icon {
-    font-size: var(--mv-font-size-lg);
-    line-height: 1;
+    gap: var(--mv-spacing-md);
   }
 
   /* ステータスサマリ */
@@ -269,34 +204,6 @@
 
   .status-label {
     font-weight: var(--mv-font-weight-normal);
-  }
-
-  /* ズームコントロール */
-  .zoom-controls {
-    display: flex;
-    align-items: center;
-    gap: var(--mv-spacing-xxs);
-    background: var(--mv-color-surface-secondary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-glow-ambient);
-    border-radius: var(--mv-radius-sm);
-    padding: var(--mv-spacing-xxs);
-    box-shadow: var(--mv-shadow-node-glow);
-  }
-
-  .zoom-value {
-    min-width: var(--mv-spacing-xxl);
-    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
-    font-size: var(--mv-font-size-xs);
-    font-family: var(--mv-font-mono);
-    color: var(--mv-color-text-secondary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-  }
-
-  .zoom-value:hover {
-    color: var(--mv-color-text-primary);
   }
 
   /* Pool別サマリ */
