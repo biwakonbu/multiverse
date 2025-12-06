@@ -197,71 +197,451 @@ func (s *Scheduler) ScheduleReadyTasks() error {
 
 #### FR-P3-001: ExecutionOrchestrator
 
+**設計方針:**
+- 既存の `Executor` を拡張せず、新規 `ExecutionOrchestrator` を作成
+- `Executor` は単一タスク実行、`ExecutionOrchestrator` は複数タスクの自律実行ループを担当
+- goroutine による非同期実行とチャネルによる状態制御
+
 ```go
+// internal/orchestrator/execution_orchestrator.go
+
+// ExecutionState は自律実行の状態を表す
+type ExecutionState string
+
+const (
+    ExecutionStateIdle    ExecutionState = "IDLE"    // 未開始・停止済み
+    ExecutionStateRunning ExecutionState = "RUNNING" // 実行中
+    ExecutionStatePaused  ExecutionState = "PAUSED"  // 一時停止中
+)
+
+// ExecutionOrchestrator は自律実行ループを管理する
 type ExecutionOrchestrator struct {
     Scheduler    *Scheduler
+    Executor     *Executor
     GraphManager *TaskGraphManager
-    State        ExecutionState  // IDLE | RUNNING | PAUSED | STOPPED
-    PauseSignal  chan struct{}
-    ResumeSignal chan struct{}
+    TaskStore    *TaskStore
+    EventEmitter EventEmitter          // Wails Events 抽象化
+
+    state        ExecutionState
+    stateMu      sync.RWMutex          // 状態の排他制御
+
+    pauseCh      chan struct{}         // 一時停止シグナル
+    resumeCh     chan struct{}         // 再開シグナル
+    stopCh       chan struct{}         // 停止シグナル
+
+    maxConcurrent int                  // 同時実行タスク数（デフォルト: 1）
+    runningTasks  map[string]context.CancelFunc  // 実行中タスクのキャンセル関数
+    runningMu     sync.Mutex
+
+    logger       *slog.Logger
 }
 
+// NewExecutionOrchestrator は ExecutionOrchestrator を作成する
+func NewExecutionOrchestrator(
+    scheduler *Scheduler,
+    executor *Executor,
+    taskStore *TaskStore,
+    eventEmitter EventEmitter,
+) *ExecutionOrchestrator
+
+// Start は自律実行ループを開始する（非ブロッキング）
 func (e *ExecutionOrchestrator) Start(ctx context.Context) error
-func (e *ExecutionOrchestrator) Pause()
-func (e *ExecutionOrchestrator) Resume()
+
+// Pause は新規タスク開始を一時停止する（実行中タスクは継続）
+func (e *ExecutionOrchestrator) Pause() error
+
+// Resume は一時停止状態から再開する
+func (e *ExecutionOrchestrator) Resume() error
+
+// Stop は自律実行ループを停止する
+func (e *ExecutionOrchestrator) Stop() error
+
+// State は現在の実行状態を返す
+func (e *ExecutionOrchestrator) State() ExecutionState
+
+// runLoop は自律実行のメインループ（内部goroutine）
+func (e *ExecutionOrchestrator) runLoop(ctx context.Context)
 ```
 
-#### FR-P3-002: リアルタイム進捗表示
+**実行ループの処理フロー:**
+
+```
+runLoop:
+  1. UpdateBlockedTasks() で BLOCKED → PENDING 解除
+  2. ScheduleReadyTasks() で実行可能タスクを READY に
+  3. READY タスクを取得
+  4. maxConcurrent まで並列実行
+  5. タスク完了時に EventEmit
+  6. 全タスク完了まで繰り返し
+  7. 一時停止シグナル受信時は待機
+  8. 停止シグナル受信時はループ終了
+```
+
+#### FR-P3-002: EventEmitter インターフェース
+
+**設計方針:**
+- Wails runtime への依存を抽象化してテスト可能にする
+- 本番は Wails Events、テストはモック実装
 
 ```go
-// バックエンド
-runtime.EventsEmit(ctx, "task:stateChange", TaskStateChangeEvent{...})
-```
+// internal/orchestrator/events.go
 
-```typescript
-// フロントエンド
-runtime.EventsOn('task:stateChange', (event) => {
-    tasks.updateTask(event.taskId, { status: event.newStatus });
-});
+// EventEmitter はイベント発火を抽象化するインターフェース
+type EventEmitter interface {
+    Emit(eventName string, data any)
+}
+
+// WailsEventEmitter は Wails runtime を使ったイベント発火
+type WailsEventEmitter struct {
+    ctx context.Context  // Wails startup で渡される context
+}
+
+func (w *WailsEventEmitter) Emit(eventName string, data any) {
+    runtime.EventsEmit(w.ctx, eventName, data)
+}
+
+// イベント名定義
+const (
+    EventTaskStateChange      = "task:stateChange"
+    EventExecutionStateChange = "execution:stateChange"
+    EventTaskProgress         = "task:progress"
+    EventBacklogAdded         = "backlog:added"
+)
+
+// TaskStateChangeEvent はタスク状態変更イベントのペイロード
+type TaskStateChangeEvent struct {
+    TaskID    string     `json:"taskId"`
+    OldStatus TaskStatus `json:"oldStatus"`
+    NewStatus TaskStatus `json:"newStatus"`
+    Timestamp time.Time  `json:"timestamp"`
+}
+
+// ExecutionStateChangeEvent は実行状態変更イベントのペイロード
+type ExecutionStateChangeEvent struct {
+    OldState  ExecutionState `json:"oldState"`
+    NewState  ExecutionState `json:"newState"`
+    Timestamp time.Time      `json:"timestamp"`
+}
 ```
 
 #### FR-P3-003: 一時停止・再開機能
 
-- ツールバーに一時停止/再開ボタン
-- 一時停止時は実行中タスクを中断せず、新規タスク開始のみ停止
+**バックエンド API:**
+
+```go
+// cmd/multiverse-ide/app.go に追加
+
+// StartExecution は自律実行を開始する
+func (a *App) StartExecution() error {
+    return a.executionOrchestrator.Start(a.ctx)
+}
+
+// PauseExecution は自律実行を一時停止する
+func (a *App) PauseExecution() error {
+    return a.executionOrchestrator.Pause()
+}
+
+// ResumeExecution は自律実行を再開する
+func (a *App) ResumeExecution() error {
+    return a.executionOrchestrator.Resume()
+}
+
+// StopExecution は自律実行を停止する
+func (a *App) StopExecution() error {
+    return a.executionOrchestrator.Stop()
+}
+
+// GetExecutionState は現在の実行状態を返す
+func (a *App) GetExecutionState() string {
+    return string(a.executionOrchestrator.State())
+}
+```
+
+**フロントエンド:**
+
+```typescript
+// frontend/ide/src/stores/executionStore.ts
+
+import { writable, derived } from 'svelte/store';
+import { StartExecution, PauseExecution, ResumeExecution, StopExecution, GetExecutionState } from '$lib/wailsjs/go/main/App';
+import { EventsOn } from '$lib/wailsjs/runtime/runtime';
+
+export type ExecutionState = 'IDLE' | 'RUNNING' | 'PAUSED';
+
+export const executionState = writable<ExecutionState>('IDLE');
+
+// Wails Events リスナー設定
+export function initExecutionEvents() {
+    EventsOn('execution:stateChange', (event: { newState: ExecutionState }) => {
+        executionState.set(event.newState);
+    });
+}
+
+// アクション
+export async function startExecution(): Promise<void> {
+    await StartExecution();
+}
+
+export async function pauseExecution(): Promise<void> {
+    await PauseExecution();
+}
+
+export async function resumeExecution(): Promise<void> {
+    await ResumeExecution();
+}
+
+export async function stopExecution(): Promise<void> {
+    await StopExecution();
+}
+```
+
+**Toolbar UI:**
+
+```svelte
+<!-- frontend/ide/src/lib/toolbar/ExecutionControls.svelte -->
+<script lang="ts">
+    import { executionState, startExecution, pauseExecution, resumeExecution, stopExecution } from '../../stores/executionStore';
+</script>
+
+<div class="execution-controls">
+    {#if $executionState === 'IDLE'}
+        <button on:click={startExecution} title="実行開始">
+            ▶️ 開始
+        </button>
+    {:else if $executionState === 'RUNNING'}
+        <button on:click={pauseExecution} title="一時停止">
+            ⏸️ 一時停止
+        </button>
+        <button on:click={stopExecution} title="停止">
+            ⏹️ 停止
+        </button>
+    {:else if $executionState === 'PAUSED'}
+        <button on:click={resumeExecution} title="再開">
+            ▶️ 再開
+        </button>
+        <button on:click={stopExecution} title="停止">
+            ⏹️ 停止
+        </button>
+    {/if}
+    <span class="state-label">{$executionState}</span>
+</div>
+```
 
 #### FR-P3-004: 自動リトライ/人間判断
 
+**RetryPolicy 設計:**
+
 ```go
+// internal/orchestrator/retry.go
+
+// RetryPolicy はタスク失敗時のリトライポリシーを定義する
 type RetryPolicy struct {
-    MaxAttempts     int
-    BackoffDuration time.Duration
-    RequireHuman    bool
+    MaxAttempts     int           // 最大試行回数（デフォルト: 3）
+    BackoffBase     time.Duration // バックオフ基準時間（デフォルト: 5秒）
+    BackoffMax      time.Duration // バックオフ最大時間（デフォルト: 5分）
+    BackoffFactor   float64       // バックオフ乗数（デフォルト: 2.0）
+    RequireHuman    bool          // 最大試行後に人間判断を要求するか
 }
 
-func (e *ExecutionOrchestrator) HandleFailure(task *Task, err error) {
-    if attempt < policy.MaxAttempts {
-        // 自動リトライ
-    } else if policy.RequireHuman {
-        // バックログに追加
-    } else {
-        // FAILED としてマーク
+// DefaultRetryPolicy はデフォルトのリトライポリシー
+func DefaultRetryPolicy() *RetryPolicy {
+    return &RetryPolicy{
+        MaxAttempts:   3,
+        BackoffBase:   5 * time.Second,
+        BackoffMax:    5 * time.Minute,
+        BackoffFactor: 2.0,
+        RequireHuman:  true,
     }
+}
+
+// CalculateBackoff は次のリトライまでの待機時間を計算する
+func (p *RetryPolicy) CalculateBackoff(attemptNumber int) time.Duration {
+    backoff := float64(p.BackoffBase) * math.Pow(p.BackoffFactor, float64(attemptNumber-1))
+    if backoff > float64(p.BackoffMax) {
+        backoff = float64(p.BackoffMax)
+    }
+    return time.Duration(backoff)
+}
+
+// ShouldRetry はリトライすべきかを判定する
+func (p *RetryPolicy) ShouldRetry(attemptNumber int) bool {
+    return attemptNumber < p.MaxAttempts
+}
+```
+
+**HandleFailure 実装:**
+
+```go
+// ExecutionOrchestrator に追加
+
+func (e *ExecutionOrchestrator) HandleFailure(task *Task, err error, attemptNumber int) error {
+    logger := e.logger.With(
+        slog.String("task_id", task.ID),
+        slog.Int("attempt", attemptNumber),
+        slog.Any("error", err),
+    )
+
+    if e.retryPolicy.ShouldRetry(attemptNumber) {
+        // リトライ
+        backoff := e.retryPolicy.CalculateBackoff(attemptNumber)
+        logger.Info("scheduling retry", slog.Duration("backoff", backoff))
+
+        // バックオフ後にリトライキューに追加
+        time.AfterFunc(backoff, func() {
+            e.retryQueue <- task.ID
+        })
+        return nil
+    }
+
+    if e.retryPolicy.RequireHuman {
+        // バックログに追加
+        logger.Info("adding to backlog for human review")
+        return e.addToBacklog(task, err, BacklogTypeFailure)
+    }
+
+    // FAILED としてマーク（既に Executor で実施済み）
+    logger.Warn("task permanently failed")
+    return nil
 }
 ```
 
 #### FR-P3-005: バックログ管理
 
+**BacklogStore 設計:**
+
 ```go
+// internal/orchestrator/backlog.go
+
+// BacklogType はバックログアイテムの種類を表す
+type BacklogType string
+
+const (
+    BacklogTypeFailure  BacklogType = "FAILURE"  // タスク失敗
+    BacklogTypeQuestion BacklogType = "QUESTION" // Meta-agent からの質問
+    BacklogTypeBlocker  BacklogType = "BLOCKER"  // 外部ブロッカー
+)
+
+// BacklogItem はバックログアイテムを表す
 type BacklogItem struct {
     ID          string      `json:"id"`
     TaskID      string      `json:"taskId"`
-    Type        BacklogType `json:"type"`  // FAILURE | QUESTION | BLOCKER
+    Type        BacklogType `json:"type"`
+    Title       string      `json:"title"`
     Description string      `json:"description"`
-    Priority    int         `json:"priority"`
+    Priority    int         `json:"priority"`    // 1-5（5が最高）
     CreatedAt   time.Time   `json:"createdAt"`
     ResolvedAt  *time.Time  `json:"resolvedAt,omitempty"`
+    Resolution  string      `json:"resolution,omitempty"`
+    Metadata    map[string]any `json:"metadata,omitempty"` // エラー詳細等
 }
+
+// BacklogStore はバックログアイテムを永続化する
+type BacklogStore struct {
+    WorkspaceDir string
+    logger       *slog.Logger
+}
+
+// NewBacklogStore は BacklogStore を作成する
+func NewBacklogStore(workspaceDir string) *BacklogStore
+
+// Add はバックログアイテムを追加する
+func (s *BacklogStore) Add(item *BacklogItem) error
+
+// Get はバックログアイテムを取得する
+func (s *BacklogStore) Get(id string) (*BacklogItem, error)
+
+// List は全バックログアイテムを取得する
+func (s *BacklogStore) List() ([]BacklogItem, error)
+
+// ListUnresolved は未解決のバックログアイテムを取得する
+func (s *BacklogStore) ListUnresolved() ([]BacklogItem, error)
+
+// Resolve はバックログアイテムを解決済みにする
+func (s *BacklogStore) Resolve(id string, resolution string) error
+
+// Delete はバックログアイテムを削除する
+func (s *BacklogStore) Delete(id string) error
+```
+
+**永続化形式:**
+
+```
+<workspace-dir>/backlog/
+├── <item-id>.json  # 各アイテム
+└── index.json      # 一覧（optional, 高速化用）
+```
+
+**バックログ API:**
+
+```go
+// cmd/multiverse-ide/app.go に追加
+
+func (a *App) GetBacklogItems() ([]BacklogItem, error)
+func (a *App) ResolveBacklogItem(id string, resolution string) error
+func (a *App) DeleteBacklogItem(id string) error
+```
+
+**バックログ UI:**
+
+```svelte
+<!-- frontend/ide/src/lib/backlog/BacklogPanel.svelte -->
+<script lang="ts">
+    import { backlogItems, resolveItem, deleteItem } from '../../stores/backlogStore';
+</script>
+
+<aside class="backlog-panel">
+    <h3>バックログ ({$backlogItems.length})</h3>
+    {#each $backlogItems as item}
+        <div class="backlog-item" class:failure={item.type === 'FAILURE'}>
+            <span class="type-badge">{item.type}</span>
+            <h4>{item.title}</h4>
+            <p>{item.description}</p>
+            <div class="actions">
+                <button on:click={() => resolveItem(item.id)}>解決</button>
+                <button on:click={() => deleteItem(item.id)}>削除</button>
+            </div>
+        </div>
+    {/each}
+</aside>
+```
+
+#### FR-P3-006: リアルタイム進捗表示（タスク状態の即時反映）
+
+**設計方針:**
+- 現在のポーリング（2秒間隔）を Wails Events で置き換え
+- タスク状態変更時に即座にフロントエンドへ通知
+- ポーリングはフォールバックとして維持（間隔を10秒に延長）
+
+**フロントエンド Events 統合:**
+
+```typescript
+// frontend/ide/src/stores/taskStore.ts に追加
+
+import { EventsOn } from '$lib/wailsjs/runtime/runtime';
+
+// Wails Events リスナー設定
+export function initTaskEvents() {
+    EventsOn('task:stateChange', (event: TaskStateChangeEvent) => {
+        tasks.updateTask(event.taskId, { status: event.newStatus });
+    });
+}
+
+// App.svelte の onMount で呼び出し
+```
+
+```svelte
+<!-- App.svelte 変更 -->
+<script>
+    import { initTaskEvents } from './stores/taskStore';
+    import { initExecutionEvents } from './stores/executionStore';
+
+    onMount(() => {
+        initTaskEvents();
+        initExecutionEvents();
+        // ポーリング間隔を10秒に延長（フォールバック）
+        interval = setInterval(loadData, 10000);
+    });
+</script>
 ```
 
 ---

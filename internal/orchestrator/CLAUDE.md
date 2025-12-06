@@ -1,11 +1,14 @@
-# Orchestrator Package - タスク永続化・スケジューリング・IPC
+# Orchestrator Package - タスク永続化・スケジューリング・自律実行
 
-このパッケージは multiverse IDE と AgentRunner Core の間の中間層で、タスクの永続化、スケジューリング、Worker との IPC を管理します。
+このパッケージは multiverse IDE と AgentRunner Core の間の中間層で、タスクの永続化、スケジューリング、依存グラフ管理、自律実行ループを管理します。
 
 ## 責務
 
 - **Task/Attempt の永続化**: JSONL/JSON 形式でタスク状態を永続化
 - **スケジューリング**: Task を READY 状態に更新し、Queue にジョブを投入
+- **依存グラフ管理**: タスク間依存関係のグラフ構築・トポロジカルソート
+- **自律実行ループ**: 依存順にタスクを自動実行、一時停止/再開機能
+- **バックログ管理**: 失敗タスク・質問・ブロッカーの永続化
 - **IPC Queue**: ファイルベースの Orchestrator ↔ Worker 通信
 
 ## ファイル構成
@@ -14,8 +17,18 @@
 |---------|------|
 | task_store.go | Task/Attempt の JSONL/JSON 永続化 |
 | task_store_test.go | TaskStore のユニットテスト |
-| scheduler.go | タスクスケジューリング |
-| executor.go | Orchestrator から AgentRunner Core への実行委譲（予定） |
+| scheduler.go | タスクスケジューリング・依存チェック |
+| scheduler_test.go | Scheduler のユニットテスト |
+| task_graph.go | TaskGraphManager（依存グラフ管理） |
+| task_graph_test.go | TaskGraphManager のユニットテスト |
+| executor.go | Executor（単一タスク実行） |
+| execution_orchestrator.go | ExecutionOrchestrator（自律実行ループ）★Phase 3 |
+| execution_orchestrator_test.go | ExecutionOrchestrator テスト★Phase 3 |
+| events.go | EventEmitter インターフェース★Phase 3 |
+| retry.go | RetryPolicy（リトライポリシー）★Phase 3 |
+| retry_test.go | RetryPolicy テスト★Phase 3 |
+| backlog.go | BacklogStore（バックログ永続化）★Phase 3 |
+| backlog_test.go | BacklogStore テスト★Phase 3 |
 | ipc/filesystem_queue.go | ファイルベース IPC キュー |
 
 ## 主要データモデル
@@ -228,17 +241,97 @@ type TaskEdge struct {
 }
 ```
 
+## ExecutionOrchestrator（Phase 3）
+
+自律実行ループを管理するコンポーネント。依存関係を考慮してタスクを順次実行し、一時停止/再開機能を提供する。
+
+### 設計方針
+
+- 既存の `Executor` は単一タスク実行のまま維持
+- `ExecutionOrchestrator` は複数タスクの自律実行ループを担当
+- goroutine による非同期実行とチャネルによる状態制御
+- EventEmitter インターフェースで Wails Events への依存を抽象化
+
+### 状態遷移
+
+```
+IDLE ──Start()──> RUNNING ──Pause()──> PAUSED
+  ↑                  │                    │
+  └──────Stop()──────┴──────Resume()──────┘
+```
+
+### 実行ループの処理フロー
+
+```
+runLoop:
+  1. UpdateBlockedTasks() で BLOCKED → PENDING 解除
+  2. ScheduleReadyTasks() で実行可能タスクを READY に
+  3. READY タスクを取得
+  4. maxConcurrent まで並列実行
+  5. タスク完了時に EventEmit
+  6. 全タスク完了まで繰り返し
+  7. 一時停止シグナル受信時は待機
+  8. 停止シグナル受信時はループ終了
+```
+
+### EventEmitter インターフェース
+
+```go
+type EventEmitter interface {
+    Emit(eventName string, data any)
+}
+```
+
+- **WailsEventEmitter**: 本番用、Wails runtime.EventsEmit を呼び出す
+- **MockEventEmitter**: テスト用、発火イベントを記録
+
+### RetryPolicy
+
+失敗タスクのリトライポリシーを定義。指数バックオフでリトライ間隔を調整。
+
+```go
+type RetryPolicy struct {
+    MaxAttempts   int           // 最大試行回数（デフォルト: 3）
+    BackoffBase   time.Duration // バックオフ基準時間（5秒）
+    BackoffMax    time.Duration // バックオフ最大時間（5分）
+    BackoffFactor float64       // バックオフ乗数（2.0）
+    RequireHuman  bool          // 最大試行後に人間判断を要求
+}
+```
+
+### BacklogStore
+
+失敗タスク・質問・ブロッカーを永続化する。
+
+```go
+type BacklogItem struct {
+    ID          string      // バックログID
+    TaskID      string      // 関連タスクID
+    Type        BacklogType // FAILURE / QUESTION / BLOCKER
+    Title       string
+    Description string
+    Priority    int         // 1-5（5が最高）
+    CreatedAt   time.Time
+    ResolvedAt  *time.Time
+    Resolution  string
+    Metadata    map[string]any
+}
+```
+
+永続化形式: `<workspace-dir>/backlog/<item-id>.json`
+
 ## 拡張予定
 
-### 短期
+### Phase 3（現在）
+
+- [ ] ExecutionOrchestrator 実装
+- [ ] EventEmitter インターフェース
+- [ ] RetryPolicy 実装
+- [ ] BacklogStore 実装
+
+### 将来
 
 - [ ] ファイルロックによる並行アクセス制御
-- [ ] Worker → Orchestrator の結果キュー実装
-- [ ] Attempt のライフサイクル管理
-- [ ] Scheduler と TaskGraphManager の連携
-
-### 長期
-
 - [ ] Worker Pool 設定の永続化
 - [ ] 優先度ベーススケジューリング
 
@@ -247,3 +340,4 @@ type TaskEdge struct {
 - [../ide/CLAUDE.md](../ide/CLAUDE.md): Workspace 管理
 - [../core/CLAUDE.md](../core/CLAUDE.md): AgentRunner Core FSM
 - [../../cmd/multiverse-ide/CLAUDE.md](../../cmd/multiverse-ide/CLAUDE.md): IDE バックエンド
+- [../../PRD.md](../../PRD.md): Phase 3 詳細設計

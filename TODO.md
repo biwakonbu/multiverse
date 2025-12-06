@@ -157,50 +157,134 @@ Based on PRD v2.0
 
 ### Week 5: 実行オーケストレーション
 
-#### 5.1 ExecutionOrchestrator
+#### 5.1 ExecutionOrchestrator（バックエンド）
 
-- [ ] `internal/orchestrator/executor.go` (拡張)
+- [ ] `internal/orchestrator/execution_orchestrator.go` (新規)
+  - [ ] `ExecutionState` 型定義（IDLE/RUNNING/PAUSED）
   - [ ] `ExecutionOrchestrator` 構造体
-  - [ ] `ExecutionState` 定義
-  - [ ] `Start()` メソッド
-  - [ ] `Pause()` メソッド
-  - [ ] `Resume()` メソッド
-  - [ ] 依存順実行ループ
+  - [ ] `NewExecutionOrchestrator()` コンストラクタ
+  - [ ] `Start(ctx)` メソッド（非ブロッキング実行開始）
+  - [ ] `Pause()` メソッド（新規タスク開始停止）
+  - [ ] `Resume()` メソッド（一時停止解除）
+  - [ ] `Stop()` メソッド（ループ終了）
+  - [ ] `State()` メソッド（現在状態取得）
+  - [ ] `runLoop(ctx)` 内部メソッド（自律実行ループ）
+- [ ] `internal/orchestrator/execution_orchestrator_test.go` (新規)
+  - [ ] Start/Pause/Resume/Stop の状態遷移テスト
+  - [ ] 依存順実行テスト（モック使用）
+  - [ ] 並行実行制御テスト
 
-#### 5.2 リアルタイム通知
+#### 5.2 EventEmitter インターフェース
 
-- [ ] Wails Events 設定
-  - [ ] `task:stateChange` イベント
-  - [ ] `execution:stateChange` イベント
-- [ ] フロントエンド Events リスナー
+- [ ] `internal/orchestrator/events.go` (新規)
+  - [ ] `EventEmitter` インターフェース定義
+  - [ ] `WailsEventEmitter` 実装
+  - [ ] イベント名定数（EventTaskStateChange, EventExecutionStateChange）
+  - [ ] `TaskStateChangeEvent` 構造体
+  - [ ] `ExecutionStateChangeEvent` 構造体
+- [ ] `internal/mock/event_emitter.go` (新規)
+  - [ ] `MockEventEmitter` テスト用実装
 
-#### 5.3 一時停止UI
+#### 5.3 IDE バックエンド API 拡張
 
+- [ ] `cmd/multiverse-ide/app.go`
+  - [ ] `executionOrchestrator` フィールド追加
+  - [ ] `StartExecution()` API
+  - [ ] `PauseExecution()` API
+  - [ ] `ResumeExecution()` API
+  - [ ] `StopExecution()` API
+  - [ ] `GetExecutionState()` API
+  - [ ] startup() で ExecutionOrchestrator 初期化
+
+#### 5.4 フロントエンド実行状態管理
+
+- [ ] `frontend/ide/src/stores/executionStore.ts` (新規)
+  - [ ] `executionState` ストア
+  - [ ] `initExecutionEvents()` 関数
+  - [ ] `startExecution()` アクション
+  - [ ] `pauseExecution()` アクション
+  - [ ] `resumeExecution()` アクション
+  - [ ] `stopExecution()` アクション
+- [ ] `frontend/ide/src/lib/toolbar/ExecutionControls.svelte` (新規)
+  - [ ] 開始ボタン（IDLE 時）
+  - [ ] 一時停止ボタン（RUNNING 時）
+  - [ ] 再開ボタン（PAUSED 時）
+  - [ ] 停止ボタン
+  - [ ] 状態ラベル表示
 - [ ] `frontend/ide/src/lib/toolbar/Toolbar.svelte`
-  - [ ] 一時停止ボタン
-  - [ ] 再開ボタン
-  - [ ] 実行状態表示
+  - [ ] ExecutionControls 統合
+
+#### 5.5 リアルタイム通知（Wails Events）
+
+- [ ] `frontend/ide/src/stores/taskStore.ts`
+  - [ ] `initTaskEvents()` 関数追加
+  - [ ] `task:stateChange` リスナー
+- [ ] `frontend/ide/src/App.svelte`
+  - [ ] `initTaskEvents()` 呼び出し
+  - [ ] `initExecutionEvents()` 呼び出し
+  - [ ] ポーリング間隔を 10 秒に延長
 
 ### Week 6: エラーハンドリング
 
-#### 6.1 自動リトライ
+#### 6.1 RetryPolicy
 
-- [ ] `internal/orchestrator/executor.go`
+- [ ] `internal/orchestrator/retry.go` (新規)
   - [ ] `RetryPolicy` 構造体
-  - [ ] `HandleFailure()` メソッド
-  - [ ] バックオフロジック
+  - [ ] `DefaultRetryPolicy()` 関数
+  - [ ] `CalculateBackoff()` メソッド（指数バックオフ）
+  - [ ] `ShouldRetry()` メソッド
+- [ ] `internal/orchestrator/retry_test.go` (新規)
+  - [ ] バックオフ計算テスト
+  - [ ] リトライ判定テスト
 
-#### 6.2 バックログ管理
+#### 6.2 ExecutionOrchestrator 失敗処理
+
+- [ ] `internal/orchestrator/execution_orchestrator.go`
+  - [ ] `HandleFailure()` メソッド
+  - [ ] `retryQueue` チャネル追加
+  - [ ] `addToBacklog()` 内部メソッド
+  - [ ] リトライ回数トラッキング（attemptCount map）
+
+#### 6.3 BacklogStore
 
 - [ ] `internal/orchestrator/backlog.go` (新規)
+  - [ ] `BacklogType` 型定義（FAILURE/QUESTION/BLOCKER）
   - [ ] `BacklogItem` 構造体
   - [ ] `BacklogStore` 構造体
-  - [ ] JSONL 永続化
+  - [ ] `NewBacklogStore()` コンストラクタ
+  - [ ] `Add()` メソッド
+  - [ ] `Get()` メソッド
+  - [ ] `List()` メソッド
+  - [ ] `ListUnresolved()` メソッド
+  - [ ] `Resolve()` メソッド
+  - [ ] `Delete()` メソッド
+- [ ] `internal/orchestrator/backlog_test.go` (新規)
+  - [ ] CRUD テスト
+  - [ ] 未解決フィルタテスト
 
-#### 6.3 バックログUI
+#### 6.4 バックログ API
 
-- [ ] `frontend/ide/src/lib/backlog/BacklogPanel.svelte` (新規)
+- [ ] `cmd/multiverse-ide/app.go`
+  - [ ] `backlogStore` フィールド追加
+  - [ ] `GetBacklogItems()` API
+  - [ ] `ResolveBacklogItem()` API
+  - [ ] `DeleteBacklogItem()` API
+
+#### 6.5 バックログ UI
+
 - [ ] `frontend/ide/src/stores/backlogStore.ts` (新規)
+  - [ ] `backlogItems` ストア
+  - [ ] `initBacklogEvents()` 関数
+  - [ ] `loadBacklogItems()` 関数
+  - [ ] `resolveItem()` アクション
+  - [ ] `deleteItem()` アクション
+- [ ] `frontend/ide/src/lib/backlog/BacklogPanel.svelte` (新規)
+  - [ ] アイテム一覧表示
+  - [ ] タイプ別バッジ（FAILURE/QUESTION/BLOCKER）
+  - [ ] 解決・削除ボタン
+  - [ ] 空状態表示
+- [ ] `frontend/ide/src/App.svelte`
+  - [ ] BacklogPanel 配置（サイドバー or モーダル）
 
 ---
 
@@ -228,13 +312,25 @@ Based on PRD v2.0
 
 | ファイル | 種別 | 説明 |
 |---------|------|------|
-| `internal/orchestrator/backlog.go` | 新規 | BacklogStore |
-| `frontend/ide/src/lib/backlog/BacklogPanel.svelte` | 新規 | バックログ UI |
+| `internal/orchestrator/execution_orchestrator.go` | 新規 | ExecutionOrchestrator（自律実行ループ） |
+| `internal/orchestrator/execution_orchestrator_test.go` | 新規 | ExecutionOrchestrator テスト |
+| `internal/orchestrator/events.go` | 新規 | EventEmitter インターフェース |
+| `internal/orchestrator/retry.go` | 新規 | RetryPolicy（リトライポリシー） |
+| `internal/orchestrator/retry_test.go` | 新規 | RetryPolicy テスト |
+| `internal/orchestrator/backlog.go` | 新規 | BacklogStore（バックログ永続化） |
+| `internal/orchestrator/backlog_test.go` | 新規 | BacklogStore テスト |
+| `internal/mock/event_emitter.go` | 新規 | MockEventEmitter（テスト用） |
+| `frontend/ide/src/stores/executionStore.ts` | 新規 | 実行状態管理 |
 | `frontend/ide/src/stores/backlogStore.ts` | 新規 | バックログ状態管理 |
+| `frontend/ide/src/lib/toolbar/ExecutionControls.svelte` | 新規 | 実行制御ボタン |
+| `frontend/ide/src/lib/backlog/BacklogPanel.svelte` | 新規 | バックログ UI |
 
 ---
 
 ## 次のアクション
 
-1. **Phase 1 E2E テスト**: チャット→タスク生成フローのテスト
-2. **Phase 3 開始**: ExecutionOrchestrator 実装
+1. **Phase 3 Week 5 開始**: ExecutionOrchestrator 実装
+   - まず `internal/orchestrator/events.go` で EventEmitter インターフェース定義
+   - 次に `internal/orchestrator/execution_orchestrator.go` で骨格実装
+   - テスト駆動で状態遷移を検証
+2. **Phase 1 E2E テスト**: チャット→タスク生成フローのテスト（並行作業可）

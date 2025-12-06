@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte";
 
   /**
    * ワークスペースを開くボタン
@@ -12,7 +12,7 @@
 
   function handleClick() {
     if (!loading && !disabled) {
-      dispatch('click');
+      dispatch("click");
     }
   }
 
@@ -29,8 +29,20 @@
 >
   {#if loading}
     <svg class="spinner" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.25" />
-      <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        stroke-width="2"
+        opacity="0.25"
+      />
+      <path
+        d="M12 2a10 10 0 0 1 10 10"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
     </svg>
   {:else}
     <svg class="icon" viewBox="0 0 24 24" fill="none">
@@ -46,7 +58,7 @@
     {#if loading}
       Opening...
     {:else}
-      Open Folder
+      Workspaceを開く
     {/if}
   </span>
 </button>
