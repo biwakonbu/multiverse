@@ -9,7 +9,7 @@ Based on PRD v2.0
 | Phase | Status | 備考 |
 |-------|--------|------|
 | Phase 1: チャット→タスク生成 | 🟢 ほぼ完了 | E2Eテストのみ残 |
-| Phase 2: 依存グラフ・WBS表示 | 🟢 ほぼ完了 | Week 3-4 完了、Scheduler拡張のみ残 |
+| Phase 2: 依存グラフ・WBS表示 | 🟢 完了 | Week 3-4 + Scheduler拡張 完了 |
 | Phase 3: 自律実行ループ | ⚪ 未着手 | Phase 2 完了後 |
 
 ---
@@ -115,10 +115,13 @@ Based on PRD v2.0
 
 #### 3.2 Scheduler 拡張
 
-- [ ] `internal/orchestrator/scheduler.go`
-  - [ ] `ScheduleReadyTasks()` メソッド
-  - [ ] `allDependenciesSatisfied()` メソッド
-  - [ ] BLOCKED 状態の自動設定
+- [x] `internal/orchestrator/scheduler.go`
+  - [x] `ScheduleReadyTasks()` メソッド
+  - [x] `allDependenciesSatisfied()` メソッド
+  - [x] BLOCKED 状態の自動設定
+  - [x] `UpdateBlockedTasks()` メソッド
+  - [x] `SetBlockedStatusForPendingWithUnsatisfiedDeps()` メソッド
+- [x] `internal/orchestrator/scheduler_test.go` (新規)
 
 #### 3.3 ConnectionLine コンポーネント
 
@@ -233,6 +236,5 @@ Based on PRD v2.0
 
 ## 次のアクション
 
-1. **Phase 2 Week 4**: WBS ビュー実装
-2. **Phase 2 完了**: Scheduler 拡張（依存チェック）
-3. **Phase 3 開始**: ExecutionOrchestrator 実装
+1. **Phase 1 E2E テスト**: チャット→タスク生成フローのテスト
+2. **Phase 3 開始**: ExecutionOrchestrator 実装
