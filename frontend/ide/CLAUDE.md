@@ -9,10 +9,10 @@
 - **状態管理**: Svelte Store によるグローバル状態管理
 - **デザインシステム**: 視覚的一貫性を保証するトークン管理
 
-## UI方針: Factorio風タイル配置
+## UI 方針: Factorio 風タイル配置
 
-従来のリスト形式ではなく、2D俯瞰のタイル配置UIを採用。
-100個以上のAIエージェント/タスクを一瞥で把握できる設計。
+従来のリスト形式ではなく、2D 俯瞰のタイル配置 UI を採用。
+100 個以上の AI エージェント/タスクを一瞥で把握できる設計。
 
 詳細は `.claude/skills/factorio-ui/SKILL.md` を参照。
 
@@ -53,27 +53,38 @@ frontend/ide/
 │   │
 │   └── lib/                 # UI コンポーネント
 │       ├── WorkspaceSelector.svelte  # Workspace選択画面
-│       ├── TaskCreate.svelte         # タスク作成フォーム
-│       ├── TaskList.svelte           # 旧実装（非推奨）
-│       ├── TaskDetail.svelte         # 旧実装（非推奨）
+│       ├── TitleBar.svelte           # タイトルバー
 │       │
 │       ├── grid/            # グリッドビュー
 │       │   ├── CLAUDE.md             # グリッドコンポーネント設計指針
 │       │   ├── GridCanvas.svelte     # ズーム・パン対応キャンバス
-│       │   ├── GridCanvasPreview.svelte  # Storybook用（ストア非依存）
 │       │   ├── GridNode.svelte       # タスクノード（ステータス色・アニメーション）
-│       │   ├── GridNodePreview.svelte    # Storybook用（ストア非依存）
-│       │   ├── StatusIndicator.svelte    # ステータスインジケーター
-│       │   ├── *.stories.ts          # Storybook ストーリー
-│       │   └── index.ts
+│       │   ├── ConnectionLine.svelte # タスク間依存線（グロー効果）
+│       │   └── *.stories.ts          # Storybook ストーリー
 │       │
-│       ├── panel/           # パネル
-│       │   ├── DetailPanel.svelte    # 選択タスクの詳細表示
-│       │   └── index.ts
+│       ├── wbs/             # WBS ビュー
+│       │   ├── WBSView.svelte        # WBS リストビュー
+│       │   ├── WBSNode.svelte        # WBS ノード
+│       │   ├── WBSGraph.svelte       # WBS グラフビュー
+│       │   └── WBSGraphNode.svelte   # WBS グラフノード
 │       │
-│       └── toolbar/         # ツールバー
-│           ├── Toolbar.svelte        # ズームコントロール・ステータスサマリ
-│           └── index.ts
+│       ├── toolbar/         # ツールバー
+│       │   ├── Toolbar.svelte        # ズームコントロール・ステータスサマリ
+│       │   └── ExecutionControls.svelte # 実行制御ボタン
+│       │
+│       ├── backlog/         # バックログパネル
+│       │   └── BacklogPanel.svelte   # バックログ表示
+│       │
+│       ├── brand/           # ブランドコンポーネント
+│       │   ├── BrandLogo.svelte      # ロゴ
+│       │   └── BrandText.svelte      # ブランドテキスト
+│       │
+│       ├── welcome/         # ウェルカム画面
+│       │   └── WelcomeScreen.svelte  # 初期表示画面
+│       │
+│       └── components/      # 共有コンポーネント
+│           ├── FloatingChatWindow.svelte  # チャットウィンドウ
+│           └── ChatInput.svelte           # チャット入力
 │
 ├── wailsjs/                 # Wails 自動生成バインディング（コミット対象）
 │   └── go/
@@ -91,22 +102,27 @@ frontend/ide/
 
 ```
 App.svelte
+├── TitleBar.svelte               # ウィンドウタイトルバー
 ├── WorkspaceSelector.svelte      # Workspace 未選択時
 └── (Workspace 選択後)
     ├── Toolbar.svelte            # 上部ツールバー
+    │   └── ExecutionControls.svelte  # 実行制御
     ├── GridCanvas.svelte         # メイン：2Dグリッドビュー
-    │   └── GridNode.svelte       # 各タスクノード
-    ├── DetailPanel.svelte        # 右サイド：詳細パネル
-    └── TaskCreate.svelte         # モーダル：タスク作成
+    │   ├── GridNode.svelte       # 各タスクノード
+    │   └── ConnectionLine.svelte # 依存関係線
+    ├── WBSView.svelte            # WBS リスト/グラフビュー
+    ├── BacklogPanel.svelte       # バックログサイドパネル
+    └── FloatingChatWindow.svelte # チャットウィンドウ
 ```
 
 ## 主要コンポーネント
 
 ### GridCanvas.svelte
 
-2Dグリッドキャンバス。ズーム・パン操作を提供。
+2D グリッドキャンバス。ズーム・パン操作を提供。
 
 **機能**:
+
 - ホイールズーム（Ctrl/Cmd + スクロール）
 - パン操作（中クリック or Shift + 左クリック + ドラッグ）
 - キーボードショートカット（+/-/0）
@@ -118,12 +134,14 @@ App.svelte
 タスクノードの視覚表現。
 
 **Props**:
+
 - `task`: Task オブジェクト
 - `col`, `row`: グリッド位置
 - `zoomLevel`: 現在のズームレベル
 
 **特徴**:
-- ステータス別の色分け（CSS変数経由）
+
+- ステータス別の色分け（CSS 変数経由）
 - 実行中はパルスアニメーション
 - ズームレベルに応じた情報量調整
 
@@ -132,6 +150,7 @@ App.svelte
 上部ツールバー。
 
 **機能**:
+
 - アプリタイトル
 - 新規タスク作成ボタン
 - ステータスサマリ（実行中/待機/失敗のカウント）
@@ -142,6 +161,7 @@ App.svelte
 選択タスクの詳細表示。
 
 **機能**:
+
 - タスク情報表示（タイトル、ステータス、Pool、日時）
 - タスク実行ボタン
 - スライドイン/アウトアニメーション
@@ -151,7 +171,7 @@ App.svelte
 ### viewportStore
 
 ```typescript
-import { viewport, zoomPercent, canvasTransform } from './stores';
+import { viewport, zoomPercent, canvasTransform } from "./stores";
 
 // ズーム操作
 viewport.zoomIn();
@@ -169,7 +189,7 @@ viewport.reset();
 ### taskStore
 
 ```typescript
-import { tasks, selectedTaskId, selectedTask, taskNodes } from './stores';
+import { tasks, selectedTaskId, selectedTask, taskNodes } from "./stores";
 
 // タスク管理
 tasks.setTasks(taskList);
@@ -181,8 +201,8 @@ selectedTaskId.select(taskId);
 selectedTaskId.clear();
 
 // 派生ストア
-$taskNodes      // グリッド配置されたTaskNode[]
-$selectedTask   // 選択中のTask | null
+$taskNodes; // グリッド配置されたTaskNode[]
+$selectedTask; // 選択中のTask | null
 ```
 
 ## デザインシステム
@@ -194,9 +214,25 @@ $selectedTask   // 選択中のTask | null
 - **ベース**: Nord パレットを基に深い背景色を拡張
 - **UI**: Aurora パレットをパステル化したステータス色
 - **グロー**: 控えめな効果（IDE としての実用性重視）
-- **スタイル**: ゲーム的な UI（Factorio 風 2D 俯瞰タイル配置）
+- **スタイル**: SF/Sci-Fi 風の洗練された UI
 
-### デザイントークン階層（3層構造）
+### Glassmorphism（ガラスモーフィズム）
+
+**Phantom Glass** スタイルを全体に適用:
+
+- **背景**: 半透明ガラス効果（`--mv-glass-bg`）
+- **ボーダー**: 微細な白いハイライト（`--mv-glass-border-subtle`）
+- **シャドウ**: アンビエントシャドウとインナーハイライト
+
+### Crystal HUD
+
+ツールバー、パネル、チャットウィンドウなど主要 UI に適用:
+
+- **透明感**: 背景が透けて見える洗練されたパネル
+- **グロー効果**: Frost 青系のアクセントグロー
+- **フォント**: Orbitron（ブランド）、Rajdhani（ディスプレイ）
+
+### デザイントークン階層（3 層構造）
 
 **ハードコード禁止**: コンポーネントに生の色値（`#ff0000`, `rgba(...)`）を直接書かない。
 全ての色は CSS 変数経由で指定し、トークン階層を通じて一元管理する。
@@ -213,14 +249,14 @@ $selectedTask   // 選択中のTask | null
 
 生の色値を定義。直接使用せず、セマンティック層から参照される。
 
-| カテゴリ | 用途 | 変数例 |
-|---------|------|--------|
-| Polar Night | 深い背景（Nord） | `--mv-primitive-polar-night-0` |
-| Snow Storm | 明るいテキスト | `--mv-primitive-snow-storm-0` |
-| Frost | 青系アクセント | `--mv-primitive-frost-0` ~ `--mv-primitive-frost-3` |
-| Aurora | ステータス色 | `--mv-primitive-aurora-*` |
-| Deep | 深い背景（拡張） | `--mv-primitive-deep-0` ~ `--mv-primitive-deep-5` |
-| Pastel | パステル化した色 | `--mv-primitive-pastel-*` |
+| カテゴリ    | 用途             | 変数例                                              |
+| ----------- | ---------------- | --------------------------------------------------- |
+| Polar Night | 深い背景（Nord） | `--mv-primitive-polar-night-0`                      |
+| Snow Storm  | 明るいテキスト   | `--mv-primitive-snow-storm-0`                       |
+| Frost       | 青系アクセント   | `--mv-primitive-frost-0` ~ `--mv-primitive-frost-3` |
+| Aurora      | ステータス色     | `--mv-primitive-aurora-*`                           |
+| Deep        | 深い背景（拡張） | `--mv-primitive-deep-0` ~ `--mv-primitive-deep-5`   |
+| Pastel      | パステル化した色 | `--mv-primitive-pastel-*`                           |
 
 #### セマンティックカラー（`--mv-color-*`）
 
@@ -233,14 +269,14 @@ $selectedTask   // 選択中のTask | null
 --mv-color-status-running-text: var(--mv-primitive-pastel-green);
 ```
 
-| カテゴリ | 変数例 | 用途 |
-|---------|--------|------|
-| `--mv-color-status-*` | `-running-bg`, `-failed-text` | タスクステータス表現 |
-| `--mv-color-surface-*` | `-app`, `-node`, `-overlay` | 背景・パネル |
-| `--mv-color-border-*` | `-default`, `-focus` | 境界線 |
-| `--mv-color-text-*` | `-primary`, `-muted` | テキスト |
-| `--mv-color-glow-*` | `-focus`, `-selected` | グロー効果 |
-| `--mv-color-shadow-*` | `-elevated` | シャドウ |
+| カテゴリ               | 変数例                        | 用途                 |
+| ---------------------- | ----------------------------- | -------------------- |
+| `--mv-color-status-*`  | `-running-bg`, `-failed-text` | タスクステータス表現 |
+| `--mv-color-surface-*` | `-app`, `-node`, `-overlay`   | 背景・パネル         |
+| `--mv-color-border-*`  | `-default`, `-focus`          | 境界線               |
+| `--mv-color-text-*`    | `-primary`, `-muted`          | テキスト             |
+| `--mv-color-glow-*`    | `-focus`, `-selected`         | グロー効果           |
+| `--mv-color-shadow-*`  | `-elevated`                   | シャドウ             |
 
 ### コンポーネントでの使用
 
@@ -266,32 +302,32 @@ CSS 変数のみを使用。フォールバック値は不要（変数は必ず�
 }
 ```
 
-### TypeScriptトークン
+### TypeScript トークン
 
 ```typescript
-import { colors, spacing, gridToCanvas, zoom } from './design-system';
+import { colors, spacing, gridToCanvas, zoom } from "./design-system";
 
 // グリッド座標変換
 const { x, y } = gridToCanvas(col, row);
 
 // ズーム設定
-zoom.min    // 0.25
-zoom.max    // 3.0
-zoom.default // 1.0
+zoom.min; // 0.25
+zoom.max; // 3.0
+zoom.default; // 1.0
 ```
 
-### CSS変数一覧
+### CSS 変数一覧
 
-| カテゴリ | 変数例 | 用途 |
-|---------|--------|------|
-| プリミティブ | `--mv-primitive-{palette}-{index}` | 生の色値 |
-| ステータス色 | `--mv-color-status-{status}-{bg/border/text}` | 7種のタスク状態 |
-| サーフェス | `--mv-color-surface-{app/primary/node/...}` | 背景色 |
-| グロー | `--mv-color-glow-{focus/selected/error}` | グロー効果 |
-| スペーシング | `--mv-spacing-{xxs~xxl}` | 4px基準スケール |
-| グリッド | `--mv-grid-{cell-width/cell-height/gap}` | ノードサイズ |
-| タイポグラフィ | `--mv-font-{size/weight}-*` | テキストスタイル |
-| アニメーション | `--mv-duration-{fast/normal/pulse}` | タイミング |
+| カテゴリ       | 変数例                                        | 用途             |
+| -------------- | --------------------------------------------- | ---------------- |
+| プリミティブ   | `--mv-primitive-{palette}-{index}`            | 生の色値         |
+| ステータス色   | `--mv-color-status-{status}-{bg/border/text}` | 7 種のタスク状態 |
+| サーフェス     | `--mv-color-surface-{app/primary/node/...}`   | 背景色           |
+| グロー         | `--mv-color-glow-{focus/selected/error}`      | グロー効果       |
+| スペーシング   | `--mv-spacing-{xxs~xxl}`                      | 4px 基準スケール |
+| グリッド       | `--mv-grid-{cell-width/cell-height/gap}`      | ノードサイズ     |
+| タイポグラフィ | `--mv-font-{size/weight}-*`                   | テキストスタイル |
+| アニメーション | `--mv-duration-{fast/normal/pulse}`           | タイミング       |
 
 ## 開発コマンド
 
@@ -330,20 +366,20 @@ pnpm storybook    # http://localhost:6006 で起動
 
 ### コンポーネント構成
 
-| カテゴリ | コンポーネント | 説明 |
-|---------|---------------|------|
-| Design System | Button | 4バリアント（primary/secondary/ghost/danger） |
-| Design System | Badge | 7ステータス対応、パルスアニメーション |
-| Design System | Card | 3バリアント（default/elevated/outlined） |
-| Design System | Input | テキスト入力、エラー状態対応 |
-| Grid | StatusIndicator | ステータスドット + ラベル |
-| Grid | GridNode | タスクノード、ズームレベル対応 |
-| Grid | GridCanvas | 2D俯瞰キャンバス、ズーム/パン操作 |
+| カテゴリ      | コンポーネント  | 説明                                           |
+| ------------- | --------------- | ---------------------------------------------- |
+| Design System | Button          | 4 バリアント（primary/secondary/ghost/danger） |
+| Design System | Badge           | 7 ステータス対応、パルスアニメーション         |
+| Design System | Card            | 3 バリアント（default/elevated/outlined）      |
+| Design System | Input           | テキスト入力、エラー状態対応                   |
+| Grid          | StatusIndicator | ステータスドット + ラベル                      |
+| Grid          | GridNode        | タスクノード、ズームレベル対応                 |
+| Grid          | GridCanvas      | 2D 俯瞰キャンバス、ズーム/パン操作             |
 
-### Storybook用プレビューコンポーネント
+### Storybook 用プレビューコンポーネント
 
-本番コンポーネント（GridCanvas, GridNode）はSvelteストアに依存するため、
-Storybook用にストア非依存のプレビューコンポーネントを用意:
+本番コンポーネント（GridCanvas, GridNode）は Svelte ストアに依存するため、
+Storybook 用にストア非依存のプレビューコンポーネントを用意:
 
 - `GridCanvasPreview.svelte` - props でノードデータを受け取る
 - `GridNodePreview.svelte` - props でタスク情報を受け取る
@@ -395,16 +431,19 @@ git commit -m "..."
 #### 基本原則
 
 1. **意図した変更以外の失敗は原因を調査**
+
    - 失敗したスナップショットの差分を確認
    - 意図的な変更かどうかを判断
    - 不明な場合は調査してから対処
 
 2. **問題の修正は正当な方法で**
+
    - 他のコンポーネントに影響を与えない修正
    - スタイルの変更は影響範囲を確認
    - 必要に応じてスナップショットを更新
 
 3. **スナップショットの鮮度管理**
+
    - 古いスナップショットは変更前に VRT 実施
    - 不明な場合は git で過去コミットに遡って確認
    - `git stash` + VRT 実行で現在との差分を確認
@@ -453,11 +492,11 @@ tests/vrt/
 
 `wailsjs/go/` 以下は **コミット対象**。Go バックエンドのメソッドを TypeScript から呼び出すための型定義・ラッパーを含む。
 
-| ファイル | 内容 |
-|---------|------|
-| `go/main/App.js` | Go の `App` 構造体メソッドを呼び出す JavaScript 関数 |
-| `go/main/App.d.ts` | 上記の TypeScript 型定義 |
-| `go/models.ts` | Go 構造体（Task, Workspace 等）の TypeScript 型 |
+| ファイル           | 内容                                                 |
+| ------------------ | ---------------------------------------------------- |
+| `go/main/App.js`   | Go の `App` 構造体メソッドを呼び出す JavaScript 関数 |
+| `go/main/App.d.ts` | 上記の TypeScript 型定義                             |
+| `go/models.ts`     | Go 構造体（Task, Workspace 等）の TypeScript 型      |
 
 ### 生成タイミング
 
@@ -467,8 +506,8 @@ tests/vrt/
 ### 使用例
 
 ```typescript
-import { GetTasks, CreateTask } from '../wailsjs/go/main/App';
-import { main } from '../wailsjs/go/models';
+import { GetTasks, CreateTask } from "../wailsjs/go/main/App";
+import { main } from "../wailsjs/go/models";
 
 // Go メソッド呼び出し
 const tasks: main.Task[] = await GetTasks(workspaceId);
@@ -485,9 +524,9 @@ await CreateTask(workspaceId, title, poolId);
 ### デザインシステム駆動
 
 - **ハードコード禁止**: 生の色値（`#rrggbb`, `rgba()`）をコンポーネントに書かない
-- **3層トークン階層**: プリミティブ → セマンティック → CSS変数
+- **3 層トークン階層**: プリミティブ → セマンティック → CSS 変数
 - **セマンティック命名**: 色名でなく用途で命名（`surface-node`, `status-running`）
-- **フォールバック不要**: CSS変数は必ず定義されているため `var(--x, fallback)` の fallback は書かない
+- **フォールバック不要**: CSS 変数は必ず定義されているため `var(--x, fallback)` の fallback は書かない
 - **新カラー追加時**: `variables.css` と `tokens/colors.ts` の両方を更新
 
 ### Store ベースの状態管理

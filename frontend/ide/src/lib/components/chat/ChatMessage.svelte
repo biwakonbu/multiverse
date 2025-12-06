@@ -81,6 +81,7 @@
     color: var(--mv-color-text-primary);
     font-weight: var(--mv-font-weight-semibold);
     padding-left: var(--mv-spacing-xs);
+
     /* Removed white-space: pre-wrap because marked handles formatting */
 
     /* Base glow for readability */
@@ -89,7 +90,7 @@
 
   /* Markdown Styles Scope */
   .content :global(p) {
-    margin: 0.5em 0;
+    margin: var(--mv-spacing-sm) 0;
   }
   .content :global(p:first-child) {
     margin-top: 0;
@@ -104,14 +105,14 @@
     border-radius: var(--mv-radius-md);
     overflow-x: auto;
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
-    margin: 0.5em 0;
+    margin: var(--mv-spacing-sm) 0;
   }
 
   .content :global(code) {
     font-family: var(--mv-font-mono);
-    font-size: 0.9em;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.2em 0.4em;
+    font-size: var(--mv-font-size-sm);
+    background: var(--mv-glass-hover);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     border-radius: var(--mv-radius-sm);
   }
 
@@ -123,18 +124,19 @@
 
   .content :global(ul),
   .content :global(ol) {
-    margin: 0.5em 0;
-    padding-left: 1.5em;
+    margin: var(--mv-spacing-sm) 0;
+    padding-left: var(--mv-spacing-lg);
   }
 
   .content :global(li) {
-    margin: 0.25em 0;
+    margin: var(--mv-spacing-xxs) 0;
   }
 
   .content :global(a) {
     color: var(--mv-primitive-frost-2);
     text-decoration: none;
-    border-bottom: 1px dashed var(--mv-primitive-frost-2);
+    border-bottom: var(--mv-border-width-thin) dashed
+      var(--mv-primitive-frost-2);
   }
 
   .content :global(a:hover) {
@@ -143,8 +145,8 @@
   }
 
   .content :global(blockquote) {
-    border-left: 3px solid var(--mv-primitive-frost-3);
-    margin: 0.5em 0;
+    border-left: var(--mv-border-width-thick) solid var(--mv-primitive-frost-3);
+    margin: var(--mv-spacing-sm) 0;
     padding-left: var(--mv-spacing-sm);
     color: var(--mv-color-text-secondary);
   }

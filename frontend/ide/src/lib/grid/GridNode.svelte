@@ -77,36 +77,35 @@
 
   <!-- コンテンツコンテナ -->
   <div class="node-content">
-    <!-- ステータスヘッダー -->
+    <!-- ステータスヘッダー（コンパクト） -->
     <div class="node-header">
-      <div class="status-badge">
-        <span class="status-dot"></span>
-        <span class="status-text">{statusLabels[task.status]}</span>
-      </div>
-      {#if task.phaseName}
-        <span class="phase-tag">{phaseLabels[task.phaseName] || ""}</span>
-      {/if}
+      <span class="status-dot"></span>
+      <span class="status-text">{statusLabels[task.status]}</span>
     </div>
 
-    <!-- タイトル -->
+    <!-- タイトル（メインコンテンツ） -->
     {#if showTitle}
       <div class="title" title={task.title}>
         {task.title}
       </div>
     {/if}
 
-    <!-- 詳細フッター -->
-    {#if showDetails}
-      <div class="node-footer">
-        <span class="pool-id">{task.poolId}</span>
-        {#if hasDependencies}
+    <!-- フッター（フェーズタグ + メタ情報） -->
+    <div class="node-footer">
+      {#if task.phaseName}
+        <span class="phase-tag">{phaseLabels[task.phaseName] || ""}</span>
+      {/if}
+      <div class="meta-info">
+        {#if showDetails}
+          <span class="pool-id">{task.poolId}</span>
+        {/if}
+        {#if hasDependencies && showDetails}
           <div class="deps-indicator" title="Dependencies">
-            <span class="deps-arrow">↳</span>
-            <span class="deps-count">{task.dependencies?.length || 0}</span>
+            <span class="deps-count">↳{task.dependencies?.length || 0}</span>
           </div>
         {/if}
       </div>
-    {/if}
+    </div>
   </div>
 </div>
 
@@ -141,8 +140,6 @@
     inset: 0;
     border-radius: var(--mv-radius-lg);
     background: var(--mv-glass-bg-chat);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 
     /* Multi-layer border for depth */
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
@@ -150,18 +147,19 @@
     border-bottom: var(--mv-border-width-thin) solid
       var(--mv-glass-border-bottom);
 
-    /* Refined shadow */
     box-shadow:
       var(--mv-shadow-glass-panel),
-      0 0 0 1px rgba(0, 0, 0, 0.1);
+      0 0 0 1px var(--mv-glow-black-light);
 
     transition: all var(--mv-duration-fast) var(--mv-easing-out);
   }
 
   .node:hover .node-glass {
-    background: var(--mv-glass-hover-strong);
+    background: var(--mv-glass-hover);
     border-color: var(--mv-glass-border-hover);
-    box-shadow: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-hover);
+    box-shadow:
+      var(--mv-shadow-glass-panel),
+      0 0 12px var(--mv-glass-border);
   }
 
   /* 選択状態 - 強調されたグロー */
@@ -170,8 +168,8 @@
     box-shadow:
       var(--mv-shadow-floating-lg),
       var(--mv-shadow-glow-accent),
-      inset 0 1px 0 rgba(136, 192, 208, 0.1);
-    background: rgba(136, 192, 208, 0.08);
+      inset 0 1px 0 var(--mv-glow-frost-2-lighter);
+    background: var(--mv-glow-frost-2-lighter);
   }
 
   /* ノードグロー (実行中など) - より洗練されたエフェクト */
@@ -222,10 +220,11 @@
     position: relative;
     z-index: 1;
     height: 100%;
-    padding: var(--mv-spacing-sm);
+    padding: var(--mv-spacing-sm) var(--mv-spacing-md);
+    padding-top: var(--mv-spacing-md);
     display: flex;
     flex-direction: column;
-    gap: var(--mv-spacing-xs);
+    gap: var(--mv-spacing-xxs);
   }
 
   /* フェーズインジケーター（上部細線）- 強化されたグロー */
@@ -289,18 +288,12 @@
       0 0 16px rgba(235, 203, 139, 0.3);
   }
 
-  /* ヘッダー */
+  /* ヘッダー（コンパクト・ステータスのみ） */
   .node-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    height: var(--mv-indicator-size-lg);
-  }
-
-  .status-badge {
-    display: flex;
-    align-items: center;
-    gap: var(--mv-status-dot-size);
+    gap: var(--mv-spacing-xxs);
+    flex-shrink: 0;
   }
 
   .status-dot {
@@ -374,7 +367,7 @@
   }
   .node.status-failed .status-text {
     color: var(--mv-color-status-failed-text);
-    text-shadow: 0 0 8px rgba(218, 126, 135, 0.4);
+    text-shadow: 0 0 8px var(--mv-glow-failed);
   }
 
   .node.status-blocked .status-dot {
@@ -443,26 +436,35 @@
   .node:hover .title {
     color: var(--mv-primitive-snow-storm-2);
     text-shadow:
-      var(--mv-text-shadow-base),
-      0 0 16px rgba(255, 255, 255, 0.15);
+      0 0 1px rgba(0, 0, 0, 0.5),
+      0 0 8px rgba(255, 255, 255, 0.1);
   }
 
-  /* フッター */
+  /* フッター - フェーズタグとメタ情報 */
   .node-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--mv-spacing-xs);
+    margin-top: auto;
+    padding-top: var(--mv-spacing-xs);
+    border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    min-height: 20px;
+  }
+
+  .meta-info {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xs);
     font-family: var(--mv-font-mono);
     font-size: var(--mv-font-size-xxs);
     color: var(--mv-color-text-disabled);
-    margin-top: auto;
-    padding-top: var(--mv-spacing-xxs);
-    border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    margin-left: auto;
   }
 
   .pool-id {
     opacity: 0.7;
-    transition: opacity var(--mv-duration-fast);
+    transition: all var(--mv-duration-fast);
   }
 
   .node:hover .pool-id {
@@ -473,16 +475,12 @@
   .deps-indicator {
     display: flex;
     align-items: center;
-    gap: var(--mv-spacing-xxxs);
     opacity: 0.8;
     color: var(--mv-primitive-frost-2);
   }
 
-  .deps-arrow {
-    font-size: var(--mv-font-size-xs);
-  }
-
   .deps-count {
     font-weight: var(--mv-font-weight-bold);
+    font-size: var(--mv-font-size-xxs);
   }
 </style>

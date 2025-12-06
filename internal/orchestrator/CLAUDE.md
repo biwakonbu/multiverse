@@ -13,23 +13,23 @@
 
 ## ファイル構成
 
-| ファイル | 役割 |
-|---------|------|
-| task_store.go | Task/Attempt の JSONL/JSON 永続化 |
-| task_store_test.go | TaskStore のユニットテスト |
-| scheduler.go | タスクスケジューリング・依存チェック |
-| scheduler_test.go | Scheduler のユニットテスト |
-| task_graph.go | TaskGraphManager（依存グラフ管理） |
-| task_graph_test.go | TaskGraphManager のユニットテスト |
-| executor.go | Executor（単一タスク実行） |
-| execution_orchestrator.go | ExecutionOrchestrator（自律実行ループ）★Phase 3 |
-| execution_orchestrator_test.go | ExecutionOrchestrator テスト★Phase 3 |
-| events.go | EventEmitter インターフェース★Phase 3 |
-| retry.go | RetryPolicy（リトライポリシー）★Phase 3 |
-| retry_test.go | RetryPolicy テスト★Phase 3 |
-| backlog.go | BacklogStore（バックログ永続化）★Phase 3 |
-| backlog_test.go | BacklogStore テスト★Phase 3 |
-| ipc/filesystem_queue.go | ファイルベース IPC キュー |
+| ファイル                       | 役割                                            |
+| ------------------------------ | ----------------------------------------------- |
+| task_store.go                  | Task/Attempt の JSONL/JSON 永続化               |
+| task_store_test.go             | TaskStore のユニットテスト                      |
+| scheduler.go                   | タスクスケジューリング・依存チェック            |
+| scheduler_test.go              | Scheduler のユニットテスト                      |
+| task_graph.go                  | TaskGraphManager（依存グラフ管理）              |
+| task_graph_test.go             | TaskGraphManager のユニットテスト               |
+| executor.go                    | Executor（単一タスク実行）                      |
+| execution_orchestrator.go      | ExecutionOrchestrator（自律実行ループ）★Phase 3 |
+| execution_orchestrator_test.go | ExecutionOrchestrator テスト ★Phase 3           |
+| events.go                      | EventEmitter インターフェース ★Phase 3          |
+| retry.go                       | RetryPolicy（リトライポリシー）★Phase 3         |
+| retry_test.go                  | RetryPolicy テスト ★Phase 3                     |
+| backlog.go                     | BacklogStore（バックログ永続化）★Phase 3        |
+| backlog_test.go                | BacklogStore テスト ★Phase 3                    |
+| ipc/filesystem_queue.go        | ファイルベース IPC キュー                       |
 
 ## 主要データモデル
 
@@ -322,12 +322,12 @@ type BacklogItem struct {
 
 ## 拡張予定
 
-### Phase 3（現在）
+### Phase 3（完了）
 
-- [ ] ExecutionOrchestrator 実装
-- [ ] EventEmitter インターフェース
-- [ ] RetryPolicy 実装
-- [ ] BacklogStore 実装
+- [x] ExecutionOrchestrator 実装
+- [x] EventEmitter インターフェース
+- [x] RetryPolicy 実装（指数バックオフ、永続化対応）
+- [x] BacklogStore 実装
 
 ### 将来
 

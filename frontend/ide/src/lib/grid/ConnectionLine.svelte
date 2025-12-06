@@ -176,7 +176,7 @@
   .satisfied:hover .path-main {
     stroke: var(--mv-color-status-succeeded-text);
     filter: drop-shadow(0 0 4px var(--mv-color-status-succeeded-text))
-      drop-shadow(0 0 8px rgba(136, 192, 208, 0.4));
+      drop-shadow(0 0 8px var(--mv-glow-frost-2-border));
   }
 
   .unsatisfied:hover .path-main {

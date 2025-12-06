@@ -3,7 +3,7 @@
 ## 責務
 
 multiverse IDE のビジュアル言語を一元管理するデザインシステム。
-Factorio風2D俯瞰UIの視覚的一貫性を保証する。
+SF/Sci-Fi 風 Crystal HUD スタイルの視覚的一貫性を保証する。
 
 ## テーマ: Nord Deep
 
@@ -12,13 +12,31 @@ Factorio風2D俯瞰UIの視覚的一貫性を保証する。
 - **ベース**: Nord パレットをベースに深い背景色を拡張
 - **UI**: Aurora パレットをパステル化したステータス色
 - **グロー**: 控えめな効果（IDE としての実用性重視）
-- **スタイル**: ゲーム的な UI（Factorio 風 2D 俯瞰タイル配置）
+- **スタイル**: SF/Sci-Fi 風の洗練された UI
+
+### Glassmorphism（ガラスモーフィズム）
+
+**Phantom Glass** スタイルを全体に適用:
+
+- **背景**: 半透明ガラス効果（`--mv-glass-bg`: `rgba(22, 24, 30, 0.4)`）
+- **ボーダー**: 微細な白いハイライト（`--mv-glass-border-subtle`: `rgba(255, 255, 255, 0.05)`）
+- **シャドウ**: アンビエントシャドウ（`--mv-shadow-ambient-lg`）とインナーハイライト
+- **ホバー**: 強調されたガラス効果（`--mv-glass-hover`）
+
+### Crystal HUD
+
+ツールバー、パネル、チャットウィンドウなど主要 UI に適用:
+
+- **透明感**: 背景が透けて見える洗練されたパネル
+- **グロー効果**: Frost 青系のアクセントグロー（`--mv-shadow-glow-accent`）
+- **フォント**: Orbitron（ブランド用）、Rajdhani（ディスプレイ用）
+- **レイヤー効果**: 複合シャドウ（`--mv-shadow-glass-panel`）
 
 ## 設計思想
 
 ### なぜデザインシステムか
 
-- 100個以上のノードを扱うUIでは視覚的一貫性が生命線
+- 100 個以上のノードを扱う UI では視覚的一貫性が生命線
 - コンポーネント間でスタイルが散らばると保守不能になる
 - デザイントークンを一箇所で管理し、変更を容易にする
 
@@ -68,15 +86,15 @@ pnpm storybook    # http://localhost:6006 で起動
 
 Nord パレットをベースに拡張:
 
-| カテゴリ | 用途 | 変数プレフィックス |
-|---------|------|-------------------|
-| Polar Night | 深い背景（nord0-3） | `--mv-primitive-polar-night-*` |
-| Snow Storm | 明るいテキスト（nord4-6） | `--mv-primitive-snow-storm-*` |
-| Frost | 青系アクセント（nord7-10） | `--mv-primitive-frost-*` |
-| Aurora | ステータス色（nord11-15） | `--mv-primitive-aurora-*` |
-| Deep | Nord より深い背景（拡張） | `--mv-primitive-deep-*` |
-| Pastel | パステル化した Aurora | `--mv-primitive-pastel-*` |
-| Neutral | グレースケール | `--mv-primitive-neutral-*` |
+| カテゴリ    | 用途                       | 変数プレフィックス             |
+| ----------- | -------------------------- | ------------------------------ |
+| Polar Night | 深い背景（nord0-3）        | `--mv-primitive-polar-night-*` |
+| Snow Storm  | 明るいテキスト（nord4-6）  | `--mv-primitive-snow-storm-*`  |
+| Frost       | 青系アクセント（nord7-10） | `--mv-primitive-frost-*`       |
+| Aurora      | ステータス色（nord11-15）  | `--mv-primitive-aurora-*`      |
+| Deep        | Nord より深い背景（拡張）  | `--mv-primitive-deep-*`        |
+| Pastel      | パステル化した Aurora      | `--mv-primitive-pastel-*`      |
+| Neutral     | グレースケール             | `--mv-primitive-neutral-*`     |
 
 #### セマンティックカラー（用途で命名）
 
@@ -92,34 +110,38 @@ Nord パレットをベースに拡張:
 
 #### ステータスカラーの原則
 
-| ステータス | カラー | 意味 |
-|-----------|--------|------|
-| running | パステル緑（nord14 ベース） | 活性を表現 |
-| succeeded | 暗い緑 | 完了の落ち着き |
-| failed | パステル赤（nord11 ベース） | 警告・注意喚起 |
-| pending | グレー/オレンジ | 控えめな待機 |
-| ready | Frost 青系（nord8/9） | アクション可能 |
-| blocked | パステル黄（nord13 ベース） | 警告 |
-| canceled | グレー | 無効化 |
+| ステータス | カラー                      | 意味           |
+| ---------- | --------------------------- | -------------- |
+| running    | パステル緑（nord14 ベース） | 活性を表現     |
+| succeeded  | 暗い緑                      | 完了の落ち着き |
+| failed     | パステル赤（nord11 ベース） | 警告・注意喚起 |
+| pending    | グレー/オレンジ             | 控えめな待機   |
+| ready      | Frost 青系（nord8/9）       | アクション可能 |
+| blocked    | パステル黄（nord13 ベース） | 警告           |
+| canceled   | グレー                      | 無効化         |
 
 ### スペーシング（Spacing）
 
 **グリッドシステム**:
+
 - `cell-width`: ノードの幅
 - `cell-height`: ノードの高さ
 - `cell-gap`: ノード間の余白
 
-**UIスペーシング**:
-- 4px単位のスケール（4, 8, 12, 16, 24, 32, 48）
+**UI スペーシング**:
+
+- 4px 単位のスケール（4, 8, 12, 16, 24, 32, 48）
 
 ### アニメーション（Animation）
 
 **原則**:
+
 - 実行中のみアニメーション（パルス）
 - 状態遷移は控えめなトランジション
-- パフォーマンスを考慮（will-change活用）
+- パフォーマンスを考慮（will-change 活用）
 
 **タイミング**:
+
 - 短い: 150ms（ホバー、フォーカス）
 - 標準: 300ms（状態遷移）
 - 長い: 2000ms（パルスサイクル）
@@ -127,11 +149,12 @@ Nord パレットをベースに拡張:
 ### タイポグラフィ（Typography）
 
 **原則**:
+
 - システムフォント優先（高速読み込み）
 - ノード内は最小限の情報（タイトル、ステータス、Pool）
 - ズームレベルに応じた表示/非表示
 
-## CSS変数の命名規則
+## CSS 変数の命名規則
 
 ```css
 --mv-{category}-{variant}-{state}
@@ -140,10 +163,24 @@ Nord パレットをベースに拡張:
 --mv-color-status-running
 --mv-color-surface-primary
 --mv-spacing-cell-width
---mv-animation-pulse-duration
+--mv-glass-bg
 ```
 
 `mv-` プレフィックスで multiverse 固有であることを明示。
+
+### 主要な変数カテゴリ
+
+| プレフィックス     | 用途                                         |
+| ------------------ | -------------------------------------------- |
+| `--mv-primitive-*` | 生の色値（Nord パレット + 拡張）             |
+| `--mv-color-*`     | セマンティックカラー（用途別）               |
+| `--mv-glass-*`     | ガラスモーフィズム（背景・ボーダー・ホバー） |
+| `--mv-shadow-*`    | シャドウ・グロー効果                         |
+| `--mv-spacing-*`   | スペーシング                                 |
+| `--mv-font-*`      | タイポグラフィ                               |
+| `--mv-duration-*`  | アニメーション時間                           |
+| `--mv-grid-*`      | グリッドレイアウト                           |
+| `--mv-brand-*`     | ブランドコンポーネント                       |
 
 ## 使用方法
 
@@ -167,4 +204,4 @@ Nord パレットをベースに拡張:
 - **セマンティック命名**: 用途で命名（色名ではなく機能名）
 - **CSS 変数を使用**: コンポーネントでは `var(--mv-*)` を使用
 - **フォールバック不要**: CSS 変数は必ず定義されているためフォールバック値は書かない
-- **新カテゴリ追加時**: このCLAUDE.mdを更新
+- **新カテゴリ追加時**: この CLAUDE.md を更新

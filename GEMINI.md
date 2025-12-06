@@ -10,11 +10,49 @@
 
 ## アーキテクチャ
 
-システム全体は 3 層構造になっています。
+システム全体は 4 層構造になっています。
 
-- **Frontend Layer (IDE)**: ユーザーインターフェース。タスクの定義と監視を担当。Wails で実装。
-- **Orchestration Layer**: タスクのキューイング、スケジューリング、永続化（`$HOME/.multiverse`）を担当。
-- **Execution Layer (Core)**: 実際のコード生成やテスト実行。Docker コンテナ内で完結。
+- **Frontend Layer (IDE)**: ユーザーインターフェース。チャット・タスクグラフ・WBS を表示。Wails + Svelte で実装。
+- **Orchestration Layer**: ChatHandler、TaskGraphManager、ExecutionOrchestrator、タスク永続化。
+- **Core Layer (AgentRunner)**: Meta-agent（LLM）による計画・評価と FSM ベースの状態管理。
+- **Execution Layer (Worker)**: Docker コンテナ内での実際のコード生成やテスト実行。
+
+## デザインシステム
+
+### テーマ: Nord Deep
+
+**コンセプト**: 深い背景にパステル UI が輝くデザイン
+
+- **ベース**: Nord パレットをベースに深い背景色を拡張
+- **UI**: Aurora パレットをパステル化したステータス色
+- **グロー**: 控えめな効果（IDE としての実用性重視）
+- **スタイル**: SF/Sci-Fi 風の洗練された UI
+
+### スタイル: Glassmorphism（ガラスモーフィズム）
+
+**Phantom Glass** スタイルを採用:
+
+- **背景**: 半透明の暗いガラス効果（`rgba(22, 24, 30, 0.4)`）
+- **ボーダー**: 微細な白いハイライト（`rgba(255, 255, 255, 0.05)`）
+- **シャドウ**: アンビエントシャドウとインナーハイライト
+- **ブラー**: 背景のぼかし効果
+
+### UI コンセプト: Crystal HUD
+
+ツールバー、パネル、チャットウィンドウなどに適用:
+
+- **透明感**: 背景が透けて見える洗練されたパネル
+- **グロー効果**: Frost 青系のアクセントグロー
+- **フォント**: Orbitron（ブランド）、Rajdhani（ディスプレイ）
+
+### CSS 変数プレフィックス
+
+- `--mv-primitive-*`: 生の色値（Nord パレット + 拡張）
+- `--mv-color-*`: セマンティックカラー（用途別）
+- `--mv-glass-*`: ガラスモーフィズム用
+- `--mv-spacing-*`, `--mv-font-*`, `--mv-shadow-*`: レイアウト・タイポグラフィ
+
+詳細は `frontend/ide/src/design-system/CLAUDE.md` を参照。
 
 ## ビルドと実行
 
@@ -63,7 +101,7 @@ pnpm storybook    # Storybook 起動
 ## ディレクトリ構成
 
 - `cmd/`: 各コンポーネントのエントリポイント (`agent-runner`, `multiverse`, `multiverse-orchestrator`)
-- `internal/`: 内部ロジック (`core`, `meta`, `worker`, `orchestrator`, `ide`)
+- `internal/`: 内部ロジック (`core`, `meta`, `worker`, `orchestrator`, `ide`, `chat`, `logging`)
 - `frontend/`: IDE のフロントエンドコード (Svelte)
 - `docs/`: プロジェクト全体のドキュメント
 

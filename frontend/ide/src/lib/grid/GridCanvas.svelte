@@ -284,7 +284,6 @@
     /* Glass background */
     background: var(--mv-glass-bg-chat);
     backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
 
     /* Refined border */
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
@@ -301,8 +300,8 @@
     /* Shadow and glow */
     box-shadow:
       var(--mv-shadow-glass-panel),
-      0 0 8px rgba(136, 192, 208, 0.1);
-    text-shadow: 0 0 8px rgba(136, 192, 208, 0.4);
+      0 0 8px var(--mv-glow-frost-2-lighter);
+    text-shadow: 0 0 8px var(--mv-glow-frost-2-border);
 
     pointer-events: none;
     transition: all var(--mv-duration-fast);

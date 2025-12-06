@@ -17,9 +17,25 @@
   - **`Executor`**: `agent-runner` プロセスの起動と監視。
   - **`TaskStore`**: タスクメタデータと実行履歴の永続化 (`$HOME/.multiverse` 以下)。
   - **`Scheduler` / `IPC`**: タスクキュー管理とプロセス間通信。
+  - **`TaskGraphManager`**: 依存グラフ管理、トポロジカルソート。
+  - **`ExecutionOrchestrator`**: 自律実行ループ、一時停止/再開機能。
+  - **`BacklogStore`**: 問題・検討材料管理。
+  - **`RetryPolicy`**: 指数バックオフリトライ、永続化対応。
+
+### Chat Layer
+
+- **`chat/`**:
+  - **`ChatHandler`**: チャット →Meta-agent→ タスク分解。
+  - **`ChatSessionStore`**: セッション・メッセージ履歴の JSONL 永続化。
 
 ### IDE Layer
 
 - **`ide/`**:
   - Wails アプリケーション固有のバックエンドロジック。
   - Workspace の検出・管理ロジック。
+
+### Utility Layer
+
+- **`cli/`**: コマンドラインフラグ定義・解析。
+- **`logging/`**: 構造化ログ（log/slog）、Trace ID 伝播。
+- **`mock/`**: テスト用モック実装（Function Field Injection パターン）。

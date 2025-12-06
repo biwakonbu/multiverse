@@ -339,8 +339,9 @@
   .backlog-fab {
     position: fixed;
     bottom: var(--mv-spacing-lg);
+
     /* ズームコントロールの右側に配置（約200px右にオフセット） */
-    left: 220px;
+    left: var(--mv-backlog-fab-left);
     width: var(--mv-icon-size-xxxl);
     height: var(--mv-icon-size-xxxl);
     background: var(--mv-color-surface-primary);
