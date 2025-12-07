@@ -3,10 +3,11 @@
   import { expandedNodes } from "../../stores/wbsStore";
   import { selectedTaskId } from "../../stores";
   import { phaseToCssClass } from "../../schemas";
-  import WBSStatusBadge from "./WBSStatusBadge.svelte";
+  import StatusBadge from "./StatusBadge.svelte";
   import ProgressBar from "./ProgressBar.svelte";
   import { getProgressColor } from "./utils";
   import { onDestroy } from "svelte";
+  import { stripMarkdown } from "../utils/markdown";
 
   // Props
   export let node: WBSNode;
@@ -82,10 +83,6 @@
     }
   }
 
-  function normalizeStatus(status: string): any {
-    return status.toLowerCase();
-  }
-
   function handleClick() {
     if (isTask && node.task) {
       selectedTaskId.select(node.task.id);
@@ -125,14 +122,11 @@
   on:keydown={handleKeydown}
 >
   <!-- Indentation Guides -->
-  <!-- Indentation Guides -->
+  <!-- stylelint-disable-next-line scale-unlimited/declaration-strict-value -->
   {#each indentGuides as _, i}
     <div
       class="indent-guide"
-      style:--guide-left="{i * INDENT_WIDTH +
-        INDENT_BASE +
-        INDENT_WIDTH / 2 -
-        1}px"
+      style:left="{i * INDENT_WIDTH + INDENT_BASE + INDENT_WIDTH / 2 - 1}px"
     ></div>
   {/each}
 
@@ -167,12 +161,12 @@
 
   <!-- ラベル -->
   <span class="node-label">
-    {node.label}
+    {stripMarkdown(node.label)}
   </span>
 
   <!-- ステータスバッジ（タスクのみ） -->
   {#if isTask && node.task}
-    <WBSStatusBadge status={normalizeStatus(node.task.status)} />
+    <StatusBadge status={node.task.status} />
     {#if isRetryWait}
       <span class="retry-info">
         Try {attemptCount} • {timeRemaining}
@@ -223,7 +217,6 @@
   /* Indentation Guide */
   .indent-guide {
     position: absolute;
-    left: var(--guide-left);
     top: 0;
     bottom: 0;
     width: var(--mv-spacing-xxxs);

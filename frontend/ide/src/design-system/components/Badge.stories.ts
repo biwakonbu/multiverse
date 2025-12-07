@@ -6,9 +6,9 @@ const meta = {
   component: Badge,
   tags: ['autodocs'],
   argTypes: {
-    status: { 
-      control: 'select', 
-      options: ['pending', 'ready', 'running', 'succeeded', 'completed', 'failed', 'canceled', 'blocked', 'retry_wait'] 
+    status: {
+      control: 'select',
+      options: ['pending', 'ready', 'running', 'succeeded', 'completed', 'failed', 'canceled', 'blocked', 'retryWait']
     },
     size: { 
       control: 'select', 
@@ -53,7 +53,7 @@ export const Failed: Story = {
 
 export const RetryWait: Story = {
   args: {
-    status: 'retry_wait',
+    status: 'retryWait',
   }
 };
 

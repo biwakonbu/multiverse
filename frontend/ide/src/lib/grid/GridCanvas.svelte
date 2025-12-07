@@ -185,7 +185,16 @@
   </svg>
 
   <!-- ノードレイヤー -->
-  <div class="nodes-layer" style="transform: {$canvasTransform};">
+  <!-- 
+    NOTE: テキストの滲みを防ぐため、transform: scale ではなく zoom プロパティを使用する。
+    SVGレイヤーは scale で問題ないが、DOMテキストは zoom でリフローさせることで鮮明に描画される。
+    Wails (WebKit/Blink) 環境では zoom が有効。
+  -->
+  <div
+    class="nodes-layer"
+    style="zoom: {$viewport.zoom}; transform: translate({$viewport.panX /
+      $viewport.zoom}px, {$viewport.panY / $viewport.zoom}px);"
+  >
     {#each $taskNodes as node (node.task.id)}
       <GridNode
         task={node.task}

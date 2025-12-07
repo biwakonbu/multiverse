@@ -204,3 +204,66 @@ export const StatusShowcase: Story = {
     }
   }
 };
+
+// ========================================
+// ズームテキスト品質テスト用ストーリー
+// ========================================
+
+// 高ズームでのテキスト品質確認
+export const ZoomTextQuality200: Story = {
+  args: {
+    nodes: statusShowcase,
+    zoom: 2.0,
+    panX: -50,
+    panY: -50,
+    selectedId: null
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**ズームテキスト品質テスト (200%)**
+
+このストーリーはズーム時のテキスト描画品質を確認するためのものです。
+
+### 確認ポイント
+- テキストが滲まずに鮮明に表示されているか
+- フォントのエッジがシャープか
+- ステータスバッジのテキストが読みやすいか
+
+### 技術的背景
+\`transform: scale()\` ではなく CSS \`zoom\` プロパティを使用することで、
+ブラウザがテキストを再レイアウト・再ラスタライズし、高品質な描画を実現しています。
+`
+      }
+    }
+  }
+};
+
+// 最大ズームでのテキスト品質確認
+export const ZoomTextQuality300: Story = {
+  args: {
+    nodes: statusShowcase.slice(0, 3),
+    zoom: 3.0,
+    panX: -100,
+    panY: -80,
+    selectedId: null
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**ズームテキスト品質テスト (300%)**
+
+最大ズームレベルでのテキスト品質確認。
+
+### 確認ポイント
+- 3倍拡大でもテキストがピクセル化されていないか
+- 小さい文字（ステータス、poolId）も読めるか
+- アンチエイリアシングが効いているか
+`
+      }
+    }
+  }
+};
+

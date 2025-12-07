@@ -178,4 +178,8 @@
   --mv-size-phase-bar: 3px;
   --mv-size-edge-indicator: 2px;
   --mv-min-height-footer: 20px;
+
+  /* ChatView プレビュー */
+  --mv-preview-chat-width: 550px;
+  --mv-preview-chat-height: 300px;
 }

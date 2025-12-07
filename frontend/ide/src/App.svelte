@@ -1,11 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { get } from "svelte/store";
   import WorkspaceSelector from "./lib/WorkspaceSelector.svelte";
   import TitleBar from "./lib/TitleBar.svelte";
   import { Toolbar } from "./lib/toolbar";
   import { WBSListView, WBSGraphView } from "./lib/wbs";
-  import GridCanvas from "./lib/grid/GridCanvas.svelte";
   import {
     tasks,
     selectedTask,
@@ -18,15 +16,11 @@
   // @ts-ignore - Wails自動生成ファイル
   import { ListTasks, GetPoolSummaries } from "../wailsjs/go/main/App";
   import FloatingChatWindow from "./lib/components/chat/FloatingChatWindow.svelte";
-  import {
-    initExecutionEvents,
-    syncExecutionState,
-  } from "./stores/executionStore";
+  import { initExecutionEvents } from "./stores/executionStore";
   import { initTaskEvents } from "./stores/taskStore";
   import { initChatEvents } from "./stores/chat";
   import { initBacklogEvents, unresolvedCount } from "./stores/backlogStore";
   import BacklogPanel from "./lib/backlog/BacklogPanel.svelte";
-  import ToastContainer from "./lib/components/ToastContainer.svelte";
 
   const log = Logger.withComponent("App");
 
@@ -39,28 +33,6 @@
 
   // Backlog State
   let isBacklogVisible = false;
-
-  // 共通のタスクマッピング（Wailsの生データ→UI用Task型）
-  const mapBackendTask = (t: any): Task => ({
-    id: t.id,
-    title: t.title,
-    status: t.status as Task["status"],
-    poolId: t.poolId,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-    startedAt: t.startedAt,
-    doneAt: t.doneAt,
-    description: t.description,
-    dependencies: t.dependencies ?? [],
-    parentId: t.parentId,
-    wbsLevel: t.wbsLevel,
-    phaseName: t.phaseName as Task["phaseName"],
-    milestone: t.milestone,
-    sourceChatId: t.sourceChatId,
-    acceptanceCriteria: t.acceptanceCriteria ?? [],
-    attemptCount: t.attemptCount,
-    nextRetryAt: t.nextRetryAt,
-  });
 
   onMount(() => {
     // Calculate initial position (Bottom-Right)
@@ -85,7 +57,26 @@
     try {
       const result = await ListTasks();
       // Wails生成型からローカル型へ変換
-      const taskList: Task[] = (result || []).map(mapBackendTask);
+      const taskList: Task[] = (result || []).map(
+        (t): Task => ({
+          id: t.id,
+          title: t.title,
+          status: t.status as Task["status"],
+          poolId: t.poolId,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          startedAt: t.startedAt,
+          doneAt: t.doneAt,
+          description: t.description,
+          dependencies: t.dependencies,
+          parentId: t.parentId,
+          wbsLevel: t.wbsLevel,
+          phaseName: t.phaseName as Task["phaseName"],
+          milestone: t.milestone,
+          sourceChatId: t.sourceChatId,
+          acceptanceCriteria: t.acceptanceCriteria,
+        })
+      );
       log.debug("tasks loaded", { count: taskList.length });
       tasks.setTasks(taskList);
     } catch (e) {
@@ -112,17 +103,9 @@
 
   // Workspace選択時
   function onWorkspaceSelected(event: CustomEvent<string>) {
-    // 前のワークスペースのデータをクリア
-    tasks.clear();
-    selectedTaskId.clear();
-    poolSummaries.clear();
-
     workspaceId = event.detail;
     log.info("workspace selected", { workspaceId });
-
     loadData();
-    // 実行状態をバックエンドと同期
-    syncExecutionState();
     // 10秒間隔でポーリング（Wails Events でリアルタイム更新されるためフォールバック）
     interval = setInterval(loadData, 10000);
     log.info("polling started", { interval: 10000 });
@@ -134,22 +117,6 @@
       clearInterval(interval);
     }
   });
-
-  // チャットから生成されたタスクを即時反映
-  function onTasksGenerated(event: CustomEvent<{ tasks: any[] }>) {
-    const generated = event.detail?.tasks ?? [];
-    if (generated.length === 0) return;
-
-    const existing = new Map(get(tasks).map((t) => [t.id, t]));
-    for (const raw of generated) {
-      const mapped = mapBackendTask(raw);
-      if (existing.has(mapped.id)) {
-        tasks.updateTask(mapped.id, mapped);
-      } else {
-        tasks.addTask(mapped);
-      }
-    }
-  }
 </script>
 
 <main class="app">
@@ -161,21 +128,23 @@
     <Toolbar />
 
     <!-- メインコンテンツ -->
+    <!-- メインコンテンツ -->
     <div class="main-content">
-      {#if $viewMode === "graph"}
-        <!-- Graph モード: GridCanvas で依存グラフ表示 -->
-        <div class="canvas-layer">
-          <GridCanvas />
-        </div>
-      {:else}
-        <!-- WBS モード: WBSGraphView + WBSListView -->
-        <div class="canvas-layer">
-          <WBSGraphView />
-        </div>
+      <!-- 常にGraphViewを描画し、canvasとして機能させる -->
+      <div
+        class="canvas-layer"
+        style:visibility={$viewMode === "graph" ? "visible" : "hidden"}
+      >
+        <WBSGraphView />
+      </div>
+
+      <!-- WBSモード時はオーバーレイとして表示（あるいはcanvas上に配置） -->
+      {#if $viewMode === "wbs"}
         <div class="list-overlay">
           <WBSListView />
         </div>
       {/if}
+
     </div>
 
     <!-- チャットウィンドウ -->
@@ -183,7 +152,6 @@
       <FloatingChatWindow
         initialPosition={chatPosition}
         on:close={() => (isChatVisible = false)}
-        on:tasksGenerated={onTasksGenerated}
       />
     {/if}
 
@@ -208,8 +176,7 @@
       class="backlog-fab"
       class:has-items={$unresolvedCount > 0}
       on:click={() => (isBacklogVisible = !isBacklogVisible)}
-      on:keydown={(e) =>
-        e.key === "Enter" && (isBacklogVisible = !isBacklogVisible)}
+      on:keydown={(e) => e.key === "Enter" && (isBacklogVisible = !isBacklogVisible)}
       role="button"
       tabindex="0"
       aria-label="Toggle Backlog"
@@ -228,8 +195,6 @@
       </div>
     {/if}
   {/if}
-
-  <ToastContainer />
 </main>
 
 <style>
@@ -295,9 +260,7 @@
   .backlog-fab {
     position: fixed;
     bottom: var(--mv-spacing-lg);
-
-    /* ズームコントロールの右側に配置（約200px右にオフセット） */
-    left: var(--mv-backlog-fab-left);
+    left: var(--mv-spacing-lg);
     width: var(--mv-icon-size-xxxl);
     height: var(--mv-icon-size-xxxl);
     background: var(--mv-color-surface-primary);

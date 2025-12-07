@@ -200,31 +200,11 @@
 
   .content {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0; /* Allow flex item to shrink below content size */
+    overflow: hidden; /* Let slotted content handle its own scrolling */
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
     display: flex;
     flex-direction: column;
-
-    /* Clean scroll */
-    scrollbar-width: thin;
-    scrollbar-color: var(--mv-glass-scrollbar) transparent;
-  }
-
-  .content::-webkit-scrollbar {
-    width: var(--mv-size-scrollbar);
-  }
-
-  .content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content::-webkit-scrollbar-thumb {
-    background: var(--mv-glass-scrollbar);
-    border-radius: var(--mv-border-radius-scrollbar);
-  }
-
-  .content::-webkit-scrollbar-thumb:hover {
-    background: var(--mv-glass-scrollbar-hover);
   }
 
   .footer {

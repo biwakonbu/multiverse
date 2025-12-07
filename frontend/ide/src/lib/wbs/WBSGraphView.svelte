@@ -201,16 +201,22 @@
     {:else}
       <div
         class="canvas-world"
-        style:transform={`translate(${translateX}px, ${translateY}px) scale(${scale})`}
         style:width="{canvasWidth}px"
         style:height="{canvasHeight}px"
-        style:transform-origin="0 0"
       >
+        <!-- 
+          NOTE: テキストの滲みを防ぐため、コンテナ一括transformではなくレイヤー別に適用する。
+          SVGレイヤーは transform: scale で問題ない。
+          ノード（DOM）レイヤーは zoom プロパティでリフローさせる。
+        -->
+
         <!-- 接続線 (SVG) -->
         <svg
           class="connections-layer"
           width={canvasWidth}
           height={canvasHeight}
+          style:transform={`translate(${translateX}px, ${translateY}px) scale(${scale})`}
+          style:transform-origin="0 0"
         >
           <defs>
             <marker
@@ -237,7 +243,12 @@
         </svg>
 
         <!-- ノード -->
-        <div class="nodes-layer">
+        <div
+          class="nodes-layer"
+          style:zoom={scale}
+          style:transform={`translate(${translateX}px, ${translateY}px)`}
+          style:transform-origin="0 0"
+        >
           {#each positionedNodes as { node, x, y } (node.id)}
             <WBSGraphNode {node} {x} {y} />
           {/each}

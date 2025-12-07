@@ -5,9 +5,9 @@
   Storybook での単独表示・テスト用途。
 -->
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import GridNodePreview from './GridNodePreview.svelte';
-  import type { TaskStatus } from '../../types';
+  import { onMount } from "svelte";
+  import GridNodePreview from "./GridNodePreview.svelte";
+  import type { TaskStatus } from "../../types";
 
   // ノードデータの型
   interface NodeData {
@@ -35,7 +35,7 @@
     min: 0.25,
     max: 3.0,
     step: 0.1,
-    wheelFactor: 0.1
+    wheelFactor: 0.1,
   };
 
   let containerRef: HTMLDivElement;
@@ -60,8 +60,12 @@
       const mouseY = event.clientY - rect.top;
 
       // マウス位置を中心にズーム
-      const delta = event.deltaY > 0 ? -zoomConfig.wheelFactor : zoomConfig.wheelFactor;
-      const newZoom = Math.max(zoomConfig.min, Math.min(zoomConfig.max, zoom + delta));
+      const delta =
+        event.deltaY > 0 ? -zoomConfig.wheelFactor : zoomConfig.wheelFactor;
+      const newZoom = Math.max(
+        zoomConfig.min,
+        Math.min(zoomConfig.max, zoom + delta)
+      );
 
       if (newZoom !== zoom) {
         const scale = newZoom / zoom;
@@ -110,13 +114,13 @@
 
   // キーボードショートカット
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === '+' || event.key === '=') {
+    if (event.key === "+" || event.key === "=") {
       event.preventDefault();
       zoom = Math.min(zoomConfig.max, zoom + zoomConfig.step);
-    } else if (event.key === '-') {
+    } else if (event.key === "-") {
       event.preventDefault();
       zoom = Math.max(zoomConfig.min, zoom - zoomConfig.step);
-    } else if (event.key === '0') {
+    } else if (event.key === "0") {
       event.preventDefault();
       zoom = 1;
       panX = 32;
@@ -154,7 +158,12 @@
           height="140"
           patternUnits="userSpaceOnUse"
         >
-          <circle cx="100" cy="70" r="1.5" fill="var(--mv-color-border-subtle)" />
+          <circle
+            cx="100"
+            cy="70"
+            r="1.5"
+            fill="var(--mv-color-border-subtle)"
+          />
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#grid-dots)" />
@@ -162,11 +171,18 @@
   </div>
 
   <!-- ノードレイヤー -->
-  <div class="nodes-layer" style="transform: {canvasTransform};">
+  <!-- 
+    NOTE: テキストの滲みを防ぐため、transform: scale ではなく zoom プロパティを使用する。
+    SVGレイヤーは scale で問題ないが、DOMテキストは zoom でリフローさせることで鮮明に描画される。
+  -->
+  <div
+    class="nodes-layer"
+    style="zoom: {zoom}; transform: translate({panX}px, {panY}px);"
+  >
     {#each nodes as node (node.id)}
       <div
         on:click={() => handleNodeClick(node.id)}
-        on:keydown={(e) => e.key === 'Enter' && handleNodeClick(node.id)}
+        on:keydown={(e) => e.key === "Enter" && handleNodeClick(node.id)}
         role="button"
         tabindex="-1"
       >

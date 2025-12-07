@@ -25,13 +25,15 @@ describe('Design System', () => {
   describe('Badge', () => {
     it('renders status label', () => {
       const { getByText } = render(Badge, { status: 'running' });
-      expect(getByText('RUNNING')).toBeTruthy();
+      // Badge now displays capitalized labels instead of uppercase
+      expect(getByText('Running')).toBeTruthy();
     });
 
     it('applies correct class for status', () => {
       const { container } = render(Badge, { status: 'failed' });
       const span = container.querySelector('span');
-      expect(span?.classList.contains('status-failed')).toBe(true);
+      // Badge uses color-danger class for failed status
+      expect(span?.classList.contains('color-danger')).toBe(true);
     });
   });
 

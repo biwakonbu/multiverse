@@ -69,7 +69,29 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0; /* Required for flex item to shrink and enable scrolling */
     overflow-y: auto; /* スクロールはここで制御 */
+
+    /* Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--mv-glass-scrollbar) transparent;
+  }
+
+  .chat-view::-webkit-scrollbar {
+    width: var(--mv-size-scrollbar);
+  }
+
+  .chat-view::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .chat-view::-webkit-scrollbar-thumb {
+    background: var(--mv-glass-scrollbar);
+    border-radius: var(--mv-border-radius-scrollbar);
+  }
+
+  .chat-view::-webkit-scrollbar-thumb:hover {
+    background: var(--mv-glass-scrollbar-hover);
   }
 
   /* ローディングインジケーター */

@@ -4,6 +4,8 @@
   import { statusToCssClass, statusLabels } from "../../types";
   import { selectedTaskId } from "../../stores";
 
+  import { stripMarkdown } from "../utils/markdown";
+
   // Props
   export let task: Task;
   export let col: number;
@@ -77,35 +79,36 @@
 
   <!-- コンテンツコンテナ -->
   <div class="node-content">
-    <!-- ステータスヘッダー（コンパクト） -->
+    <!-- ステータスヘッダー -->
     <div class="node-header">
-      <span class="status-dot"></span>
-      <span class="status-text">{statusLabels[task.status]}</span>
-    </div>
-
-    <!-- タイトル（メインコンテンツ） -->
-    {#if showTitle}
-      <div class="title" title={task.title}>
-        {task.title}
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span class="status-text">{statusLabels[task.status]}</span>
       </div>
-    {/if}
-
-    <!-- フッター（フェーズタグ + メタ情報） -->
-    <div class="node-footer">
       {#if task.phaseName}
         <span class="phase-tag">{phaseLabels[task.phaseName] || ""}</span>
       {/if}
-      <div class="meta-info">
-        {#if showDetails}
-          <span class="pool-id">{task.poolId}</span>
-        {/if}
-        {#if hasDependencies && showDetails}
+    </div>
+
+    <!-- タイトル -->
+    {#if showTitle}
+      <div class="title" title={task.title}>
+        {stripMarkdown(task.title)}
+      </div>
+    {/if}
+
+    <!-- 詳細フッター -->
+    {#if showDetails}
+      <div class="node-footer">
+        <span class="pool-id">{task.poolId}</span>
+        {#if hasDependencies}
           <div class="deps-indicator" title="Dependencies">
-            <span class="deps-count">↳{task.dependencies?.length || 0}</span>
+            <span class="deps-arrow">↳</span>
+            <span class="deps-count">{task.dependencies?.length || 0}</span>
           </div>
         {/if}
       </div>
-    </div>
+    {/if}
   </div>
 </div>
 
@@ -114,11 +117,10 @@
     position: absolute;
     width: var(--mv-grid-cell-width);
     height: var(--mv-grid-cell-height);
-    border-radius: var(--mv-radius-lg);
+    border-radius: var(--mv-radius-md);
     cursor: pointer;
     transition:
       transform var(--mv-duration-fast) var(--mv-easing-out),
-      box-shadow var(--mv-duration-fast) var(--mv-easing-out),
       z-index 0s;
     user-select: none;
     z-index: 10;
@@ -126,71 +128,64 @@
 
   /* ホバー時は少し浮く */
   .node:hover {
-    transform: translateY(-3px) scale(1.02);
+    transform: translateY(-2px);
     z-index: 20;
   }
 
   .node:active {
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 
-  /* ガラス背景 - Crystal HUD スタイル */
+  /* ガラス背景 */
   .node-glass {
     position: absolute;
     inset: 0;
-    border-radius: var(--mv-radius-lg);
-    background: var(--mv-glass-bg-chat);
-
-    /* Multi-layer border for depth */
-    border: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
-    border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
-    border-bottom: var(--mv-border-width-thin) solid
-      var(--mv-glass-border-bottom);
-
-    box-shadow: var(--mv-shadow-glass-panel-full);
-
-    transition: all var(--mv-duration-fast) var(--mv-easing-out);
+    border-radius: var(--mv-radius-md);
+    background: var(--mv-glass-bg);
+    backdrop-filter: blur(8px);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
+    box-shadow: var(--mv-shadow-card);
+    transition: all var(--mv-duration-fast);
   }
 
   .node:hover .node-glass {
     background: var(--mv-glass-hover);
-    border-color: var(--mv-glass-border-hover);
-    box-shadow: var(--mv-shadow-glass-panel-with-glow);
+    border-color: var(--mv-color-border-default);
+    box-shadow: var(--mv-shadow-ambient-lg);
   }
 
-  /* 選択状態 - 強調されたグロー */
+  /* 選択状態 */
   .node.selected .node-glass {
-    border-color: var(--mv-shadow-glow-accent-border);
-    box-shadow: var(--mv-shadow-floating-with-accent-inset);
-    background: var(--mv-glow-frost-2-lighter);
+    border-color: var(--mv-color-interactive-primary);
+    box-shadow: var(--mv-shadow-selected);
+    background: var(--mv-glass-hover-strong);
   }
 
-  /* ノードグロー (実行中など) - より洗練されたエフェクト */
+  /* ノードグロー (実行中など) */
   .node-glow {
     position: absolute;
-    inset: calc(-1 * var(--mv-spacing-xs));
-    border-radius: var(--mv-radius-xl, 16px);
+    inset: calc(-1 * var(--mv-spacing-xxs));
+    border-radius: var(--mv-radius-lg);
     opacity: 0;
     transition: opacity var(--mv-duration-normal);
     pointer-events: none;
     background: radial-gradient(
-      ellipse at center,
+      circle at center,
       var(--mv-color-glow-focus) 0%,
-      transparent 60%
+      transparent 70%
     );
-    filter: blur(4px);
   }
 
   .node.selected .node-glow {
-    opacity: 0.35;
+    opacity: 0.2;
   }
 
   .node.status-running .node-glow {
-    opacity: 0.5;
+    opacity: 0.4;
     background: radial-gradient(
-      ellipse at center,
+      circle at center,
       var(--mv-color-status-running-glow) 0%,
-      transparent 60%
+      transparent 70%
     );
     animation: pulse-glow 2s infinite ease-in-out;
   }
@@ -198,14 +193,12 @@
   @keyframes pulse-glow {
     0%,
     100% {
-      opacity: 0.35;
-      transform: scale(0.98);
-      filter: blur(4px);
+      opacity: 0.3;
+      transform: scale(0.95);
     }
     50% {
-      opacity: 0.7;
-      transform: scale(1.03);
-      filter: blur(6px);
+      opacity: 0.6;
+      transform: scale(1.05);
     }
   }
 
@@ -213,72 +206,57 @@
     position: relative;
     z-index: 1;
     height: 100%;
-    padding: var(--mv-spacing-sm) var(--mv-spacing-md);
-    padding-top: var(--mv-spacing-md);
+    padding: var(--mv-spacing-sm);
     display: flex;
     flex-direction: column;
-    gap: var(--mv-spacing-xxs);
+    gap: var(--mv-spacing-xs);
   }
 
-  /* フェーズインジケーター（上部細線）- 強化されたグロー */
+  /* フェーズインジケーター（上部細線） */
   .phase-indicator-top {
     position: absolute;
     top: 0;
-    left: var(--mv-spacing-md);
-    right: var(--mv-spacing-md);
-    height: var(--mv-size-progress-height);
-    background: var(--mv-glass-border-light);
-    border-radius: 0 0 var(--mv-radius-progress) var(--mv-radius-progress);
-    transition: all var(--mv-duration-fast);
+    left: var(--mv-spacing-sm);
+    right: var(--mv-spacing-sm);
+    height: var(--mv-spacing-xxxs);
+    background: var(--mv-color-border-subtle);
+    box-shadow: var(--mv-shadow-badge);
+    border-radius: 0 0 var(--mv-spacing-xxxs) var(--mv-spacing-xxxs);
   }
 
   .phase-concept .phase-indicator-top {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--mv-primitive-frost-3) 20%,
-      var(--mv-primitive-frost-3) 80%,
-      transparent 100%
-    );
-    box-shadow: var(--mv-shadow-phase-concept);
+    background: var(--mv-primitive-frost-3);
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
+      var(--mv-primitive-frost-3);
   }
   .phase-design .phase-indicator-top {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--mv-primitive-aurora-purple) 20%,
-      var(--mv-primitive-aurora-purple) 80%,
-      transparent 100%
-    );
-    box-shadow: var(--mv-shadow-phase-design);
+    background: var(--mv-primitive-aurora-purple);
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
+      var(--mv-primitive-aurora-purple);
   }
   .phase-impl .phase-indicator-top {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--mv-primitive-aurora-green) 20%,
-      var(--mv-primitive-aurora-green) 80%,
-      transparent 100%
-    );
-    box-shadow: var(--mv-shadow-phase-impl);
+    background: var(--mv-primitive-aurora-green);
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
+      var(--mv-primitive-aurora-green);
   }
   .phase-verify .phase-indicator-top {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--mv-primitive-aurora-yellow) 20%,
-      var(--mv-primitive-aurora-yellow) 80%,
-      transparent 100%
-    );
-    box-shadow: var(--mv-shadow-phase-verify);
+    background: var(--mv-primitive-aurora-yellow);
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
+      var(--mv-primitive-aurora-yellow);
   }
 
-  /* ヘッダー（コンパクト・ステータスのみ） */
+  /* ヘッダー */
   .node-header {
     display: flex;
     align-items: center;
-    gap: var(--mv-spacing-xxs);
-    flex-shrink: 0;
+    justify-content: space-between;
+    height: var(--mv-indicator-size-lg);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-status-dot-size);
   }
 
   .status-dot {
@@ -286,7 +264,7 @@
     height: var(--mv-status-dot-size);
     border-radius: var(--mv-radius-full);
     background: var(--mv-color-text-muted);
-    transition: all var(--mv-duration-fast);
+    box-shadow: var(--mv-text-shadow-subtle);
   }
 
   .status-text {
@@ -295,131 +273,92 @@
     letter-spacing: var(--mv-letter-spacing-count);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
-    transition: all var(--mv-duration-fast);
   }
 
-  /* ステータス別の色 - 強化されたグロー */
+  /* ステータス別の色 */
   .node.status-pending .status-dot {
     background: var(--mv-color-status-pending-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm)
-      var(--mv-color-status-pending-text);
   }
   .node.status-pending .status-text {
     color: var(--mv-color-status-pending-text);
-    text-shadow: var(--mv-text-shadow-orange);
   }
 
   .node.status-ready .status-dot {
     background: var(--mv-color-status-ready-text);
-    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-ready-text);
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
+      var(--mv-color-status-ready-text);
   }
   .node.status-ready .status-text {
     color: var(--mv-color-status-ready-text);
-    text-shadow: var(--mv-text-shadow-cyan-content);
   }
 
   .node.status-running .status-dot {
     background: var(--mv-color-status-running-text);
-    box-shadow: var(--mv-shadow-badge-glow-lg)
+    box-shadow: var(--mv-shadow-badge-glow-md)
       var(--mv-color-status-running-text);
-    animation: dot-pulse 1.5s infinite ease-in-out;
   }
   .node.status-running .status-text {
     color: var(--mv-color-status-running-text);
-    text-shadow: var(--mv-text-shadow-green);
-  }
-
-  @keyframes dot-pulse {
-    0%,
-    100% {
-      box-shadow: var(--mv-shadow-badge-glow-sm)
-        var(--mv-color-status-running-text);
-    }
-    50% {
-      box-shadow: var(--mv-shadow-glow-frost-2-md)
-        var(--mv-color-status-running-text);
-    }
+    text-shadow: var(--mv-text-shadow-green-content);
   }
 
   .node.status-succeeded .status-dot {
     background: var(--mv-color-status-succeeded-text);
-    box-shadow: var(--mv-shadow-badge-glow-md)
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
       var(--mv-color-status-succeeded-text);
   }
   .node.status-succeeded .status-text {
     color: var(--mv-color-status-succeeded-text);
-    text-shadow: var(--mv-text-shadow-cyan-content);
   }
 
   .node.status-failed .status-dot {
     background: var(--mv-color-status-failed-text);
-    box-shadow: var(--mv-shadow-badge-glow-md)
+    box-shadow: var(--mv-shadow-phase-indicator-glow)
       var(--mv-color-status-failed-text);
   }
   .node.status-failed .status-text {
     color: var(--mv-color-status-failed-text);
-    text-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-glow-failed);
   }
 
   .node.status-blocked .status-dot {
     background: var(--mv-color-status-blocked-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm)
-      var(--mv-color-status-blocked-text);
   }
   .node.status-blocked .status-text {
     color: var(--mv-color-status-blocked-text);
-    text-shadow: var(--mv-text-shadow-purple-content);
   }
 
-  .node.status-retry-wait .status-dot {
-    background: var(--mv-color-status-retry-wait-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm)
-      var(--mv-color-status-retry-wait-text);
-    animation: dot-pulse 2s infinite ease-in-out;
-  }
-  .node.status-retry-wait .status-text {
-    color: var(--mv-color-status-retry-wait-text);
-    text-shadow: var(--mv-text-shadow-orange);
-  }
-
-  /* フェーズタグ - ガラススタイル */
+  /* フェーズタグ */
   .phase-tag {
     font-size: var(--mv-font-size-xxs);
     font-weight: var(--mv-font-weight-bold);
-    padding: var(--mv-spacing-badge-x) var(--mv-spacing-xs);
-    border-radius: var(--mv-radius-sm);
-    background: var(--mv-glass-bg-dark);
-    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    padding: var(--mv-border-width-thin) var(--mv-spacing-xxs);
+    border-radius: var(--mv-spacing-xxxs);
+    background: var(--mv-glass-active);
     color: var(--mv-color-text-muted);
     letter-spacing: var(--mv-letter-spacing-count);
-    transition: all var(--mv-duration-fast);
   }
 
   .phase-concept .phase-tag {
     color: var(--mv-primitive-frost-3);
-    border-color: var(--mv-glow-frost-3);
-    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-frost-3-strong);
+    background: var(--mv-glass-active);
   }
   .phase-design .phase-tag {
     color: var(--mv-primitive-aurora-purple);
-    border-color: var(--mv-glow-purple);
-    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-purple-strong);
+    background: var(--mv-glass-active);
   }
   .phase-impl .phase-tag {
     color: var(--mv-primitive-aurora-green);
-    border-color: var(--mv-glow-green);
-    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-green-strong);
+    background: var(--mv-glass-active);
   }
   .phase-verify .phase-tag {
     color: var(--mv-primitive-aurora-yellow);
-    border-color: var(--mv-glow-yellow);
-    text-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-glow-yellow-strong);
+    background: var(--mv-glass-active);
   }
 
-  /* タイトル - 強化されたテキストスタイル */
+  /* タイトル */
   .title {
     font-size: var(--mv-font-size-sm);
-    font-weight: var(--mv-font-weight-semibold);
+    font-weight: var(--mv-font-weight-medium);
     color: var(--mv-color-text-primary);
     line-height: var(--mv-line-height-tight);
 
@@ -431,55 +370,32 @@
     overflow: hidden;
     flex: 1;
 
-    text-shadow: var(--mv-text-shadow-base-white);
+    text-shadow: var(--mv-text-shadow-base);
   }
 
-  .node:hover .title {
-    color: var(--mv-primitive-snow-storm-2);
-    text-shadow: var(--mv-text-shadow-hover-white);
-  }
-
-  /* フッター - フェーズタグとメタ情報 */
+  /* フッター */
   .node-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--mv-spacing-xs);
-    margin-top: auto;
-    padding-top: var(--mv-spacing-xs);
-    border-top: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
-    min-height: var(--mv-min-height-footer);
-  }
-
-  .meta-info {
-    display: flex;
-    align-items: center;
-    gap: var(--mv-spacing-xs);
     font-family: var(--mv-font-mono);
     font-size: var(--mv-font-size-xxs);
     color: var(--mv-color-text-disabled);
-    margin-left: auto;
+    margin-top: auto;
   }
 
   .pool-id {
     opacity: 0.7;
-    transition: all var(--mv-duration-fast);
-  }
-
-  .node:hover .pool-id {
-    opacity: 1;
-    color: var(--mv-primitive-frost-2);
   }
 
   .deps-indicator {
     display: flex;
     align-items: center;
+    gap: var(--mv-spacing-xxxs);
     opacity: 0.8;
-    color: var(--mv-primitive-frost-2);
   }
 
-  .deps-count {
-    font-weight: var(--mv-font-weight-bold);
-    font-size: var(--mv-font-size-xxs);
+  .deps-arrow {
+    font-size: var(--mv-font-size-xs);
   }
 </style>

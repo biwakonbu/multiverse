@@ -22,9 +22,7 @@
     from: { col: number; row: number } | undefined,
     to: { col: number; row: number } | undefined
   ): string {
-    if (!from || !to) {
-      return "";
-    }
+    if (!from || !to) return "";
 
     const fromCanvas = gridToCanvas(from.col, from.row);
     const toCanvas = gridToCanvas(to.col, to.row);
@@ -122,29 +120,26 @@
   }
 
   .path-main {
-    stroke-width: 1.5;
+    stroke-width: 1.5; /* Technical thin line */
     transition:
       stroke var(--mv-duration-normal),
-      stroke-width var(--mv-duration-fast),
-      filter var(--mv-duration-fast);
+      stroke-width var(--mv-duration-fast);
     vector-effect: non-scaling-stroke;
   }
 
-  /* 満たされた依存 - より洗練されたグロー */
+  /* 満たされた依存 */
   .satisfied .path-main {
-    stroke-opacity: 0.6;
-    filter: drop-shadow(0 0 2px var(--mv-color-status-succeeded-border));
+    stroke-opacity: 0.5;
   }
 
-  /* 未満の依存（アクティブ）- ダッシュラインとグロー */
+  /* 未満の依存（アクティブ） */
   .unsatisfied .path-main {
-    stroke-opacity: 0.85;
-    stroke-dasharray: 3 5;
-    stroke-linecap: round;
-    filter: drop-shadow(0 0 3px var(--mv-color-status-blocked-border));
+    stroke-opacity: 0.9;
+    stroke-dasharray: 2 4;
+    stroke-linecap: square;
   }
 
-  /* ホバー時 - 強調されたグロー */
+  /* ホバー時 */
   .connection-line:hover .path-main {
     stroke-width: 2.5;
     stroke-opacity: 1;
@@ -153,13 +148,9 @@
 
   .satisfied:hover .path-main {
     stroke: var(--mv-color-status-succeeded-text);
-    filter: drop-shadow(0 0 4px var(--mv-color-status-succeeded-text))
-      drop-shadow(0 0 8px var(--mv-glow-frost-2-border));
   }
 
   .unsatisfied:hover .path-main {
     stroke: var(--mv-color-status-blocked-text);
-    filter: drop-shadow(0 0 4px var(--mv-color-status-blocked-text))
-      drop-shadow(0 0 8px var(--mv-glow-purple-strong));
   }
 </style>

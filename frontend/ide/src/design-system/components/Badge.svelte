@@ -1,7 +1,9 @@
 <script lang="ts">
   /**
-   * バッジのバリアント (status)
+   * バッジコンポーネント
+   * ステータス表示やラベル付けに使用
    */
+
   export let status:
     | "pending"
     | "ready"
@@ -11,161 +13,170 @@
     | "failed"
     | "canceled"
     | "blocked"
-    | "retry_wait" = "pending";
+    | "retryWait"
+    | undefined = undefined;
 
-  /**
-   * サイズ - StatusBadge は固定サイズだが、汎用性のために残す（ただしデフォルトスタイルを優先）
-   */
+  export let variant: "default" | "outline" | "glass" = "default";
+  export let color:
+    | "primary"
+    | "secondary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "info"
+    | "neutral" = "neutral";
+
   export let size: "small" | "medium" = "medium";
-
-  /**
-   * ラベル（指定がなければ slot or statusの大文字）
-   */
   export let label = "";
 
-  // ステータス文字列の正規化（RETRY_WAIT -> retry-wait）
-  $: normalizedStatus = status.toLowerCase().replace("_", "-");
+  // ステータスからカラーとラベルを自動解決
+  const statusConfig: Record<
+    NonNullable<typeof status>,
+    { color: typeof color; label: string }
+  > = {
+    pending: { color: "warning", label: "Pending" },
+    ready: { color: "info", label: "Ready" },
+    running: { color: "success", label: "Running" },
+    succeeded: { color: "primary", label: "Succeeded" },
+    completed: { color: "primary", label: "Completed" },
+    failed: { color: "danger", label: "Failed" },
+    canceled: { color: "neutral", label: "Canceled" },
+    blocked: { color: "secondary", label: "Blocked" },
+    retryWait: { color: "warning", label: "Retry Wait" },
+  };
+
+  $: resolvedColor = status ? statusConfig[status].color : color;
+  $: resolvedLabel = label || (status ? statusConfig[status].label : "");
 </script>
 
-<span class="badge status-{normalizedStatus} size-{size}">
-  {#if label}
-    {label}
-  {:else}
-    <slot>{status.replace("_", " ").toUpperCase()}</slot>
+<span
+  class="badge variant-{variant} color-{resolvedColor} size-{size}"
+  class:pulse={status === "running"}
+>
+  {#if status === "running"}
+    <span class="pulse-dot"></span>
   {/if}
+  {resolvedLabel}
+  <slot />
 </span>
 
 <style>
   .badge {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-
-    font-family: var(--mv-font-mono);
-    font-weight: var(--mv-font-weight-bold);
-    letter-spacing: var(--mv-letter-spacing-wide);
-    text-transform: uppercase;
-
+    gap: var(--mv-spacing-xxs);
     border-radius: var(--mv-radius-sm);
-    box-shadow: var(--mv-shadow-badge);
-
+    font-family: var(--mv-font-sans);
+    font-weight: var(--mv-font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--mv-letter-spacing-widest);
+    line-height: 1;
     white-space: nowrap;
-    transition: var(--mv-transition-base);
   }
 
-  /* Sizes */
+  /* サイズ */
   .size-small {
-    height: var(--mv-badge-height-sm, 18px);
-    padding: 0 var(--mv-spacing-xs);
-    font-size: var(--mv-font-size-xxs, 9px);
+    padding: var(--mv-spacing-xxxs) var(--mv-spacing-xs);
+    font-size: var(--mv-font-size-xxs);
   }
 
   .size-medium {
-    /* StatusBadge default equivalent */
     padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     font-size: var(--mv-font-size-xs);
-    min-width: var(--mv-badge-min-width);
   }
 
-  /* 
-    Status Colors
-    Maps to `src/design-system/variables/status.css`
-    Uses -bg, -border, -text suffixes
-  */
-
-  .status-pending {
-    background: var(--mv-color-status-pending-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-pending-border);
-    color: var(--mv-color-status-pending-text);
+  /* カラーマッピング (CSS変数) */
+  .color-primary {
+    --badge-bg: var(--mv-primitive-frost-3);
+    --badge-border: var(--mv-primitive-frost-1);
+    --badge-text: var(--mv-primitive-frost-1);
+    --badge-glow: var(--mv-color-glow-focus);
+  }
+  .color-secondary {
+    --badge-bg: var(--mv-color-surface-secondary);
+    --badge-border: var(--mv-color-border-subtle);
+    --badge-text: var(--mv-color-text-secondary);
+  }
+  .color-success {
+    --badge-bg: var(--mv-color-status-running-bg);
+    --badge-border: var(--mv-primitive-aurora-green);
+    --badge-text: var(--mv-primitive-aurora-green);
+    --badge-glow: var(--mv-color-glow-running);
+  }
+  .color-warning {
+    --badge-bg: var(--mv-color-status-pending-bg);
+    --badge-border: var(--mv-primitive-aurora-yellow);
+    --badge-text: var(--mv-primitive-aurora-yellow);
+  }
+  .color-danger {
+    --badge-bg: var(--mv-color-status-failed-bg);
+    --badge-border: var(--mv-primitive-aurora-red);
+    --badge-text: var(--mv-primitive-aurora-red);
+  }
+  .color-info {
+    --badge-bg: var(--mv-color-status-ready-bg);
+    --badge-border: var(--mv-primitive-frost-2);
+    --badge-text: var(--mv-primitive-frost-2);
+  }
+  .color-neutral {
+    --badge-bg: var(--mv-color-surface-secondary);
+    --badge-border: var(--mv-color-border-subtle);
+    --badge-text: var(--mv-color-text-muted);
   }
 
-  .status-ready {
-    background: var(--mv-color-status-ready-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-ready-border);
-    color: var(--mv-color-status-ready-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-ready-text);
+  /* バリアント */
+
+  /* Default: Flat/Solid-ish */
+  .variant-default {
+    background: var(--badge-bg);
+    border: var(--mv-border-width-thin) solid var(--badge-border);
+    color: var(--badge-text);
   }
 
-  .status-running {
-    background: var(--mv-color-status-running-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-running-border);
-    color: var(--mv-color-status-running-text);
-    box-shadow: var(--mv-shadow-badge-glow-md)
-      var(--mv-color-status-running-glow);
-    animation: pulse var(--mv-duration-pulse) infinite;
+  /* Outline: Transparent bg */
+  .variant-outline {
+    background: transparent;
+    border: var(--mv-border-width-thin) solid var(--badge-border);
+    color: var(--badge-text);
   }
 
-  .status-succeeded {
-    background: var(--mv-color-status-succeeded-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-succeeded-border);
-    color: var(--mv-color-status-succeeded-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm)
-      var(--mv-color-status-succeeded-border);
+  /* Glass: Rich transparent Look */
+  .variant-glass {
+    background: var(
+      --badge-bg
+    ); /* Use same semi-transparent base but maybe add blur? */
+    background: color-mix(
+      in srgb,
+      var(--badge-bg),
+      transparent 50%
+    ); /* make it subtler */
+    border: var(--mv-border-width-thin) solid color-mix(in srgb, var(--badge-border), transparent 30%);
+    color: var(--badge-text);
+    box-shadow: var(--mv-shadow-badge-glow-lg) var(--badge-bg); /* subtle glow */
+    backdrop-filter: blur(4px);
   }
 
-  .status-completed {
-    background: var(--mv-color-status-completed-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-completed-border);
-    color: var(--mv-color-status-completed-text);
-    box-shadow: var(--mv-shadow-badge-glow-lg)
-      var(--mv-color-status-completed-glow);
-  }
-
-  .status-failed {
-    background: var(--mv-color-status-failed-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-failed-border);
-    color: var(--mv-color-status-failed-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm)
-      var(--mv-color-status-failed-border);
-  }
-
-  .status-canceled {
-    background: var(--mv-color-status-canceled-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-canceled-border);
-    color: var(--mv-color-status-canceled-text);
-  }
-
-  .status-blocked {
-    background: var(--mv-color-status-blocked-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-blocked-border);
-    color: var(--mv-color-status-blocked-text);
-  }
-
-  .status-retry-wait {
-    background: var(--mv-color-status-retry-wait-bg);
-    border: var(--mv-border-width-thin) solid
-      var(--mv-color-status-retry-wait-border);
-    color: var(--mv-color-status-retry-wait-text);
-    animation: pulse-slow 2s infinite;
+  /* パルスドット */
+  .pulse-dot {
+    width: var(--mv-status-dot-size);
+    height: var(--mv-status-dot-size);
+    border-radius: var(--mv-radius-full);
+    background-color: var(--badge-text);
+    animation: pulse 1.5s infinite;
   }
 
   @keyframes pulse {
     0% {
       opacity: 1;
+      transform: scale(1);
     }
     50% {
-      opacity: 0.8;
+      opacity: 0.4;
+      transform: scale(0.8);
     }
     100% {
       opacity: 1;
-    }
-  }
-
-  @keyframes pulse-slow {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.7;
+      transform: scale(1);
     }
   }
 </style>

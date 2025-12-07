@@ -1,84 +1,295 @@
-# TODO: multiverse v2.0 Implementation
+# TODO: multiverse v3.0 - Phase 4 Implementation
 
-Based on PRD v2.0
-
----
-
-## フォローアップ / 未完了のタスク
-
-1. ~~**Phase 1 E2E 追加**: チャット → タスク生成の Wails 経由 E2E を追加し UI も検証~~ ✅ 完了（test/e2e/chat_flow_test.go）
-2. ~~**依存グラフ UI 再確認**: Graph モードで GridCanvas + ConnectionLine を表示し AC-P2-01/02 を満たすか検証~~ ✅ 完了（MainViewPreview.svelte 修正済み）
-3. ~~**チャット生成タスクの即時反映強化**: ChatHandler のイベント発火でフロント taskStore へ即時反映を確認/補強~~ ✅ 完了（EventTaskCreated 実装済み）
-4. ~~**複数プール・並列実行対応**: ExecutionOrchestrator を複数 PoolID/並列実行（maxConcurrent・runningTasks）に拡張~~ ✅ 完了
-5. ~~**READY/BLOCKED リアルタイム通知**: Scheduler 更新時に task:stateChange を発火しポーリング依存を削減~~ ✅ 完了
-6. ~~**Graph 矢印の安定化**: Graph モードで依存矢印を確実に表示（WBS のみになる問題の解消）~~ ✅ 完了（MainViewPreview.svelte 修正済み）
-7. ~~**wailsjs runtime 再生成**: `frontend/ide` で runtime を再生成し import パスを実在する構成へ修正~~ ✅ 完了
-8. ~~**デバッグ送信の無効化/削除**: `http://127.0.0.1:7242/ingest/...` へのデバッグ POST を削除~~ ✅ 完了
-9. ~~**Executor 作業ディレクトリ是正**: `agent-runner` 実行時の cwd と YAML の repo を workspace の ProjectRoot に合わせる~~ ✅ 完了
-10. ~~**停止時の挙動定義**: Stop が実行中タスクを待たず IDLE 遷移する現仕様を明文化し、必要なら Executor 側キャンセル/kill 処理を追加~~ ✅ 完了（Force Stop 実装済み）
-11. ~~**フロント統合テスト追加**: チャット生成タスク即時反映・依存矢印表示・イベント更新の UI/E2E テスト（Graph/WBS/Backlog/Execution イベントも含める）~~ ✅ 完了
+Based on PRD v3.0 - LLM 本番接続と実タスク実行
 
 ---
 
-## PRD v2.0 実装完了 🎉
+## 現在のステータス
 
-主要フェーズ（Phase 1〜3）の実装は完了済み。全てのレビュー指摘事項が対応完了し Production Ready です。
-
----
-
-## 修正対応が必要な課題（2025-12 コードレビュー）
-
-- [x] **Task YAML 生成ロジックの修正** (Backend)
-
-  - 対象: `internal/orchestrator/executor.go`
-  - 内容: `generateTaskYAML` が `Title` しか渡していない。`Description` と `AcceptanceCriteria` も含めるように修正する。
-
-- [x] **依存関係ロジックの厳格化** (Backend)
-
-  - 対象: `internal/orchestrator/scheduler.go`
-  - 内容: 依存タスクが `CANCELED` や `FAILED` の場合、後続タスクも実行せずに `BLOCKED` または `CANCELED` にする（現在は実行されてしまう）。
-
-- [x] **Worker Pool 設定の実装** (Backend)
-
-  - 対象: `internal/orchestrator/task_store.go`
-  - 内容: `TODO: worker-pools.json から読み込む実装を追加` を実装し、設定ファイルからプール定義をロードできるようにする。
-
-- [x] **フロントエンドのエラー通知** (Frontend)
-
-  - 対象: `frontend/ide/src/stores/executionStore.ts`
-  - 内容: 実行開始失敗時などに `console.error` だけでなくユーザーへのフィードバック（Toast 等）を行う。
-
-- [x] **フロント統合テストの拡充** (Frontend/E2E)
-  - 対象: `frontend/ide/tests/`
-  - 内容: チャット生成タスク即時反映・依存矢印表示・イベント更新をカバーする Playwright テストを追加する。
-  - ✅ 完了: `integration_task_update.spec.ts` で UI 更新・Graph/WBS/Backlog/Execution イベントをカバー
+| フェーズ    | 内容                           | ステータス |
+| ----------- | ------------------------------ | ---------- |
+| Phase 1     | チャット → タスク生成          | ✅ 完了    |
+| Phase 2     | 依存関係グラフ・WBS 表示       | ✅ 完了    |
+| Phase 3     | 自律実行ループ                 | ✅ 完了    |
+| **Phase 4** | **LLM 本番接続と実タスク実行** | 🚧 進行中  |
 
 ---
 
-## 今回の追加発見
+## Phase 4 タスク一覧
 
-- Executor が workspace の親ディレクトリを cwd にし、YAML の`repo: "."`も親を指すため、実プロジェクト外で実行されるリスクがある。workspace の ProjectRoot を正しく使う。
-- フロントに残存する`http://127.0.0.1:7242/ingest/...`向けデバッグ送信は本番で不要かつリスク。フラグで無効化するか削除する。
-- Stop が実行中タスクを待たずに IDLE へ遷移する挙動を仕様として明記するか、即時停止を求めるならキャンセル/kill 手段を追加する。
-- チャット生成タスク即時反映・依存矢印表示・イベント更新をカバーするフロント統合テスト（Graph/WBS/Backlog/Execution イベント含む）が未整備。
+### 1. バックエンド: LLM 接続の本番化
 
-## 緊急対応が必要な課題（2025-12 品質レビュー）
+#### 1.1 LLM 設定管理
 
-- [x] 本番デバッグ送信の停止
+- [ ] **LLMConfigStore の実装**
+  - 場所: `internal/ide/llm_config.go`
+  - 内容:
+    - LLM 設定の JSON 永続化（`~/.multiverse/config/llm.json`）
+    - API キーの暗号化保存（OS keychain 連携検討）
+    - 設定のリロード機能
 
-  - 対象: `frontend/ide/src/App.svelte`, `frontend/ide/src/stores/taskStore.ts`, `frontend/ide/src/stores/chat.ts`, `frontend/ide/src/lib/grid/ConnectionLine.svelte`
-  - 内容: `http://127.0.0.1:7242/ingest/...` への POST を削除済み。
+```go
+type LLMConfig struct {
+    Kind         string `json:"kind"`
+    Model        string `json:"model"`
+    BaseURL      string `json:"baseUrl,omitempty"`
+    SystemPrompt string `json:"systemPrompt,omitempty"`
+    // APIKey は keychain または環境変数から取得
+}
+```
 
-- [x] 非 default プールの実行有効化
+- [ ] **環境変数検証の強化**
 
-  - 対象: `cmd/multiverse/app.go`（ExecutionOrchestrator 生成時の `poolID "default"` 固定）
-  - 内容: プール別オーケストレータ生成または Dequeue をプール単位で処理し、非 default プールのジョブがデキューされるようにする。
+  - 場所: `app.go:newMetaClientFromEnv()`
+  - 内容:
+    - `OPENAI_API_KEY` が空の場合のエラーメッセージ改善
+    - 設定ファイルからの読み込みフォールバック
 
-- [x] agent-runner 実行ディレクトリと repo の整合
+- [ ] **LLM 接続テスト API**
+  - 場所: `app.go`
+  - 内容:
+    - `TestLLMConnection()` メソッド追加
+    - タイムアウト付きテストリクエスト
 
-  - 対象: `internal/orchestrator/executor.go`
-  - 内容: `cmd.Dir` と Task YAML の `repo` をワークスペースの `ProjectRoot` に合わせ、実プロジェクト上で実行されるよう修正する。
+#### 1.2 プロンプトエンジニアリング
 
-- [x] タスク試行回数の一貫管理
-  - 対象: `internal/orchestrator/executor.go`, `execution_orchestrator.go`
-  - 内容: 成功・失敗を問わず `Task.AttemptCount` を一貫して更新し、監査可能な試行回数管理を行う。
+- [ ] **Decompose プロンプトの洗練**
+
+  - 場所: `internal/meta/client.go:decomposeSystemPrompt`
+  - 内容:
+    - 日本語/英語のプロジェクト判定
+    - より具体的なタスク分解指示
+    - 出力フォーマットの厳格化
+
+- [ ] **エラーハンドリングの改善**
+  - 場所: `internal/meta/client.go:Decompose()`
+  - 内容:
+    - YAML パースエラー時のリカバリ
+    - 不完全なレスポンスの検出
+
+---
+
+### 2. フロントエンド: 設定 UI
+
+#### 2.1 LLM 設定画面
+
+- [ ] **LLMSettings コンポーネント**
+
+  - 場所: `frontend/ide/src/lib/settings/LLMSettings.svelte`
+  - 内容:
+    - プロバイダ選択（mock / openai-chat）
+    - API キー入力（マスク表示）
+    - モデル選択
+    - 接続テストボタン
+
+- [ ] **設定画面の統合**
+  - 場所: `frontend/ide/src/App.svelte` またはツールバー
+  - 内容:
+    - 設定画面へのナビゲーション
+    - モーダルまたはサイドパネル
+
+#### 2.2 Wails バインディング
+
+- [ ] **App API の追加**
+
+  - 場所: `app.go`
+  - 内容:
+    ```go
+    func (a *App) GetLLMConfig() LLMConfig
+    func (a *App) SetLLMConfig(config LLMConfig) error
+    func (a *App) TestLLMConnection() (string, error)
+    ```
+
+- [ ] **wailsjs 再生成**
+  - 場所: `frontend/ide/wailsjs/`
+  - コマンド: `wails generate module`
+
+---
+
+### 3. フロントエンド: 実行制御 UI
+
+#### 3.1 ExecutionControls コンポーネント
+
+- [ ] **ExecutionControls の完成**
+
+  - 場所: `frontend/ide/src/lib/toolbar/ExecutionControls.svelte`
+  - 内容:
+    - 開始/一時停止/再開/停止ボタン
+    - 実行状態インジケーター
+    - ツールチップ表示
+
+- [ ] **executionStore の改善**
+  - 場所: `frontend/ide/src/stores/executionStore.ts`
+  - 内容:
+    - エラーハンドリング
+    - トースト通知連携
+
+#### 3.2 Toolbar への統合
+
+- [ ] **Toolbar レイアウト更新**
+  - 場所: `frontend/ide/src/lib/toolbar/Toolbar.svelte`
+  - 内容:
+    - ExecutionControls の配置
+    - レスポンシブ対応
+
+---
+
+### 4. タスク実行ログのリアルタイム表示
+
+#### 4.1 バックエンド: ログストリーミング
+
+- [ ] **StreamingExecuteTask の実装**
+
+  - 場所: `internal/orchestrator/executor.go`
+  - 内容:
+    - stdout/stderr のリアルタイム送信
+    - EventEmitter 経由でフロントエンドに転送
+
+- [ ] **TaskLogEvent の定義**
+  - 場所: `internal/orchestrator/events.go`
+  - 内容:
+
+    ```go
+    const EventTaskLog = "task:log"
+
+    type TaskLogEvent struct {
+        TaskID    string    `json:"taskId"`
+        AttemptID string    `json:"attemptId"`
+        Stream    string    `json:"stream"` // stdout / stderr
+        Line      string    `json:"line"`
+        Timestamp time.Time `json:"timestamp"`
+    }
+    ```
+
+#### 4.2 フロントエンド: ログビューワー
+
+- [ ] **taskLogStore の実装**
+
+  - 場所: `frontend/ide/src/stores/taskLogStore.ts`
+  - 内容:
+    - タスク ID ごとのログ管理
+    - 最大行数制限
+    - クリア機能
+
+- [ ] **TaskLogView コンポーネント**
+
+  - 場所: `frontend/ide/src/lib/components/TaskLogView.svelte`
+  - 内容:
+    - ログ行の表示
+    - 自動スクロール
+    - ストリーム別の色分け
+
+- [ ] **FloatingChatWindow への統合**
+  - 場所: `frontend/ide/src/lib/components/chat/FloatingChatWindow.svelte`
+  - 内容:
+    - Log タブでタスクログを表示
+    - タスク選択で対象を切り替え
+
+---
+
+### 5. 統合テスト
+
+#### 5.1 E2E テスト
+
+- [ ] **LLM 設定テスト**
+
+  - 場所: `frontend/ide/tests/llm_settings.spec.ts`
+  - 内容:
+    - 設定画面の表示
+    - 設定の保存・読み込み
+    - 接続テスト（モック）
+
+- [ ] **実行制御テスト**
+
+  - 場所: `frontend/ide/tests/execution_controls.spec.ts`
+  - 内容:
+    - 開始/一時停止/再開/停止の操作
+    - 状態表示の更新
+
+- [ ] **ログ表示テスト**
+  - 場所: `frontend/ide/tests/task_log.spec.ts`
+  - 内容:
+    - ログイベントの受信
+    - 表示の更新
+
+#### 5.2 バックエンド統合テスト
+
+- [ ] **LLM 接続テスト**
+  - 場所: `test/integration/llm_connection_test.go`
+  - 内容:
+    - モック LLM でのパイプライン検証
+    - 本番 LLM でのドライラン（CI スキップ）
+
+---
+
+### 6. ドキュメント更新
+
+- [x] **PRD.md の更新**
+
+  - Phase 4 の追加
+  - Phase 1-3 を「完了済み」としてマーク
+
+- [x] **TODO.md の更新**
+
+  - Phase 4 タスクの詳細化
+
+- [ ] **GEMINI.md の更新**
+
+  - 新規コンポーネントの追加
+
+- [ ] **CLAUDE.md の更新**
+  - 開発ガイドラインの更新
+
+---
+
+## 完了条件
+
+| ID       | 条件                                                  | ステータス |
+| -------- | ----------------------------------------------------- | ---------- |
+| AC-P4-01 | OpenAI API キーを設定画面から入力・保存できる         | ⬜         |
+| AC-P4-02 | 設定画面から LLM 接続テストを実行できる               | ⬜         |
+| AC-P4-03 | チャットメッセージが本番 LLM で処理される             | ⬜         |
+| AC-P4-04 | 生成されたタスクが実際に agent-runner で実行される    | ⬜         |
+| AC-P4-05 | タスク実行ログがリアルタイムで表示される              | ⬜         |
+| AC-P4-06 | 実行コントロール（開始/一時停止/再開/停止）が機能する | ⬜         |
+
+---
+
+## 依存関係
+
+```mermaid
+graph TD
+    A[1.1 LLMConfigStore] --> B[2.1 LLMSettings UI]
+    A --> C[1.2 プロンプト洗練]
+    B --> D[2.2 Wails バインディング]
+    E[3.1 ExecutionControls] --> F[3.2 Toolbar 統合]
+    G[4.1 ログストリーミング] --> H[4.2 TaskLogView]
+    H --> I[4.3 FloatingChatWindow 統合]
+
+    D --> J[5.1 E2E テスト]
+    F --> J
+    I --> J
+    J --> K[6. ドキュメント更新]
+```
+
+---
+
+## 実装優先順位
+
+1. **高優先度（Week 1）**
+
+   - 1.1 LLMConfigStore の実装
+   - 2.1 LLMSettings コンポーネント
+   - 2.2 Wails バインディング
+   - 3.1 ExecutionControls の完成
+
+2. **中優先度（Week 2）**
+
+   - 1.2 プロンプトエンジニアリング
+   - 4.1 ログストリーミング
+   - 4.2 TaskLogView コンポーネント
+   - 5.1 E2E テスト
+
+3. **低優先度（継続）**
+   - 6. ドキュメント更新
+   - 細かい UI 調整

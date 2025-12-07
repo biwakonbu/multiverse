@@ -24,7 +24,31 @@
   .log-placeholder {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Required for flex item to shrink and enable scrolling */
+    overflow-y: auto;
     gap: var(--mv-spacing-xs);
+
+    /* Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--mv-glass-scrollbar) transparent;
+  }
+
+  .log-placeholder::-webkit-scrollbar {
+    width: var(--mv-size-scrollbar);
+  }
+
+  .log-placeholder::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .log-placeholder::-webkit-scrollbar-thumb {
+    background: var(--mv-glass-scrollbar);
+    border-radius: var(--mv-border-radius-scrollbar);
+  }
+
+  .log-placeholder::-webkit-scrollbar-thumb:hover {
+    background: var(--mv-glass-scrollbar-hover);
   }
 
   .log-entry {
