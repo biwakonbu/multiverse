@@ -129,6 +129,16 @@ export const statusColors = {
     border: pastel.yellow,
     text: aurora.yellow,
   },
+  completed: {
+    background: '#2d261a',
+    border: aurora.yellow,
+    text: aurora.yellow,
+  },
+  retryWait: {
+    background: '#2d2420',
+    border: aurora.orange,
+    text: aurora.orange,
+  },
 } as const;
 
 // サーフェスカラー - 背景・パネル

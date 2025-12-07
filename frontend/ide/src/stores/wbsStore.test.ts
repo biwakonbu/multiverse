@@ -36,6 +36,13 @@ function createTask(
 
 describe('expandedNodes', () => {
   beforeEach(() => {
+    // テスト用のタスクデータをセットアップしてツリーを構築する
+    tasks.setTasks([
+      createTask('1', 'T1', 'PENDING', '概念設計'),
+      createTask('2', 'T2', 'PENDING', '実装設計'),
+      createTask('3', 'T3', 'PENDING', '実装'),
+      createTask('4', 'T4', 'PENDING', '検証'),
+    ]);
     expandedNodes.collapseAll();
   });
 

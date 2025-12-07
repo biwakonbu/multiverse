@@ -1,0 +1,112 @@
+import { Meta, ColorPalette, ColorItem } from "@storybook/blocks";
+import { primitiveColors, semanticColors } from "../tokens/colors";
+
+<Meta title="Design System/Tokens/Colors" />
+
+# Color Palette
+
+Multiverse IDE uses the **Nord Deep** theme, extending the Nord palette with deeper background tones for a rich, immersive environment.
+
+## Semantic Colors (Recommended)
+
+Always use semantic colors in your components. These map to the primitive colors but define the _purpose_ of the color.
+
+<ColorPalette>
+  <ColorItem
+    title="Status: Background"
+    subtitle="--mv-color-status-*-bg"
+    colors={{
+      Pending: semanticColors.status.pending.background,
+      Ready: semanticColors.status.ready.background,
+      Running: semanticColors.status.running.background,
+      Succeeded: semanticColors.status.succeeded.background,
+      Completed: semanticColors.status.completed.background,
+      Failed: semanticColors.status.failed.background,
+      Blocked: semanticColors.status.blocked.background,
+      RetryWait: semanticColors.status.retryWait.background,
+    }}
+  />
+  <ColorItem
+    title="Status: Text"
+    subtitle="--mv-color-status-*-text"
+    colors={{
+      Pending: semanticColors.status.pending.text,
+      Ready: semanticColors.status.ready.text,
+      Running: semanticColors.status.running.text,
+      Succeeded: semanticColors.status.succeeded.text,
+      Completed: semanticColors.status.completed.text,
+      Failed: semanticColors.status.failed.text,
+      Blocked: semanticColors.status.blocked.text,
+      RetryWait: semanticColors.status.retryWait.text,
+    }}
+  />
+  <ColorItem
+    title="Surface"
+    subtitle="--mv-color-surface-*"
+    colors={{
+      App: semanticColors.surface.app,
+      Primary: semanticColors.surface.primary,
+      Secondary: semanticColors.surface.secondary,
+      Node: semanticColors.surface.node,
+      Hover: semanticColors.surface.hover,
+      Selected: semanticColors.surface.selected,
+    }}
+  />
+  <ColorItem
+    title="Text"
+    subtitle="--mv-color-text-*"
+    colors={{
+      Primary: semanticColors.text.primary,
+      Secondary: semanticColors.text.secondary,
+      Muted: semanticColors.text.muted,
+      Disabled: semanticColors.text.disabled,
+    }}
+  />
+  <ColorItem
+    title="Interactive"
+    subtitle="--mv-color-interactive-*"
+    colors={{
+      Primary: semanticColors.interactive.primary,
+      Hover: semanticColors.interactive.primaryHover,
+      Secondary: semanticColors.interactive.secondary,
+      Danger: semanticColors.interactive.danger,
+    }}
+  />
+</ColorPalette>
+
+## Primitive Colors (Nord + Adjustments)
+
+Raw values. Avoid using these directly.
+
+<ColorPalette>
+  <ColorItem
+    title="Polar Night"
+    subtitle="Deep Backgrounds"
+    colors={primitiveColors.polarNight}
+  />
+  <ColorItem
+    title="Snow Storm"
+    subtitle="Bright Text"
+    colors={primitiveColors.snowStorm}
+  />
+  <ColorItem
+    title="Frost"
+    subtitle="Blue Accents"
+    colors={primitiveColors.frost}
+  />
+  <ColorItem
+    title="Aurora"
+    subtitle="Semantics"
+    colors={primitiveColors.aurora}
+  />
+  <ColorItem
+    title="Deep (Extended)"
+    subtitle="Expanded Darks"
+    colors={primitiveColors.deep}
+  />
+  <ColorItem
+    title="Pastel (Extended)"
+    subtitle="Soft Semantics"
+    colors={primitiveColors.pastel}
+  />
+</ColorPalette>

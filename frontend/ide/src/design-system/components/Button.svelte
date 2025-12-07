@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import Spinner from "./Spinner.svelte";
 
   /**
    * ボタンのバリアント
@@ -7,8 +8,10 @@
    * - secondary: 補助アクション用（控えめ）
    * - ghost: テキストのみ（背景なし）
    * - danger: 破壊的アクション用（赤）
+   * - crystal: ガラスモーフィズム + グロー（新デザイン）
    */
-  export let variant: "primary" | "secondary" | "ghost" | "danger" = "primary";
+  export let variant: "primary" | "secondary" | "ghost" | "danger" | "crystal" =
+    "primary";
 
   /**
    * ボタンのサイズ
@@ -63,10 +66,11 @@
   class="button variant-{variant} size-{size}"
   class:disabled={isDisabled}
   class:loading
+  class:crystal-glow={variant === "crystal"}
   on:click={handleClick}
 >
   {#if loading}
-    <span class="spinner"></span>
+    <Spinner size={size === "small" ? "xs" : "sm"} />
     {#if loadingLabel}
       {loadingLabel}
     {:else if label}
@@ -94,7 +98,8 @@
     cursor: pointer;
     transition:
       var(--mv-transition-hover),
-      transform 120ms ease;
+      transform 120ms ease,
+      box-shadow 200ms ease;
     white-space: nowrap;
     background: var(--btn-bg, var(--mv-color-surface-secondary));
     color: var(--btn-text, var(--mv-color-text-primary));
@@ -194,6 +199,27 @@
     --btn-border-active: var(--mv-primitive-pastel-red);
   }
 
+  /* Crystal Variant (New) */
+  .variant-crystal {
+    --btn-bg: var(--mv-btn-crystal-bg);
+    --btn-border: var(--mv-btn-crystal-border);
+    --btn-text: var(--mv-primitive-frost-nord9);
+    --btn-shadow: var(--mv-btn-crystal-shadow);
+
+    --btn-bg-hover: var(--mv-btn-crystal-bg-hover);
+    --btn-border-hover: var(--mv-primitive-frost-nord9);
+    --btn-text-hover: var(--mv-primitive-frost-nord8);
+    --btn-shadow-hover: var(--mv-btn-crystal-shadow-hover);
+
+    --btn-bg-active: var(--mv-btn-crystal-bg-active);
+    background: var(--btn-bg);
+    backdrop-filter: blur(10px);
+  }
+
+  .variant-crystal:hover {
+    text-shadow: var(--mv-btn-crystal-text-shadow);
+  }
+
   /* 無効状態 */
   .disabled {
     opacity: 0.6;
@@ -208,21 +234,5 @@
   .button:focus-visible {
     outline: var(--mv-focus-ring-width) solid var(--mv-color-border-focus);
     outline-offset: var(--mv-focus-ring-offset);
-  }
-
-  /* スピナー */
-  .spinner {
-    width: var(--mv-icon-size-xs);
-    height: var(--mv-icon-size-xs);
-    border: var(--mv-border-width-default) solid transparent;
-    border-top-color: currentColor;
-    border-radius: var(--mv-radius-full);
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
   }
 </style>

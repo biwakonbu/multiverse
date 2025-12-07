@@ -1,0 +1,46 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Design System/Introduction" />
+
+# Multiverse IDE Design System
+
+**Concept**: A "Deep Space" aesthetic combined with a "Crystal HUD" interface.
+**Theme**: Nord Deep (Expanded Nord Palette).
+
+## Core Principles
+
+1.  **Phantom Glass**: Use semi-transparent backgrounds (`--mv-glass-bg`) and subtle borders (`--mv-glass-border-subtle`) to create depth.
+2.  **Aurora Glow**: Use soft, colored shadows (`--mv-color-glow-*`) to indicate status and focus, but keep it subtle.
+3.  **Semantic Colors**: Always use semantic variables (e.g., `--mv-color-status-running`) instead of raw hex values.
+4.  **Interactive Feedback**: All interactive elements should have hover/active/focus states.
+
+## Layout Primitives
+
+The system provides low-level layout components to avoid custom CSS:
+
+- **Box**: Basic container with padding, margin, background.
+- **Flex**: Flexbox container.
+- **Grid**: CSS Grid container.
+- **Panel**: The core glass container component.
+
+## Typography
+
+Use `<Text>` and `<Heading>` components to ensure consistent font families and sizes.
+
+- **Font Primary**: Inter / Sans-serif
+- **Font Branding**: Orbitron (Headings)
+- **Font Code**: JetBrains Mono / Monospace
+
+## Status Colors
+
+| Status    | Color  | Meaning        |
+| :-------- | :----- | :------------- |
+| `running` | Green  | Active/Working |
+| `pending` | Orange | Waiting        |
+| `failed`  | Red    | Error/Stop     |
+| `ready`   | Blue   | Available      |
+
+## Development
+
+All components are located in `src/design-system/components`.
+Use `pnpm storybook` to view and test components.

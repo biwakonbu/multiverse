@@ -3,7 +3,7 @@
   import { expandedNodes } from "../../stores/wbsStore";
   import { selectedTaskId } from "../../stores";
   import { phaseToCssClass } from "../../schemas";
-  import StatusBadge from "./StatusBadge.svelte";
+  import WBSStatusBadge from "./WBSStatusBadge.svelte";
   import ProgressBar from "./ProgressBar.svelte";
   import { getProgressColor } from "./utils";
   import { onDestroy } from "svelte";
@@ -82,6 +82,10 @@
     }
   }
 
+  function normalizeStatus(status: string): any {
+    return status.toLowerCase();
+  }
+
   function handleClick() {
     if (isTask && node.task) {
       selectedTaskId.select(node.task.id);
@@ -121,11 +125,14 @@
   on:keydown={handleKeydown}
 >
   <!-- Indentation Guides -->
-  <!-- stylelint-disable-next-line scale-unlimited/declaration-strict-value -->
+  <!-- Indentation Guides -->
   {#each indentGuides as _, i}
     <div
       class="indent-guide"
-      style:left="{i * INDENT_WIDTH + INDENT_BASE + INDENT_WIDTH / 2 - 1}px"
+      style:--guide-left="{i * INDENT_WIDTH +
+        INDENT_BASE +
+        INDENT_WIDTH / 2 -
+        1}px"
     ></div>
   {/each}
 
@@ -165,7 +172,7 @@
 
   <!-- ステータスバッジ（タスクのみ） -->
   {#if isTask && node.task}
-    <StatusBadge status={node.task.status} />
+    <WBSStatusBadge status={normalizeStatus(node.task.status)} />
     {#if isRetryWait}
       <span class="retry-info">
         Try {attemptCount} • {timeRemaining}
@@ -216,6 +223,7 @@
   /* Indentation Guide */
   .indent-guide {
     position: absolute;
+    left: var(--guide-left);
     top: 0;
     bottom: 0;
     width: var(--mv-spacing-xxxs);
@@ -254,13 +262,15 @@
   .wbs-node.is-phase {
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-color-text-primary);
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-subtle);
   }
 
   .wbs-node.is-milestone {
     font-weight: var(--mv-font-weight-bold);
     color: var(--mv-color-text-primary);
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-strong);
     background: var(--mv-glass-bg-dark);
   }
 

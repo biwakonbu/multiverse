@@ -5,36 +5,40 @@
   GridNode 内で使用される小さなコンポーネント。
 -->
 <script lang="ts">
-  import type { StatusKey } from '../../design-system/tokens/colors';
+  import type { StatusKey } from "../../design-system/tokens/colors";
 
   // ステータス（必須）
-  export let status: StatusKey = 'pending';
+  export let status: StatusKey = "pending";
 
   // サイズ
-  export let size: 'small' | 'medium' | 'large' = 'medium';
+  export let size: "small" | "medium" | "large" = "medium";
 
   // ラベル表示（アクセシビリティ）
   export let showLabel = false;
 
   // ステータスラベルのマッピング
   const statusLabels: Record<StatusKey, string> = {
-    pending: '待機中',
-    ready: '準備完了',
-    running: '実行中',
-    succeeded: '成功',
-    failed: '失敗',
-    canceled: 'キャンセル',
-    blocked: 'ブロック',
+    pending: "待機中",
+    ready: "準備完了",
+    running: "実行中",
+    succeeded: "成功",
+    completed: "完了",
+    failed: "失敗",
+    canceled: "キャンセル",
+    blocked: "ブロック",
+    retryWait: "リトライ待機",
   };
 </script>
 
 <div
-  class="status-indicator status-{status} size-{size}"
+  class="status-indicator status-{status === 'retryWait'
+    ? 'retry-wait'
+    : status} size-{size}"
   role="status"
   aria-label={statusLabels[status]}
 >
   <span class="dot">
-    {#if status === 'running'}
+    {#if status === "running"}
       <span class="pulse-ring"></span>
     {/if}
   </span>
@@ -101,6 +105,14 @@
     background: var(--mv-color-status-blocked-text);
   }
 
+  .status-completed .dot {
+    background: var(--mv-color-status-completed-text);
+  }
+
+  .status-retry-wait .dot {
+    background: var(--mv-color-status-retry-wait-text);
+  }
+
   /* パルスリングアニメーション */
   .pulse-ring {
     position: absolute;
@@ -111,7 +123,8 @@
   }
 
   @keyframes pulse-ring {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       opacity: 1;
     }
@@ -136,11 +149,31 @@
   }
 
   /* ステータス別ラベルカラー */
-  .status-pending .label { color: var(--mv-color-status-pending-text); }
-  .status-ready .label { color: var(--mv-color-status-ready-text); }
-  .status-running .label { color: var(--mv-color-status-running-text); }
-  .status-succeeded .label { color: var(--mv-color-status-succeeded-text); }
-  .status-failed .label { color: var(--mv-color-status-failed-text); }
-  .status-canceled .label { color: var(--mv-color-status-canceled-text); }
-  .status-blocked .label { color: var(--mv-color-status-blocked-text); }
+  .status-pending .label {
+    color: var(--mv-color-status-pending-text);
+  }
+  .status-ready .label {
+    color: var(--mv-color-status-ready-text);
+  }
+  .status-running .label {
+    color: var(--mv-color-status-running-text);
+  }
+  .status-succeeded .label {
+    color: var(--mv-color-status-succeeded-text);
+  }
+  .status-completed .label {
+    color: var(--mv-color-status-completed-text);
+  }
+  .status-failed .label {
+    color: var(--mv-color-status-failed-text);
+  }
+  .status-canceled .label {
+    color: var(--mv-color-status-canceled-text);
+  }
+  .status-blocked .label {
+    color: var(--mv-color-status-blocked-text);
+  }
+  .status-retry-wait .label {
+    color: var(--mv-color-status-retry-wait-text);
+  }
 </style>

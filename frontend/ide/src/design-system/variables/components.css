@@ -51,4 +51,15 @@
   --mv-color-accent-primary-alpha: rgba(136, 192, 208, 0.3);
   --mv-color-accent-primary-alpha-strong: rgba(136, 192, 208, 0.6);
   --mv-color-shadow-medium: rgba(0, 0, 0, 0.3);
+
+  /* ========================================
+     Crystal Button
+     ======================================== */
+  --mv-btn-crystal-bg: rgba(255, 255, 255, 0.03);
+  --mv-btn-crystal-border: rgba(255, 255, 255, 0.1);
+  --mv-btn-crystal-shadow: 0 0 15px rgba(136, 192, 208, 0.1), inset 0 0 20px rgba(136, 192, 208, 0.05);
+  --mv-btn-crystal-bg-hover: rgba(136, 192, 208, 0.1);
+  --mv-btn-crystal-shadow-hover: 0 0 20px rgba(136, 192, 208, 0.3), inset 0 0 20px rgba(136, 192, 208, 0.1);
+  --mv-btn-crystal-bg-active: rgba(136, 192, 208, 0.15);
+  --mv-btn-crystal-text-shadow: 0 0 8px rgba(136, 192, 208, 0.6);
 }

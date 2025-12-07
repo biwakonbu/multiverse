@@ -1,87 +1,61 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte";
+  import { fade } from "svelte/transition";
 
-  /**
-   * 入力フィールドのタイプ
-   */
-  export let type: 'text' | 'password' | 'email' | 'number' | 'search' = 'text';
-
-  /**
-   * 入力値
-   */
-  export let value = '';
-
-  /**
-   * プレースホルダー
-   */
-  export let placeholder = '';
-
-  /**
-   * ラベル
-   */
-  export let label = '';
-
-  /**
-   * 無効状態
-   */
+  export let type: "text" | "password" | "search" | "email" = "text";
+  export let value = "";
+  export let placeholder = "";
+  export let label = "";
+  export let error = "";
   export let disabled = false;
-
-  /**
-   * エラー状態
-   */
-  export let error = false;
-
-  /**
-   * エラーメッセージ
-   */
-  export let errorMessage = '';
-
-  /**
-   * サイズ
-   */
-  export let size: 'small' | 'medium' | 'large' = 'medium';
-
-  /**
-   * 入力フィールドのID（label関連付け用）
-   */
-  export let id: string = `input-${Math.random().toString(36).slice(2, 9)}`;
+  export let autofocus = false;
+  export let id = "";
 
   const dispatch = createEventDispatcher();
 
   function handleInput(event: Event) {
     const target = event.target as HTMLInputElement;
     value = target.value;
-    dispatch('input', value);
+    dispatch("input", event);
   }
 
   function handleChange(event: Event) {
-    dispatch('change', value);
+    dispatch("change", event);
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    dispatch("keydown", event);
+    if (event.key === "Enter") {
+      dispatch("submit");
+    }
   }
 </script>
 
-<div class="input-wrapper size-{size}">
+<div class="input-wrapper" class:has-error={!!error} class:disabled>
   {#if label}
-    <label class="label" class:disabled for={id}>
-      {label}
-    </label>
+    <label for={id} class="label">{label}</label>
   {/if}
-  <input
-    {id}
-    {type}
-    {value}
-    {placeholder}
-    {disabled}
-    class="input"
-    class:error
-    class:disabled
-    on:input={handleInput}
-    on:change={handleChange}
-    on:focus
-    on:blur
-    on:keydown
-  />
-  {#if error && errorMessage}
-    <span class="error-message">{errorMessage}</span>
+
+  <div class="input-container">
+    <!-- svelte-ignore a11y-autofocus -->
+    <input
+      {id}
+      {type}
+      {value}
+      {placeholder}
+      {disabled}
+      {autofocus}
+      class="input"
+      on:input={handleInput}
+      on:change={handleChange}
+      on:keydown={handleKeydown}
+      on:focus
+      on:blur
+    />
+  </div>
+
+  {#if error}
+    <p class="error-message" transition:fade={{ duration: 150 }}>{error}</p>
   {/if}
 </div>
 
@@ -89,90 +63,74 @@
   .input-wrapper {
     display: flex;
     flex-direction: column;
-    gap: var(--mv-spacing-xxs);
+    gap: var(--mv-spacing-xs);
+    width: 100%;
   }
 
   .label {
-    font-family: var(--mv-font-sans);
-    font-weight: var(--mv-font-weight-medium);
+    font-size: var(--mv-font-size-sm);
     color: var(--mv-color-text-secondary);
+    font-weight: var(--mv-font-weight-medium);
   }
 
-  .label.disabled {
-    color: var(--mv-color-text-disabled);
+  .input-container {
+    position: relative;
+    width: 100%;
   }
 
   .input {
+    width: 100%;
+    height: var(--mv-input-height-md);
+    padding: 0 var(--mv-spacing-md);
     font-family: var(--mv-font-sans);
-    background: var(--mv-color-surface-primary);
+    font-size: var(--mv-font-size-md);
+    color: var(--mv-color-text-primary);
+
+    background: var(--mv-color-surface-secondary);
     border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
     border-radius: var(--mv-radius-md);
-    color: var(--mv-color-text-primary);
-    transition: var(--mv-transition-hover);
+
+    transition: var(--mv-transition-base);
   }
 
-  .input::placeholder {
-    color: var(--mv-color-text-muted);
-  }
-
-  /* サイズ */
-  .size-small .label {
-    font-size: var(--mv-font-size-xs);
-  }
-
-  .size-small .input {
-    height: var(--mv-input-height-sm);
-    padding: 0 var(--mv-spacing-xs);
-    font-size: var(--mv-font-size-sm);
-  }
-
-  .size-medium .label {
-    font-size: var(--mv-font-size-sm);
-  }
-
-  .size-medium .input {
-    height: var(--mv-input-height-md);
-    padding: 0 var(--mv-spacing-sm);
-    font-size: var(--mv-font-size-md);
-  }
-
-  .size-large .label {
-    font-size: var(--mv-font-size-md);
-  }
-
-  .size-large .input {
-    height: var(--mv-input-height-lg);
-    padding: 0 var(--mv-spacing-md);
-    font-size: var(--mv-font-size-lg);
-  }
-
-  /* 状態 */
-  .input:hover:not(.disabled) {
+  .input:hover:not(:disabled) {
     border-color: var(--mv-color-border-strong);
+    background: var(--mv-color-surface-hover);
   }
 
   .input:focus {
     outline: none;
-    border-color: var(--mv-color-border-focus);
+    border-color: var(--mv-color-interactive-primary);
+    background: var(--mv-color-surface-primary);
     box-shadow: var(--mv-shadow-focus);
   }
 
-  .input.error {
-    border-color: var(--mv-color-status-failed-border);
-  }
-
-  .input.error:focus {
-    box-shadow: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-error);
-  }
-
-  .input.disabled {
-    opacity: 0.5;
+  /* Disabled State */
+  .disabled .input {
+    opacity: 0.6;
     cursor: not-allowed;
-    background: var(--mv-color-surface-secondary);
+    background: var(--mv-color-surface-primary);
+  }
+
+  /* Error State */
+  .has-error .input {
+    border-color: var(--mv-color-status-failed-border);
+    background: var(--mv-bg-glow-red-lighter);
+  }
+
+  .has-error .input:focus {
+    border-color: var(--mv-color-status-failed-border);
+    box-shadow: var(--mv-shadow-focus-error);
+  }
+
+  .has-error .label {
+    color: var(--mv-color-status-failed-text);
   }
 
   .error-message {
     font-size: var(--mv-font-size-xs);
     color: var(--mv-color-status-failed-text);
+    margin: 0;
+    padding-left: var(--mv-spacing-xs);
   }
 </style>

@@ -2,114 +2,64 @@ import type { Meta, StoryObj } from '@storybook/svelte';
 import Badge from './Badge.svelte';
 
 const meta = {
-  title: 'Design System/Badge',
+  title: 'Design System/Components/Badge',
   component: Badge,
   tags: ['autodocs'],
   argTypes: {
-    status: {
-      control: { type: 'select' },
-      options: ['pending', 'ready', 'running', 'succeeded', 'failed', 'canceled', 'blocked'],
-      description: 'タスクのステータス (Optional: sets default color/label)'
+    status: { 
+      control: 'select', 
+      options: ['pending', 'ready', 'running', 'succeeded', 'completed', 'failed', 'canceled', 'blocked', 'retry_wait'] 
     },
-    variant: {
-      control: { type: 'select' },
-      options: ['default', 'outline', 'glass'],
-      description: 'バッジのスタイルバリアント',
-      defaultValue: 'default'
+    size: { 
+      control: 'select', 
+      options: ['small', 'medium'] 
     },
-    color: {
-      control: { type: 'select' },
-      options: ['primary', 'secondary', 'success', 'warning', 'danger', 'info', 'neutral'],
-      description: 'バッジのカラーテーマ',
-      defaultValue: 'neutral'
-    },
-    size: {
-      control: { type: 'select' },
-      options: ['small', 'medium'],
-      description: 'バッジのサイズ'
-    },
-    label: {
-      control: 'text',
-      description: 'カスタムラベル（省略時はステータス名）'
-    }
+    label: { control: 'text' },
+  },
+  args: {
+    status: 'pending',
+    size: 'medium',
   }
 } satisfies Meta<Badge>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 各ステータス
-export const Pending: Story = {
-  args: {
-    status: 'pending'
-  }
-};
-
-export const Ready: Story = {
-  args: {
-    status: 'ready'
-  }
-};
+export const Default: Story = {};
 
 export const Running: Story = {
   args: {
-    status: 'running'
+    status: 'running',
   }
 };
 
 export const Succeeded: Story = {
   args: {
-    status: 'succeeded'
+    status: 'succeeded',
+  }
+};
+
+export const Completed: Story = {
+  args: {
+    status: 'completed',
   }
 };
 
 export const Failed: Story = {
   args: {
-    status: 'failed'
+    status: 'failed',
   }
 };
 
-export const Canceled: Story = {
+export const RetryWait: Story = {
   args: {
-    status: 'canceled'
+    status: 'retry_wait',
   }
 };
 
-export const Blocked: Story = {
-  args: {
-    status: 'blocked'
-  }
-};
-
-// サイズバリエーション
 export const Small: Story = {
   args: {
-    status: 'running',
-    size: 'small'
-  }
-};
-
-export const Medium: Story = {
-  args: {
-    status: 'running',
-    size: 'medium'
-  }
-};
-
-// カスタムラベル
-export const CustomLabel: Story = {
-  args: {
-    status: 'running',
-    label: '処理中...'
-  }
-};
-
-// Glass Variant
-export const GlassVariant: Story = {
-  args: {
-    variant: 'glass',
-    color: 'success',
-    label: 'GLASS MODE',
-    status: 'running'
+    status: 'ready',
+    size: 'small',
   }
 };

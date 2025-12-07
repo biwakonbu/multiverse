@@ -99,6 +99,7 @@
   --mv-toast-left: 50%;
   --mv-toast-max-width: 90vw;
   --mv-z-toast: 9999;
+  --mv-z-tooltip: 1000;
 
   /* タイトルバー */
   --mv-titlebar-height: 32px;

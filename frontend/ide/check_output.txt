@@ -1,0 +1,100 @@
+
+> multiverse-frontend@0.0.0 check /Users/biwakonbu/github/multiverse/frontend/ide
+> svelte-check --tsconfig ./tsconfig.json
+
+
+====================================
+Loading svelte-check in workspace: /Users/biwakonbu/github/multiverse/frontend/ide
+Getting Svelte diagnostics...
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Flex.svelte:51:1
+Warn: A11y: Non-interactive element <div> should not be assigned mouse or keyboard event listeners. (svelte)
+
+<div
+  class="flex {className}"
+  class:grow
+  style:--flex-dir={direction}
+  style:--flex-align={alignMap[align]}
+  style:--flex-justify={justifyMap[justify]}
+  style:--flex-wrap={wrap}
+  style:--flex-gap={gap}
+  style:--box-p={p}
+  style:--box-m={m}
+  style:--box-bg={bg}
+  style:--box-h={height}
+  style:--box-w={width}
+  on:click
+  on:keydown
+  role="group"
+>
+  <slot />
+</div>
+
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Badge.stories.ts:14:5
+Error: Object literal may only specify known properties, and 'variant' does not exist in type 'Partial<ArgTypes<{ status?: "running" | "failed" | "pending" | "ready" | "succeeded" | "canceled" | "blocked" | undefined; size?: "small" | "medium" | undefined; label?: string | undefined; }>>'. 
+    },
+    variant: {
+      control: { type: 'select' },
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Badge.stories.ts:110:5
+Error: Object literal may only specify known properties, and 'variant' does not exist in type 'Partial<{ status?: "running" | "failed" | "pending" | "ready" | "succeeded" | "canceled" | "blocked" | undefined; size?: "small" | "medium" | undefined; label?: string | undefined; }> & { ...; }'. 
+  args: {
+    variant: 'glass',
+    color: 'success',
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Input.stories.ts:34:5
+Error: Object literal may only specify known properties, and 'errorMessage' does not exist in type 'Partial<ArgTypes<{ type?: "text" | "search" | "password" | "email" | undefined; value?: string | undefined; placeholder?: string | undefined; label?: string | undefined; error?: string | undefined; disabled?: boolean | undefined; autofocus?: boolean | undefined; id?: string | undefined; }>>'. 
+    },
+    errorMessage: {
+      control: 'text',
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Input.stories.ts:67:5
+Error: Object literal may only specify known properties, and 'size' does not exist in type 'Partial<{ type?: "text" | "search" | "password" | "email" | undefined; value?: string | undefined; placeholder?: string | undefined; label?: string | undefined; error?: string | undefined; disabled?: boolean | undefined; autofocus?: boolean | undefined; id?: string | undefined; }> & { ...; }'. 
+  args: {
+    size: 'small',
+    placeholder: 'Small input'
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Input.stories.ts:74:5
+Error: Object literal may only specify known properties, and 'size' does not exist in type 'Partial<{ type?: "text" | "search" | "password" | "email" | undefined; value?: string | undefined; placeholder?: string | undefined; label?: string | undefined; error?: string | undefined; disabled?: boolean | undefined; autofocus?: boolean | undefined; id?: string | undefined; }> & { ...; }'. 
+  args: {
+    size: 'medium',
+    placeholder: 'Medium input'
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Input.stories.ts:81:5
+Error: Object literal may only specify known properties, and 'size' does not exist in type 'Partial<{ type?: "text" | "search" | "password" | "email" | undefined; value?: string | undefined; placeholder?: string | undefined; label?: string | undefined; error?: string | undefined; disabled?: boolean | undefined; autofocus?: boolean | undefined; id?: string | undefined; }> & { ...; }'. 
+  args: {
+    size: 'large',
+    placeholder: 'Large input'
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/design-system/components/Input.stories.ts:100:5
+Error: Type 'boolean' is not assignable to type 'string'. 
+    value: 'invalid-email',
+    error: true,
+    errorMessage: 'Please enter a valid email address'
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/lib/wbs/WBSGraphNodePreview.svelte:12:14
+Warn: Component has unused export property 'expanded'. If it is for external reference only, please consider using `export const expanded` (svelte)
+  export let hasChildren: boolean = false;
+  export let expanded: boolean = false;
+
+
+
+/Users/biwakonbu/github/multiverse/frontend/ide/src/lib/wbs/WBSHeaderPreview.svelte:6:14
+Warn: Component has unused export property 'percentage'. If it is for external reference only, please consider using `export const percentage` (svelte)
+
+  export let percentage: number = 0; // Not used directly, derived from completed/total
+  export let completed: number = 0;
+
+
+====================================
+svelte-check found 7 errors and 3 warnings in 5 files
+ ELIFECYCLE  Command failed with exit code 1.

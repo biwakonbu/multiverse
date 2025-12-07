@@ -31,6 +31,8 @@
     "@storybook/svelte": "^8.4.7",
     "@storybook/svelte-vite": "^8.4.7",
     "@sveltejs/vite-plugin-svelte": "^3.0.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.2.9",
     "@tsconfig/svelte": "^5.0.2",
     "@types/node": "^24.10.1",
     "jsdom": "^27.2.0",

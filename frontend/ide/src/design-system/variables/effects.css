@@ -18,6 +18,7 @@
      ボックスシャドウ
      ======================================== */
   --mv-shadow-focus: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-focus);
+  --mv-shadow-focus-error: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-error);
   --mv-shadow-selected: 0 0 0 var(--mv-border-width-thick)
     var(--mv-color-glow-selected);
   --mv-shadow-card: 0 4px 12px var(--mv-color-shadow-elevated);
@@ -98,6 +99,7 @@
   --mv-filter-drop-shadow-brand-text-hover: drop-shadow(
     0 0 20px rgba(136, 192, 208, 0.6)
   );
+  --mv-filter-heading-glow: drop-shadow(0 0 20px rgba(136, 192, 208, 0.3));
 
   /* ========================================
      テキストシャドウ（セマンティック）
@@ -174,6 +176,7 @@
   --mv-border-glow-yellow: rgba(235, 203, 139, 0.4);
   --mv-glow-red: rgba(191, 97, 106, 0.3);
   --mv-glow-red-light: rgba(191, 97, 106, 0.1);
+  --mv-bg-glow-red-lighter: rgba(191, 97, 106, 0.05);
   --mv-bg-glow-red-light: rgba(191, 97, 106, 0.2);
   --mv-bg-glow-green-mid: rgba(163, 190, 140, 0.2);
   --mv-border-glow-green: rgba(163, 190, 140, 0.4);

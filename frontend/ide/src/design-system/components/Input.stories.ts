@@ -2,119 +2,49 @@ import type { Meta, StoryObj } from '@storybook/svelte';
 import Input from './Input.svelte';
 
 const meta = {
-  title: 'Design System/Input',
+  title: 'Design System/Components/Input',
   component: Input,
   tags: ['autodocs'],
   argTypes: {
-    type: {
-      control: { type: 'select' },
-      options: ['text', 'password', 'email', 'number', 'search'],
-      description: '入力タイプ'
+    type: { 
+      control: 'select', 
+      options: ['text', 'password', 'search', 'email'] 
     },
-    value: {
-      control: 'text',
-      description: '入力値'
-    },
-    placeholder: {
-      control: 'text',
-      description: 'プレースホルダー'
-    },
-    label: {
-      control: 'text',
-      description: 'ラベル'
-    },
-    disabled: {
-      control: 'boolean',
-      description: '無効状態'
-    },
-    error: {
-      control: 'boolean',
-      description: 'エラー状態'
-    },
-    errorMessage: {
-      control: 'text',
-      description: 'エラーメッセージ'
-    },
-    size: {
-      control: { type: 'select' },
-      options: ['small', 'medium', 'large'],
-      description: 'サイズ'
-    }
+    placeholder: { control: 'text' },
+    label: { control: 'text' },
+    error: { control: 'text' },
+    disabled: { control: 'boolean' },
+    value: { control: 'text' },
+  },
+  args: {
+    type: 'text',
+    placeholder: 'Enter text...',
+    label: 'Label',
   }
 } satisfies Meta<Input>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 基本
-export const Default: Story = {
+export const Default: Story = {};
+
+export const WithError: Story = {
   args: {
-    placeholder: 'Enter text...'
+    value: 'invalid-input',
+    error: 'This field is required',
   }
 };
 
-// ラベル付き
-export const WithLabel: Story = {
-  args: {
-    label: 'Task Title',
-    placeholder: 'Enter task title...'
-  }
-};
-
-// サイズ
-export const Small: Story = {
-  args: {
-    size: 'small',
-    placeholder: 'Small input'
-  }
-};
-
-export const Medium: Story = {
-  args: {
-    size: 'medium',
-    placeholder: 'Medium input'
-  }
-};
-
-export const Large: Story = {
-  args: {
-    size: 'large',
-    placeholder: 'Large input'
-  }
-};
-
-// 無効状態
 export const Disabled: Story = {
   args: {
-    label: 'Disabled Input',
-    value: 'Cannot edit',
-    disabled: true
+    disabled: true,
   }
 };
 
-// エラー状態
-export const Error: Story = {
-  args: {
-    label: 'Email',
-    value: 'invalid-email',
-    error: true,
-    errorMessage: 'Please enter a valid email address'
-  }
-};
-
-// パスワード
 export const Password: Story = {
   args: {
     type: 'password',
     label: 'Password',
-    placeholder: 'Enter password...'
-  }
-};
-
-// 検索
-export const Search: Story = {
-  args: {
-    type: 'search',
-    placeholder: 'Search tasks...'
+    placeholder: '••••••••',
   }
 };

@@ -1,0 +1,70 @@
+import { Meta, Unstyled } from "@storybook/blocks";
+import { spacing, grid, layout } from "../tokens/spacing";
+
+<Meta title="Design System/Tokens/Spacing" />
+
+# Spacing & Layout
+
+Spacing tokens govern the padding, margin, and gaps between elements.
+Multiverse uses a 4px-based scale for UI components and specific grid units for the node graph.
+
+## UI Scale (4px Base)
+
+<Unstyled>
+  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    {Object.entries(spacing).map(([key, value]) => (
+      <div
+        key={key}
+        style={{ display: "flex", alignItems: "center", gap: "16px" }}
+      >
+        <div
+          style={{ width: "60px", fontFamily: "monospace", color: "#88c0d0" }}
+        >
+          {key}
+        </div>
+        <div
+          style={{
+            width: `calc(${value}px)`,
+            height: "24px",
+            backgroundColor: "#bf616a",
+            opacity: 0.8,
+            borderRadius: "2px",
+            minWidth: "1px",
+          }}
+        />
+        <div
+          style={{
+            fontFamily: "monospace",
+            fontSize: "12px",
+            color: "#6b7280",
+          }}
+        >
+          {value}px
+        </div>
+      </div>
+    ))}
+  </div>
+</Unstyled>
+
+## Grid Layout System
+
+Specialized units for the WBS and Graph layout.
+
+| Token            | Value                         | Description                     |
+| :--------------- | :---------------------------- | :------------------------------ |
+| `cell-width`     | `{grid.cellWidth}px`          | Standard width of a task node   |
+| `cell-height`    | `{grid.cellHeight}px`         | Standard height of a task node  |
+| `cell-gap`       | `{grid.gap}px`                | Gap between grid cells          |
+| `toolbar-height` | `{layout.toolbarHeight}px`    | Fixed height of the top toolbar |
+| `sidebar-width`  | `{layout.detailPanelWidth}px` | Width of the WBS panel          |
+
+## Z-Index Structure
+
+| Layer     | Value  | Purpose                   |
+| :-------- | :----- | :------------------------ |
+| `base`    | `0`    | Default content           |
+| `node`    | `10`   | Grid nodes                |
+| `panel`   | `100`  | Floating panels, toolbars |
+| `modal`   | `900`  | Modals, overlays          |
+| `tooltip` | `1000` | Tooltips, popovers        |
+| `cursor`  | `9999` | Custom cursor             |

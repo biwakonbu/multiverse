@@ -301,7 +301,8 @@
   /* ステータス別の色 - 強化されたグロー */
   .node.status-pending .status-dot {
     background: var(--mv-color-status-pending-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-pending-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm)
+      var(--mv-color-status-pending-text);
   }
   .node.status-pending .status-text {
     color: var(--mv-color-status-pending-text);
@@ -319,7 +320,8 @@
 
   .node.status-running .status-dot {
     background: var(--mv-color-status-running-text);
-    box-shadow: var(--mv-shadow-badge-glow-lg) var(--mv-color-status-running-text);
+    box-shadow: var(--mv-shadow-badge-glow-lg)
+      var(--mv-color-status-running-text);
     animation: dot-pulse 1.5s infinite ease-in-out;
   }
   .node.status-running .status-text {
@@ -330,16 +332,19 @@
   @keyframes dot-pulse {
     0%,
     100% {
-      box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-badge-glow-sm)
+        var(--mv-color-status-running-text);
     }
     50% {
-      box-shadow: var(--mv-shadow-glow-frost-2-md) var(--mv-color-status-running-text);
+      box-shadow: var(--mv-shadow-glow-frost-2-md)
+        var(--mv-color-status-running-text);
     }
   }
 
   .node.status-succeeded .status-dot {
     background: var(--mv-color-status-succeeded-text);
-    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-succeeded-text);
+    box-shadow: var(--mv-shadow-badge-glow-md)
+      var(--mv-color-status-succeeded-text);
   }
   .node.status-succeeded .status-text {
     color: var(--mv-color-status-succeeded-text);
@@ -348,7 +353,8 @@
 
   .node.status-failed .status-dot {
     background: var(--mv-color-status-failed-text);
-    box-shadow: var(--mv-shadow-badge-glow-md) var(--mv-color-status-failed-text);
+    box-shadow: var(--mv-shadow-badge-glow-md)
+      var(--mv-color-status-failed-text);
   }
   .node.status-failed .status-text {
     color: var(--mv-color-status-failed-text);
@@ -357,11 +363,23 @@
 
   .node.status-blocked .status-dot {
     background: var(--mv-color-status-blocked-text);
-    box-shadow: var(--mv-shadow-badge-glow-sm) var(--mv-color-status-blocked-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm)
+      var(--mv-color-status-blocked-text);
   }
   .node.status-blocked .status-text {
     color: var(--mv-color-status-blocked-text);
     text-shadow: var(--mv-text-shadow-purple-content);
+  }
+
+  .node.status-retry-wait .status-dot {
+    background: var(--mv-color-status-retry-wait-text);
+    box-shadow: var(--mv-shadow-badge-glow-sm)
+      var(--mv-color-status-retry-wait-text);
+    animation: dot-pulse 2s infinite ease-in-out;
+  }
+  .node.status-retry-wait .status-text {
+    color: var(--mv-color-status-retry-wait-text);
+    text-shadow: var(--mv-text-shadow-orange);
   }
 
   /* フェーズタグ - ガラススタイル */

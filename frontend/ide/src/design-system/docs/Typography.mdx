@@ -1,0 +1,75 @@
+import { Meta, Typeset, Source } from "@storybook/blocks";
+import {
+  fontSize,
+  fontWeight,
+  fontFamily,
+  lineHeight,
+} from "../tokens/typography";
+
+<Meta title="Design System/Tokens/Typography" />
+
+# Typography
+
+Multiverse IDE uses a focused set of typefaces to distinguish between functional UI (Sans), Branding (Orbitron), and Code (Mono).
+
+## Font Families
+
+<Source
+  code={`
+--mv-font-sans: ${fontFamily.sans}
+--mv-font-mono: ${fontFamily.mono}
+--mv-font-display: 'Orbitron', ...
+`}
+  language="css"
+/>
+
+### Display / Brand (Orbitron)
+
+Used for headings, logos, and major section titles.
+
+<Typeset
+  fontSizes={[Number(fontSize.xl), Number(fontSize.xxl), 32]}
+  fontWeight={fontWeight.bold}
+  sampleText="MULTIVERSE IDE"
+  fontFamily="'Orbitron', sans-serif"
+/>
+
+### UI / Sans (Inter / System)
+
+Used for general interface text, menus, and labels.
+
+<Typeset
+  fontSizes={[
+    Number(fontSize.xs),
+    Number(fontSize.sm),
+    Number(fontSize.md),
+    Number(fontSize.lg),
+  ]}
+  fontWeight={fontWeight.normal}
+  sampleText="The quick brown fox jumps over the lazy dog"
+  fontFamily={fontFamily.sans}
+/>
+
+### Code / Tech (Monospace)
+
+Used for IDs, logs, code editors, and technical data readouts.
+
+<Typeset
+  fontSizes={[Number(fontSize.xs), Number(fontSize.sm), Number(fontSize.md)]}
+  fontWeight={fontWeight.medium}
+  sampleText="const id = 'task-123';"
+  fontFamily={fontFamily.mono}
+/>
+
+## Font Weights
+
+- **Normal (400)**: Default text
+- **Medium (500)**: Labels, emphasis
+- **SemiBold (600)**: Subheadings, important buttons
+- **Bold (700)**: Headings, Milestones
+
+## Line Heights
+
+- **Tight (1.2)**: Headings, single-line labels
+- **Normal (1.5)**: Body text
+- **Relaxed (1.75)**: Long-form reading

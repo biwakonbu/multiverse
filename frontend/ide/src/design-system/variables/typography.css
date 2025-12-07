@@ -11,6 +11,7 @@
   --mv-letter-spacing-wide: 0.5px;
   --mv-letter-spacing-wider: 1px;
   --mv-letter-spacing-widest: 0.02em;
+  --mv-letter-spacing-heading: 0.1em;
 
   /* ========================================
      タイポグラフィ定義
@@ -19,7 +20,10 @@
     "Helvetica Neue", Arial, sans-serif;
   --mv-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     monospace;
-  --mv-font-display: "Rajdhani", var(--mv-font-sans); /* FF風/Mech風のシャープで曲線的なフォント */
+
+  /* FF風/Mech風のシャープで曲線的なフォント */
+  --mv-font-display: "Rajdhani", var(--mv-font-sans);
+  --mv-font-brand: "Orbitron", var(--mv-font-sans);
 
   --mv-font-size-xxs: 8px;
   --mv-font-size-xs: 10px;

@@ -3,7 +3,7 @@
   import type { WBSNode } from "../../stores/wbsStore";
   import { phaseToCssClass } from "../../schemas";
   import { GRAPH_NODE_WIDTH, GRAPH_NODE_HEIGHT } from "./utils";
-  import StatusBadge from "./StatusBadge.svelte"; // Import new component
+  import WBSStatusBadge from "./WBSStatusBadge.svelte"; // Import new component
 
   export let node: WBSNode;
   export let x: number;
@@ -12,6 +12,10 @@
   $: expanded = $expandedNodes.has(node.id);
   $: phaseClass = phaseToCssClass(node.phaseName);
   // statusClass removed as it's handled by StatusBadge
+
+  function normalizeStatus(status: string): any {
+    return status.toLowerCase();
+  }
 
   function handleGenericClick() {
     if (node.children.length > 0) {
@@ -46,7 +50,7 @@
       {#if node.type === "phase"}
         <span class="phase-badge">{node.label}</span>
       {:else if node.task}
-        <StatusBadge status={node.task.status} />
+        <WBSStatusBadge status={normalizeStatus(node.task.status)} />
       {/if}
       {#if node.children.length > 0}
         <span class="children-count">
