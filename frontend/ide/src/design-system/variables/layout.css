@@ -1,0 +1,180 @@
+/**
+ * レイアウト (Layout)
+ * スペーシング、サイズ、ボーダー、グリッド
+ */
+:root {
+  /* ========================================
+     スペーシング: グリッド
+     ======================================== */
+  --mv-grid-cell-width: 160px;
+  --mv-grid-cell-height: 100px;
+  --mv-grid-gap: 40px;
+
+  /* ========================================
+     スペーシング: UI
+     ======================================== */
+  --mv-spacing-xxxs: 2px;
+  --mv-spacing-xxs: 4px;
+  --mv-spacing-xs: 8px;
+  --mv-spacing-sm: 12px;
+  --mv-spacing-md: 16px;
+  --mv-spacing-lg: 24px;
+  --mv-spacing-xl: 32px;
+  --mv-spacing-xxl: 48px;
+
+  /* Badge spacing */
+  --mv-spacing-badge-x: 2px;
+  --mv-spacing-badge-y: 6px;
+
+  /* ========================================
+     スペーシング: レイアウト
+     ======================================== */
+  --mv-layout-toolbar-height: 56px;
+  --mv-layout-detail-panel-width: 360px;
+  --mv-layout-minimap-width: 150px;
+  --mv-layout-minimap-height: 100px;
+
+  /* ========================================
+     ボーダー半径
+     ======================================== */
+  --mv-radius-sm: 4px;
+  --mv-radius-md: 8px;
+  --mv-radius-lg: 12px;
+  --mv-radius-full: 50%;
+  --mv-radius-progress: 2px;
+  --mv-border-radius-scrollbar: 2px;
+
+  /* ========================================
+     ボーダー幅
+     ======================================== */
+  --mv-border-width-thin: 1px;
+  --mv-border-width-default: 2px;
+  --mv-border-width-thick: 3px;
+
+  /* ========================================
+     フォーカスリング
+     ======================================== */
+  --mv-focus-ring-width: 2px;
+  --mv-focus-ring-offset: 2px;
+
+  /* ========================================
+     インジケーターサイズ
+     ======================================== */
+  --mv-indicator-size-xs: 6px;
+  --mv-indicator-size-sm: 8px;
+  --mv-indicator-size-md: 12px;
+  --mv-indicator-size-lg: 16px;
+
+  /* ========================================
+     インプット高さ
+     ======================================== */
+  --mv-input-height-sm: 28px;
+  --mv-input-height-md: 36px;
+  --mv-input-height-lg: 44px;
+  
+  --mv-min-height-input: 24px;
+  --mv-max-height-input: 120px;
+
+  /* ========================================
+     コンテナ幅・最大サイズ
+     ======================================== */
+  --mv-container-max-width-xs: 320px;
+  --mv-container-max-width-sm: 480px;
+  --mv-container-max-height-modal: 80vh;
+  --mv-container-max-height-error: 100px;
+  --mv-container-max-height-list: 320px;
+
+  /* ダイアログ */
+  --mv-dialog-min-width: 400px;
+  --mv-dialog-max-width: 90vw;
+  --mv-dialog-min-width-sm: 360px;
+  --mv-dialog-max-width-sm: 480px;
+
+  /* バックログサイドバー */
+  --mv-backlog-sidebar-top: 80px;
+  --mv-backlog-sidebar-width: 320px;
+  --mv-backlog-fab-left: 220px;
+
+  /* トースト通知 */
+  --mv-toast-left: 50%;
+  --mv-toast-max-width: 90vw;
+  --mv-z-toast: 9999;
+
+  /* タイトルバー */
+  --mv-titlebar-height: 32px;
+  --mv-titlebar-padding-left: 80px;
+
+  /* チャットウィンドウ */
+  --mv-chat-timestamp-width: 60px;
+  --mv-chat-step-width: 80px;
+
+  /* フローティングウィンドウ */
+  --mv-floating-window-width: 600px;
+  --mv-floating-window-height: 350px;
+  --mv-size-floating-header: 48px;
+
+  /* ロゴサイズ */
+  --mv-logo-width: 340px;
+  --mv-logo-height: 72px;
+  --mv-logo-font-size: 32px;
+  --mv-logo-letter-spacing: 0.15em;
+
+  /* スクロールバー */
+  --mv-scrollbar-width: 6px;
+  --mv-scrollbar-radius: 3px;
+  --mv-size-scrollbar: 4px;
+
+  /* アイコンサイズ */
+  --mv-icon-size-xs: 14px;
+  --mv-icon-size-sm: 16px;
+  --mv-icon-size-md: 20px;
+  --mv-icon-size-lg: 24px;
+  --mv-icon-size-xl: 32px;
+  --mv-icon-size-xxl: 40px;
+  --mv-icon-size-xxxl: 48px;
+
+  /* スピナーサイズ */
+  --mv-spinner-size-md: 24px;
+  --mv-spinner-border-width: 2px;
+  --mv-size-loading-dot: 6px;
+
+  /* キャンバス特殊値 */
+  --mv-canvas-overflow-size: 1000px;
+  --mv-canvas-preview-height: 500px;
+
+  /* プレビューコンポーネント */
+  --mv-preview-graph-node-width: 300px;
+  --mv-preview-graph-node-height: 100px;
+  --mv-preview-header-width: 500px;
+  --mv-preview-header-padding: 20px;
+
+  /* 固定サイズ（レイアウト用） */
+  --mv-size-full: 100%;
+  --mv-size-half: 50%;
+  --mv-size-preview-width: 800px;
+  --mv-size-preview-height: 600px;
+
+  /* 空状態のセンタリング用 */
+  --mv-empty-state-margin-left: -100px;
+  --mv-empty-state-margin-top: -50px;
+  --mv-empty-state-width: 200px;
+
+  /* ズームコントロール */
+  --mv-zoom-min: 0.25;
+  --mv-zoom-max: 3;
+  --mv-zoom-default: 1;
+  --mv-zoom-label-min-width: 3em;
+
+  /* その他サイズ */
+  --mv-size-action-btn: 32px;
+  --mv-size-send-btn: 36px;
+  --mv-size-header-actions: 24px;
+  --mv-size-control-btn: 24px;
+  --mv-min-width-wbs-header: 240px;
+  --mv-margin-progress-symbol: 2px;
+  
+  --mv-btn-min-width-sm: 32px;
+  --mv-size-phase-bar: 3px;
+  --mv-size-edge-indicator: 2px;
+  --mv-min-height-footer: 20px;
+}

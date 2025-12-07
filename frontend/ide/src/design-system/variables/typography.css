@@ -1,0 +1,55 @@
+/**
+ * タイポグラフィ (Typography)
+ * フォント、サイズ、行間、文字間隔
+ */
+:root {
+  /* ========================================
+     Letter-spacing
+     ======================================== */
+  --mv-letter-spacing-tight: -0.5px;
+  --mv-letter-spacing-normal: 0;
+  --mv-letter-spacing-wide: 0.5px;
+  --mv-letter-spacing-wider: 1px;
+  --mv-letter-spacing-widest: 0.02em;
+
+  /* ========================================
+     タイポグラフィ定義
+     ======================================== */
+  --mv-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --mv-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
+  --mv-font-display: "Rajdhani", var(--mv-font-sans); /* FF風/Mech風のシャープで曲線的なフォント */
+
+  --mv-font-size-xxs: 8px;
+  --mv-font-size-xs: 10px;
+  --mv-font-size-sm: 12px;
+  --mv-font-size-md: 14px;
+  --mv-font-size-lg: 16px;
+  --mv-font-size-xl: 18px;
+  --mv-font-size-xxl: 24px;
+  --mv-font-size-xxxl: 3rem; /* Lint修正用追加 */
+
+  --mv-font-weight-normal: 400;
+  --mv-font-weight-medium: 500;
+  --mv-font-weight-semibold: 600;
+  --mv-font-weight-bold: 700;
+
+  --mv-line-height-tight: 1.2;
+  --mv-line-height-normal: 1.5;
+  --mv-line-height-relaxed: 1.75;
+  --mv-line-height-snug: 1.4; /* Lint修正用追加 */
+
+  /* ========================================
+     その他のテキスト関連変数
+     ======================================== */
+  --mv-letter-spacing-header: 0.1em;
+  --mv-letter-spacing-badge: 0.08em;
+  --mv-letter-spacing-title: 0.2em;
+  --mv-letter-spacing-count: 0.05em;
+  --mv-letter-spacing-tab: 0.1em;
+  --mv-letter-spacing-backlog-empty: 0.08em;
+
+  /* タイムスタンプ用フォントサイズ */
+  --mv-font-size-timestamp: 10px;
+}

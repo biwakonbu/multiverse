@@ -1,0 +1,54 @@
+/**
+ * コンポーネント (Components)
+ * 特定のコンポーネント固有の変数
+ */
+:root {
+  /* ========================================
+     プログレスバー
+     ======================================== */
+  --mv-progress-bar-height-sm: 6px;
+  --mv-progress-bar-height-md: 8px;
+  --mv-progress-bar-width-mini: 60px;
+  --mv-progress-bar-width-sm: 80px;
+  --mv-progress-text-width-sm: 32px;
+  --mv-progress-text-width-md: 48px;
+  --mv-progress-text-width-lg: 80px;
+
+  /* プログレスバー カラー（明るく目立つ色、発光表現） */
+  --mv-progress-bar-bg: rgba(136, 192, 208, 0.25);
+  --mv-progress-bar-fill: #b5e8ff; /* 高輝度アイスブルー */
+  --mv-progress-bar-fill-glow: rgba(136, 192, 208, 0.8); /* 強力なグロー */
+  --mv-progress-text-color: #b5e8ff;
+
+  /* ========================================
+     WBS ツリー
+     ======================================== */
+  --mv-wbs-node-height: 36px;
+  --mv-wbs-toggle-size: 20px;
+  --mv-wbs-toggle-icon-size: 10px;
+  --mv-wbs-phase-bar-width: 4px;
+
+  /* ========================================
+     ブランドコンポーネント
+     ======================================== */
+  --mv-brand-font-family: "Orbitron", sans-serif;
+  --mv-brand-font-weight: 800;
+  --mv-brand-letter-spacing: 0.2em;
+  --mv-brand-gap-horizontal: 1rem;
+  --mv-brand-gap-vertical: 1.5rem;
+  --mv-brand-gradient: linear-gradient(
+    135deg,
+    var(--mv-color-text-primary) 0%,
+    var(--mv-color-accent-primary) 40%,
+    var(--mv-color-accent-secondary) 100%
+  );
+  --mv-brand-shadow: 0 0 15px var(--mv-color-accent-primary-alpha);
+  --mv-brand-shadow-hover: 0 0 20px var(--mv-color-accent-primary-alpha-strong);
+  --mv-brand-logo-shadow: 0 4px 6px var(--mv-color-shadow-medium);
+  --mv-brand-logo-shadow-hover: 0 15px 30px var(--mv-color-accent-primary-alpha);
+  
+  /* アルファ値付きのアクセントカラー */
+  --mv-color-accent-primary-alpha: rgba(136, 192, 208, 0.3);
+  --mv-color-accent-primary-alpha-strong: rgba(136, 192, 208, 0.6);
+  --mv-color-shadow-medium: rgba(0, 0, 0, 0.3);
+}

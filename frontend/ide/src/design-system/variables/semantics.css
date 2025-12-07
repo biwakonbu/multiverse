@@ -1,0 +1,49 @@
+/**
+ * セマンティックカラー (Semantic Colors)
+ * 用途別に定義された色変数を管理
+ */
+:root {
+  /* ========================================
+     セマンティックカラー: サーフェス（全体的に明るくシフト）
+     ======================================== */
+  --mv-color-surface-app: var(--mv-primitive-deep-1); /* 元 deep[0] */
+  --mv-color-surface-primary: var(--mv-primitive-deep-2); /* 元 deep[1] */
+  --mv-color-surface-secondary: var(--mv-primitive-deep-3); /* 元 deep[2] */
+  --mv-color-surface-hover: var(--mv-primitive-deep-5); /* 元 deep[4] */
+  --mv-color-surface-selected: var(
+    --mv-primitive-polar-night-2
+  ); /* より明るく */
+  --mv-color-surface-node: var(--mv-primitive-deep-4); /* 元 deep[3] */
+  --mv-color-surface-overlay: rgba(0, 0, 0, 0.6);
+  --mv-color-overlay: rgba(0, 0, 0, 0.5);
+
+  /* ========================================
+     セマンティックカラー: ボーダー
+     ======================================== */
+  --mv-color-border-subtle: var(--mv-primitive-polar-night-1);
+  --mv-color-border-default: var(--mv-primitive-polar-night-2);
+  --mv-color-border-strong: var(--mv-primitive-polar-night-3);
+  --mv-color-border-focus: var(--mv-primitive-frost-1);
+
+  /* ========================================
+     セマンティックカラー: テキスト
+     ======================================== */
+  --mv-color-text-primary: var(--mv-primitive-snow-storm-2);
+  --mv-color-text-secondary: var(--mv-primitive-snow-storm-0);
+  --mv-color-text-muted: var(--mv-primitive-neutral-600);
+  --mv-color-text-disabled: var(--mv-primitive-neutral-500);
+
+  /* ========================================
+     セマンティックカラー: インタラクティブ
+     ======================================== */
+  --mv-color-interactive-primary: var(--mv-primitive-frost-1);
+  --mv-color-interactive-primary-hover: var(--mv-primitive-frost-0);
+  --mv-color-interactive-secondary: var(--mv-primitive-frost-2);
+  --mv-color-interactive-danger: var(--mv-primitive-aurora-red);
+
+  /* ========================================
+     アクセントカラー（セマンティック）
+     ======================================== */
+  --mv-color-accent-primary: var(--mv-primitive-frost-1);
+  --mv-color-accent-secondary: var(--mv-primitive-frost-3);
+}

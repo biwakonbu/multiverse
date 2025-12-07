@@ -1,0 +1,54 @@
+/**
+ * プリミティブカラー (Primitive Colors)
+ * Nord パレットと拡張カラーセット
+ */
+:root {
+  /* ========================================
+     プリミティブカラー: Nord パレット
+     ======================================== */
+
+  /* Polar Night（深い背景） */
+  --mv-primitive-polar-night-0: #2e3440;
+  --mv-primitive-polar-night-1: #3b4252;
+  --mv-primitive-polar-night-2: #434c5e;
+  --mv-primitive-polar-night-3: #4c566a;
+
+  /* Snow Storm（明るいテキスト） */
+  --mv-primitive-snow-storm-0: #d8dee9;
+  --mv-primitive-snow-storm-1: #e5e9f0;
+  --mv-primitive-snow-storm-2: #eceff4;
+
+  /* Frost（青系アクセント） */
+  --mv-primitive-frost-0: #8fbcbb;
+  --mv-primitive-frost-1: #88c0d0;
+  --mv-primitive-frost-2: #81a1c1;
+  --mv-primitive-frost-3: #5e81ac;
+
+  /* Aurora（ステータス色 - より明るく鮮やかに調整） */
+  --mv-primitive-aurora-red: #da7e87; /* 元: #bf616a */
+  --mv-primitive-aurora-orange: #e09880; /* 元: #d08770 */
+  --mv-primitive-aurora-yellow: #f5deaa; /* 元: #ebcb8b */
+  --mv-primitive-aurora-green: #b8dea6; /* 元: #a3be8c */
+  --mv-primitive-aurora-purple: #cc9ec2; /* 元: #b48ead */
+
+  /* Nord Deep 拡張（標準より深い背景） */
+  --mv-primitive-deep-0: #16181e;
+  --mv-primitive-deep-1: #1c1f26;
+  --mv-primitive-deep-2: #242832;
+  --mv-primitive-deep-3: #272b36;
+  --mv-primitive-deep-4: #2d323e;
+  --mv-primitive-deep-5: #363c4a;
+
+  /* パステル化した Aurora */
+  --mv-primitive-pastel-red: #c97b7b;
+  --mv-primitive-pastel-orange: #d19a66;
+  --mv-primitive-pastel-yellow: #d9c28a;
+  --mv-primitive-pastel-green: #8fbf9f;
+  --mv-primitive-pastel-green-muted: #7fa387;
+  --mv-primitive-pastel-green-dark: #6b8f71;
+
+  /* ニュートラル（グレースケール） */
+  --mv-primitive-neutral-400: #6b7280;
+  --mv-primitive-neutral-500: #5c6677;
+  --mv-primitive-neutral-600: #a5afbf;
+}

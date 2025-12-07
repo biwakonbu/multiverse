@@ -1,0 +1,275 @@
+/**
+ * エフェクト (Effects)
+ * シャドウ、グロー、ガラスモーフィズム、フィルター
+ */
+:root {
+  /* ========================================
+     セマンティックカラー: グロー・シャドウ
+     ======================================== */
+  --mv-color-glow-focus: rgba(136, 192, 208, 0.3);
+  --mv-color-glow-selected: rgba(136, 192, 208, 0.4);
+  --mv-color-glow-error: rgba(191, 97, 106, 0.3);
+  --mv-color-glow-running: rgba(143, 191, 159, 0.35);
+  --mv-color-shadow-elevated: rgba(0, 0, 0, 0.3);
+  --mv-color-shadow-deep: rgba(0, 0, 0, 0.4);
+  --mv-color-glow-ambient: rgba(136, 192, 208, 0.1); /* UIパーツの常時発光用 */
+
+  /* ========================================
+     ボックスシャドウ
+     ======================================== */
+  --mv-shadow-focus: 0 0 0 var(--mv-focus-ring-width) var(--mv-color-glow-focus);
+  --mv-shadow-selected: 0 0 0 var(--mv-border-width-thick)
+    var(--mv-color-glow-selected);
+  --mv-shadow-card: 0 4px 12px var(--mv-color-shadow-elevated);
+  --mv-shadow-tab-active-inset: 0 calc(-1 * var(--mv-border-width-default)) 0 0
+    var(--mv-primitive-aurora-yellow) inset;
+
+  /* ========================================
+     追加シャドウ・ボーダー・グロー
+     ======================================== */
+  --mv-shadow-glow-sm: 0 0 8px var(--mv-color-glow-focus);
+  --mv-shadow-glow-lg: 0 0 15px var(--mv-color-glow-focus);
+  --mv-shadow-node-glow: 0 0 8px rgba(136, 192, 208, 0.3);
+  --mv-shadow-button-glow: 0 0 8px rgba(136, 192, 208, 0.4);
+  --mv-border-panel: var(--mv-border-width-thin) solid
+    var(--mv-color-border-subtle);
+  --mv-text-shadow-glow: 0 0 4px var(--mv-color-glow-focus);
+  --mv-shadow-progress-bar: 0 0 2px var(--mv-color-glow-focus),
+    inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --mv-shadow-floating-window: 0 0 15px var(--mv-color-glow-focus),
+    0 4px 12px var(--mv-color-shadow-deep);
+  --mv-shadow-badge: 0 1px 2px var(--mv-color-shadow-elevated);
+  --mv-shadow-badge-glow-sm: 0 0 4px;
+  --mv-shadow-badge-glow-md: 0 0 6px;
+  --mv-shadow-badge-glow-lg: 0 0 8px;
+  --mv-shadow-progress-fill: 0 0 3px;
+  --mv-shadow-inset-dark: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  --mv-shadow-inset-darker: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --mv-shadow-inset-subtle: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --mv-shadow-inset-focus: inset var(--mv-border-width-default) 0 0;
+  --mv-shadow-wbs-node-selected: inset var(--mv-border-width-default) 0 0
+      var(--mv-color-interactive-primary),
+    0 0 8px var(--mv-color-glow-focus);
+
+  /* テキストシャドウ */
+  --mv-text-shadow-subtle: 0 0 1px rgba(0, 0, 0, 0.2);
+
+  /* フェーズ インジケーター グロー */
+  --mv-shadow-phase-indicator-glow: 0 0 4px;
+  --mv-shadow-phase-glow-sm: 0 0 5px;
+  --mv-shadow-text-glow-xs: 0 0 1px;
+  --mv-shadow-text-glow-md: 0 0 8px;
+
+  /* ========================================
+     ガラスモーフィズム用（Phantom Glass スタイル）
+     ======================================== */
+  --mv-glass-bg: rgba(22, 24, 30, 0.4);
+  --mv-glass-bg-dark: rgba(0, 0, 0, 0.2);
+  --mv-glass-bg-darker: rgba(0, 0, 0, 0.3);
+  --mv-glass-border: rgba(255, 255, 255, 0.02);
+  --mv-glass-border-subtle: rgba(255, 255, 255, 0.05);
+  --mv-glass-border-light: rgba(255, 255, 255, 0.1);
+  --mv-glass-border-hover: rgba(255, 255, 255, 0.15);
+  --mv-glass-highlight: rgba(255, 255, 255, 0.08);
+  --mv-glass-hover: rgba(255, 255, 255, 0.1);
+  --mv-glass-hover-strong: rgba(255, 255, 255, 0.2);
+  --mv-glass-active: rgba(255, 255, 255, 0.05);
+  --mv-shadow-ambient-lg: 0 12px 40px rgba(0, 0, 0, 0.25);
+  --mv-shadow-ambient-sm: 0 0 12px rgba(255, 255, 255, 0.05);
+  --mv-shadow-glow-hover: 0 0 12px rgba(255, 255, 255, 0.05);
+  --mv-shadow-glow-accent: 0 0 16px rgba(136, 192, 208, 0.3);
+  --mv-shadow-glow-accent-border: rgba(136, 192, 208, 0.4);
+  --mv-shadow-glow-accent-strong: 0 0 4px rgba(136, 192, 208, 0.5);
+  --mv-shadow-glow-frost-2: 0 0 8px var(--mv-primitive-frost-2);
+  --mv-shadow-glow-frost-2-md: 0 0 12px var(--mv-glow-frost-2-mid);
+  --mv-shadow-glow-red: 0 0 8px var(--mv-primitive-aurora-red);
+  --mv-shadow-glow-red-lg: 0 0 16px var(--mv-primitive-aurora-red);
+  --mv-shadow-glow-red-md: 0 0 12px var(--mv-glow-red);
+  --mv-shadow-glow-yellow: 0 0 8px var(--mv-glow-yellow);
+  --mv-shadow-lift-sm: 0 0 10px rgba(0, 0, 0, 0.1);
+  --mv-filter-drop-shadow: drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
+  --mv-filter-drop-shadow-brand: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+  --mv-filter-drop-shadow-brand-hover: drop-shadow(
+    0 15px 30px rgba(136, 192, 208, 0.3)
+  );
+  --mv-filter-drop-shadow-brand-text: drop-shadow(
+    0 0 15px rgba(136, 192, 208, 0.3)
+  );
+  --mv-filter-drop-shadow-brand-text-hover: drop-shadow(
+    0 0 20px rgba(136, 192, 208, 0.6)
+  );
+
+  /* ========================================
+     テキストシャドウ（セマンティック）
+     ======================================== */
+  --mv-text-shadow-base: 0 0 2px rgba(0, 0, 0, 0.8);
+  --mv-text-shadow-base-white: var(--mv-text-shadow-base),
+    0 0 12px rgba(255, 255, 255, 0.1);
+  --mv-text-shadow-hover-white: 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(255, 255, 255, 0.1);
+  --mv-text-shadow-cyan: 0 0 8px rgba(136, 192, 208, 0.6);
+  --mv-text-shadow-cyan-content: 0 0 4px rgba(136, 192, 208, 0.4);
+  --mv-text-shadow-green: 0 0 8px rgba(163, 190, 140, 0.6);
+  --mv-text-shadow-green-content: 0 0 4px rgba(163, 190, 140, 0.4);
+  --mv-text-shadow-purple: 0 0 8px rgba(180, 142, 173, 0.6);
+  --mv-text-shadow-purple-content: 0 0 4px rgba(180, 142, 173, 0.4);
+  --mv-text-shadow-orange: 0 0 8px rgba(224, 152, 128, 0.4);
+
+  /* ========================================
+     ガラスモーフィズム追加
+     ======================================== */
+  --mv-glass-bg-chat: rgba(22, 24, 30, 0.5);
+  --mv-glass-bg-minimized: rgba(22, 24, 30, 0.7);
+  --mv-glass-border-strong: rgba(255, 255, 255, 0.08);
+  --mv-glass-border-top: rgba(255, 255, 255, 0.15);
+  --mv-glass-border-bottom: rgba(0, 0, 0, 0.2);
+  --mv-glass-border-separator: rgba(255, 255, 255, 0.03);
+  --mv-glass-border-tab: rgba(136, 192, 208, 0.2);
+  --mv-glass-tab-bg: rgba(136, 192, 208, 0.1);
+  --mv-glass-close-bg: rgba(191, 97, 106, 0.15);
+  --mv-glass-close-border: rgba(191, 97, 106, 0.3);
+  --mv-glass-scrollbar: rgba(255, 255, 255, 0.1);
+  --mv-glass-scrollbar-hover: rgba(255, 255, 255, 0.2);
+  --mv-glass-footer: rgba(0, 0, 0, 0.1);
+  --mv-shadow-floating-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --mv-shadow-tab-glow: 0 0 12px rgba(136, 192, 208, 0.15);
+
+  /* 複合シャドウ */
+  --mv-shadow-glass-panel: 0 12px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --mv-shadow-glass-panel-full: var(--mv-shadow-glass-panel),
+    0 0 0 1px var(--mv-glow-black-light);
+  --mv-shadow-floating-panel: 0 16px 48px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* ボタン用複合シャドウ */
+  --mv-btn-shadow-primary: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(34, 48, 56, 0.25),
+    0 8px 18px -10px rgba(143, 191, 187, 0.35);
+  --mv-btn-shadow-primary-hover: inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(34, 48, 56, 0.28),
+    0 10px 22px -12px rgba(136, 192, 208, 0.45);
+  --mv-btn-shadow-danger: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(58, 28, 28, 0.3),
+    0 8px 18px -12px rgba(201, 123, 123, 0.45);
+  --mv-btn-shadow-danger-hover: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(58, 28, 28, 0.35),
+    0 10px 20px -12px rgba(218, 126, 135, 0.5);
+
+  /* タイムスタンプ用テキストシャドウ */
+  --mv-text-shadow-timestamp: 0 0 2px rgba(0, 0, 0, 0.5);
+
+  /* グローシャドウ追加 */
+  --mv-glow-frost-3: rgba(94, 129, 172, 0.3);
+  --mv-glow-frost-3-strong: rgba(94, 129, 172, 0.4);
+  --mv-glow-purple: rgba(180, 142, 173, 0.3);
+  --mv-glow-purple-strong: rgba(180, 142, 173, 0.4);
+  --mv-glow-green: rgba(163, 190, 140, 0.3);
+  --mv-glow-green-strong: rgba(163, 190, 140, 0.4);
+  --mv-glow-green-mid: rgba(163, 190, 140, 0.2);
+  --mv-glow-green-lg: 0 0 16px rgba(163, 190, 140, 0.4);
+  --mv-shadow-glow-green-md: 0 0 12px rgba(163, 190, 140, 0.4);
+  --mv-glow-yellow: rgba(235, 203, 139, 0.3);
+  --mv-glow-yellow-strong: rgba(235, 203, 139, 0.4);
+  --mv-border-glow-yellow: rgba(235, 203, 139, 0.4);
+  --mv-glow-red: rgba(191, 97, 106, 0.3);
+  --mv-glow-red-light: rgba(191, 97, 106, 0.1);
+  --mv-bg-glow-red-light: rgba(191, 97, 106, 0.2);
+  --mv-bg-glow-green-mid: rgba(163, 190, 140, 0.2);
+  --mv-border-glow-green: rgba(163, 190, 140, 0.4);
+  --mv-bg-glow-green-hover: rgba(163, 190, 140, 0.3);
+  --mv-bg-glow-yellow-mid: rgba(235, 203, 139, 0.2);
+  --mv-glow-red-strong: rgba(191, 97, 106, 0.4);
+  --mv-glow-red-border: rgba(191, 97, 106, 0.5);
+  --mv-glow-orange: rgba(224, 152, 128, 0.4);
+  --mv-glow-frost-2: rgba(136, 192, 208, 0.3);
+  --mv-glow-frost-2-border: rgba(136, 192, 208, 0.4);
+  --mv-glow-frost-2-strong: rgba(136, 192, 208, 0.5);
+  --mv-glow-frost-2-light: rgba(136, 192, 208, 0.15);
+  --mv-glow-frost-2-lighter: rgba(136, 192, 208, 0.1);
+  --mv-glow-frost-2-mid: rgba(136, 192, 208, 0.2);
+  --mv-glow-white-light: rgba(255, 255, 255, 0.15);
+  --mv-glow-white-faint: rgba(255, 255, 255, 0.1);
+  --mv-glow-snow: rgba(236, 239, 244, 0.1);
+  --mv-glow-failed: rgba(218, 126, 135, 0.4);
+  --mv-glow-running: rgba(163, 190, 140, 0.2);
+  --mv-glow-black-light: rgba(0, 0, 0, 0.1);
+  --mv-glow-black: rgba(0, 0, 0, 0.3);
+  --mv-glow-black-mid: rgba(0, 0, 0, 0.2);
+  --mv-glow-polar: rgba(46, 52, 64, 0.85);
+
+  /* 複合シャドウ追加 */
+  --mv-shadow-dialog: 0 0 40px rgba(0, 0, 0, 0.4),
+    0 0 60px rgba(136, 192, 208, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --mv-shadow-backlog-panel: inset 1px 0 0 rgba(255, 255, 255, 0.02),
+    -4px 0 24px rgba(0, 0, 0, 0.3);
+  --mv-shadow-backlog-header: inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+  --mv-shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(136, 192, 208, 0.1);
+  --mv-text-shadow-frost: 0 0 12px rgba(136, 192, 208, 0.3);
+  --mv-text-shadow-frost-lg: 0 0 20px var(--mv-glow-frost-2);
+  --mv-text-shadow-snow: 0 0 20px rgba(236, 239, 244, 0.1);
+  --mv-text-shadow-snow-subtle: 0 0 20px rgba(236, 239, 244, 0.1);
+  --mv-text-shadow-snow-strong: 0 0 20px rgba(136, 192, 208, 0.3);
+  --mv-text-shadow-none: none;
+  --mv-filter-success-glow: drop-shadow(0 0 12px rgba(163, 190, 140, 0.6));
+
+  /* GridNode・GridCanvas 用シャドウ */
+  --mv-shadow-node-pending: 0 0 8px var(--mv-glow-frost-2-lighter);
+  --mv-shadow-node-ready: 0 0 8px var(--mv-glow-frost-2);
+  --mv-shadow-node-running: 0 0 8px var(--mv-glow-green-mid);
+  --mv-shadow-node-succeeded: 0 0 8px var(--mv-glow-frost-2);
+  --mv-shadow-node-failed: 0 0 8px var(--mv-glow-red);
+  --mv-shadow-node-canceled: 0 0 8px var(--mv-glow-black-mid);
+  --mv-shadow-node-blocked: 0 0 8px var(--mv-glow-purple);
+  --mv-shadow-node-hover-pending: 0 0 12px var(--mv-glow-frost-2-mid);
+  --mv-shadow-node-hover-ready: 0 0 12px var(--mv-glow-frost-2);
+  --mv-shadow-node-hover-running: 0 0 12px var(--mv-glow-green);
+  --mv-shadow-node-hover-succeeded: 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-hover-failed: 0 0 12px var(--mv-glow-red-strong);
+  --mv-shadow-node-hover-canceled: 0 0 12px var(--mv-glow-black);
+  --mv-shadow-node-hover-blocked: 0 0 12px var(--mv-glow-purple-strong);
+  
+  --mv-shadow-node-selected-pending: 0 0 4px var(--mv-glow-frost-2-mid), 0 0 12px var(--mv-glow-frost-2);
+  --mv-shadow-node-selected-ready: 0 0 4px var(--mv-glow-frost-2), 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-selected-running: 0 0 4px var(--mv-glow-green), 0 0 12px var(--mv-glow-green-strong);
+  --mv-shadow-node-selected-succeeded: 0 0 4px var(--mv-glow-frost-2-strong), 0 0 12px var(--mv-glow-frost-2-strong);
+  --mv-shadow-node-selected-failed: 0 0 4px var(--mv-glow-red-strong), 0 0 12px var(--mv-glow-red-strong);
+  --mv-shadow-node-selected-canceled: 0 0 4px var(--mv-glow-black), 0 0 12px var(--mv-glow-black);
+  --mv-shadow-node-selected-blocked: 0 0 4px var(--mv-glow-purple-strong), 0 0 12px var(--mv-glow-purple-strong);
+
+  --mv-shadow-node-title-pending: 0 0 4px var(--mv-glow-frost-2-mid);
+  --mv-shadow-node-title-ready: 0 0 6px var(--mv-glow-frost-2);
+  --mv-shadow-node-title-running: 0 0 8px var(--mv-glow-green);
+  --mv-shadow-node-title-succeeded: 0 0 6px var(--mv-glow-frost-2);
+  --mv-shadow-node-title-failed: 0 0 6px var(--mv-glow-red);
+  --mv-shadow-node-title-canceled: 0 0 6px var(--mv-glow-black);
+  --mv-shadow-node-title-blocked: 0 0 6px var(--mv-glow-purple);
+  --mv-text-shadow-node-id: 0 0 4px var(--mv-glow-black);
+  --mv-shadow-zoom-controls: 0 0 2px var(--mv-glow-black);
+  --mv-text-shadow-zoom: 0 0 4px var(--mv-glow-black);
+
+  /* ConnectionLine 用 */
+  --mv-color-connection-satisfied: rgba(136, 192, 208, 0.4);
+  --mv-color-connection-unsatisfied: var(--mv-glow-black-mid);
+
+  /* BacklogPanel 用 */
+  --mv-shadow-backlog-item: 0 0 8px var(--mv-glow-black-mid);
+  --mv-shadow-backlog-item-hover: 0 0 12px var(--mv-glow-black);
+  --mv-text-shadow-backlog-title: 0 0 4px var(--mv-glow-black);
+
+  /* 複合シャドウ（カンマ区切り） */
+  --mv-shadow-glass-panel-with-glow: var(--mv-shadow-glass-panel), var(--mv-shadow-glow-hover);
+  --mv-shadow-glass-panel-with-frost: var(--mv-shadow-glass-panel), var(--mv-shadow-node-ready);
+  --mv-shadow-glass-panel-with-running: var(--mv-shadow-glass-panel), var(--mv-shadow-node-running);
+  --mv-shadow-glass-panel-with-failed: var(--mv-shadow-glass-panel), var(--mv-shadow-node-failed);
+  --mv-shadow-glass-panel-with-blocked: var(--mv-shadow-glass-panel), var(--mv-shadow-node-blocked);
+  --mv-shadow-floating-with-accent: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-accent);
+  --mv-shadow-floating-with-accent-inset: var(--mv-shadow-floating-lg), var(--mv-shadow-glow-accent), inset 0 1px 0 var(--mv-glow-frost-2-lighter);
+  --mv-shadow-phase-concept: var(--mv-shadow-glow-frost-2), 0 0 16px var(--mv-glow-frost-3);
+  --mv-shadow-phase-design: 0 0 8px var(--mv-primitive-aurora-purple), 0 0 16px var(--mv-glow-purple);
+  --mv-shadow-phase-impl: 0 0 8px var(--mv-primitive-aurora-green), 0 0 16px var(--mv-glow-green);
+  --mv-shadow-phase-verify: 0 0 8px var(--mv-primitive-aurora-yellow), 0 0 16px var(--mv-glow-yellow);
+  --mv-shadow-zoom-glow: var(--mv-shadow-glass-panel), var(--mv-shadow-zoom-controls);
+}

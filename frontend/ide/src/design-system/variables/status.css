@@ -1,0 +1,84 @@
+/**
+ * ステータスカラー (Status Colors)
+ * 状態を表す色定義 (Pending, Ready, Running, etc.)
+ */
+:root {
+  /* ========================================
+     ステータスカラー: Pending（待機中）
+     ======================================== */
+  --mv-color-status-pending-bg: var(--mv-primitive-deep-4);
+  --mv-color-status-pending-border: var(--mv-primitive-polar-night-3);
+  --mv-color-status-pending-text: var(--mv-primitive-pastel-orange);
+
+  /* ========================================
+     ステータスカラー: Ready（準備完了）
+     ======================================== */
+  --mv-color-status-ready-bg: #1e2a3a;
+  --mv-color-status-ready-border: var(--mv-primitive-frost-2);
+  --mv-color-status-ready-text: var(--mv-primitive-frost-1);
+
+  /* ========================================
+     ステータスカラー: Running（実行中）
+     ======================================== */
+  --mv-color-status-running-bg: #1e2d26;
+  --mv-color-status-running-border: var(--mv-primitive-pastel-green);
+  --mv-color-status-running-text: var(--mv-primitive-aurora-green);
+  --mv-color-status-running-glow: var(--mv-color-glow-running);
+
+  /* ========================================
+     ステータスカラー: Succeeded（処理成功 - レビュー待ち）
+     ======================================== */
+  --mv-color-status-succeeded-bg: #1c2b31; /* Slightly lighter/richer Dark Teal */
+  --mv-color-status-succeeded-border: var(
+    --mv-primitive-frost-1
+  ); /* Brighter Cyan */
+  --mv-color-status-succeeded-text: var(
+    --mv-primitive-frost-1
+  ); /* Matching bright text */
+
+  /* ========================================
+     ステータスカラー: Completed（完了 - 承認済み - Premium Gold）
+     ======================================== */
+  --mv-color-status-completed-bg: #2d261a; /* Dark Gold/Brown */
+  --mv-color-status-completed-border: var(
+    --mv-primitive-aurora-yellow
+  ); /* Gold */
+  --mv-color-status-completed-text: var(--mv-primitive-aurora-yellow);
+  --mv-color-status-completed-glow: rgba(235, 203, 139, 0.6); /* Gold Glow */
+
+  /* ========================================
+     ステータスカラー: Failed（失敗）
+     ======================================== */
+  --mv-color-status-failed-bg: #2d1f22;
+  --mv-color-status-failed-border: var(--mv-primitive-pastel-red);
+  --mv-color-status-failed-text: var(--mv-primitive-aurora-red);
+
+  /* ========================================
+     ステータスカラー: Canceled（キャンセル）
+     ======================================== */
+  --mv-color-status-canceled-bg: #22252d;
+  --mv-color-status-canceled-border: var(--mv-primitive-polar-night-1);
+  --mv-color-status-canceled-text: var(--mv-primitive-neutral-400);
+
+  /* ========================================
+     ステータスカラー: Blocked（ブロック - Purple）
+     ======================================== */
+  --mv-color-status-blocked-bg: #2b202a; /* Dark Purple */
+  --mv-color-status-blocked-border: var(
+    --mv-primitive-aurora-purple
+  ); /* Purple */
+  --mv-color-status-blocked-text: var(--mv-primitive-aurora-purple);
+
+  /* ========================================
+     ステータスカラー: RetryWait（リトライ待機 - Orange）
+     ======================================== */
+  --mv-color-status-retry-wait-bg: #2d2420; /* Dark Orange/Brown */
+  --mv-color-status-retry-wait-border: var(--mv-primitive-aurora-orange);
+  --mv-color-status-retry-wait-text: var(--mv-primitive-aurora-orange);
+
+  /* ========================================
+     ステータスドット（インジケーター）
+     ======================================== */
+  --mv-status-dot-size: 6px;
+  --mv-status-dot-glow-running: 0 0 4px var(--mv-color-status-running-text);
+}

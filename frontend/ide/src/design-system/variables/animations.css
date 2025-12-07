@@ -1,0 +1,50 @@
+/**
+ * アニメーション (Animations)
+ * デュレーション、イージング、トランジション、キーフレーム
+ */
+:root {
+  /* ========================================
+     アニメーション: デュレーション
+     ======================================== */
+  --mv-duration-instant: 100ms;
+  --mv-duration-fast: 150ms;
+  --mv-duration-normal: 300ms;
+  --mv-duration-slow: 500ms;
+  --mv-duration-pulse: 2000ms;
+
+  /* ========================================
+     アニメーション: イージング
+     ======================================== */
+  --mv-easing-default: ease-in-out;
+  --mv-easing-in: ease-in;
+  --mv-easing-out: ease-out;
+  --mv-easing-linear: linear;
+  --mv-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ========================================
+     アニメーション: トランジション
+     ======================================== */
+  --mv-transition-hover: var(--mv-duration-fast) var(--mv-easing-out);
+  --mv-transition-state: var(--mv-duration-normal) var(--mv-easing-default);
+  --mv-transition-transform: var(--mv-duration-fast) var(--mv-easing-out);
+  
+  /* ========================================
+     トランスフォーム
+     ======================================== */
+  --mv-transform-hover-lift: translateY(-2px);
+  --mv-transform-press: translateY(1px);
+}
+
+/* ========================================
+   パルスアニメーション（実行中ノード）
+   控えめなグローが拡大するスタイル
+   ======================================== */
+@keyframes mv-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 var(--mv-color-status-running-glow);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px var(--mv-color-status-running-glow);
+  }
+}

@@ -452,7 +452,7 @@
   },
   "overrides": [
     {
-      "files": ["**/variables.css"],
+      "files": ["**/variables.css", "**/variables/*.css"],
       "rules": {
         "color-no-hex": null,
         "function-disallowed-list": null,
