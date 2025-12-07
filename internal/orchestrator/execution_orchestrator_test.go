@@ -389,12 +389,12 @@ func TestExecutionOrchestrator_Stop_CancelsRunningTask(t *testing.T) {
 	err = orch.Stop()
 	assert.NoError(t, err)
 
+	// Ensure runLoop exits before asserting expectations to avoid data races
+	waitForStop()
+
 	// Verify executed task was canceled
 	mockExecutor.AssertExpectations(t)
 
 	// Verify state is IDLE
 	assert.Equal(t, ExecutionStateIdle, orch.State())
-
-	// Verify runLoop exits
-	waitForStop()
 }

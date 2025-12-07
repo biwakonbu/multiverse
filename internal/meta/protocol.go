@@ -35,9 +35,18 @@ type Decision struct {
 }
 
 type WorkerCall struct {
-	WorkerType string `yaml:"worker_type"`
-	Mode       string `yaml:"mode"`
-	Prompt     string `yaml:"prompt"`
+	WorkerType   string                 `yaml:"worker_type"`
+	Mode         string                 `yaml:"mode"`
+	Prompt       string                 `yaml:"prompt"`
+	Model        string                 `yaml:"model,omitempty"`
+	Temperature  *float64               `yaml:"temperature,omitempty"`
+	MaxTokens    *int                   `yaml:"max_tokens,omitempty"`
+	CLIPath      string                 `yaml:"cli_path,omitempty"`
+	Flags        []string               `yaml:"flags,omitempty"`
+	Env          map[string]string      `yaml:"env,omitempty"`
+	ToolSpecific map[string]interface{} `yaml:"tool_specific,omitempty"`
+	Workdir      string                 `yaml:"workdir,omitempty"`
+	UseStdin     bool                   `yaml:"use_stdin,omitempty"`
 }
 
 // CompletionAssessmentResponse is the expected payload for "completion_assessment"

@@ -118,6 +118,48 @@ flowchart TB
 | **Container**  | タスク単位の隔離環境                 |
 | **Worker CLI** | 実際の開発作業（coding, git, tests） |
 
+## AgentToolProvider 設計（Phase 4 拡張）
+
+### 目的
+- Codex / Gemini / Claude Code / Cursor など複数のエージェント CLI を安全に切り替えつつ、共通の実行パイプラインで扱う。Worker 実行と（将来的な）Meta 生成の両方で同じ抽象を再利用し、特定 CLI に縛られない実行面を確保する。
+
+### 抽象レイヤと責務
+- **ProviderConfig**: kind, cliPath, model, flags, extraEnv, toolSpecific を保持。kind でプロバイダを切り替え、デフォルト値（例: cliPath=codex）を与える。
+- **Request**: prompt/mode/temperature/maxTokens/workdir/useStdin/extraEnv/flags/toolSpecific など、呼び出し時に上書きしたい情報を集約。ツール固有値は toolSpecific にそのまま渡す（過度な共通化を避ける）。
+- **ExecPlan**: 実行直前の最終形。command/args/env/workdir/timeout/stdin を Sandbox.Exec などに渡す。
+- **Registry**: kind→factory を登録・解決。`agenttools.Build(ctx, kind, cfg, req)` で Provider を生成し ExecPlan を得る。
+
+### 実行フロー（現状）
+1. Meta.NextAction が `WorkerCall` を返す（worker_type, mode, prompt, model, flags, env, tool_specific, workdir, use_stdin を許容）。
+2. Orchestrator/Core で `Executor.RunWorkerCall` を呼び出し、WorkerCall を `agenttools.Request` + `ProviderConfig` に変換。
+3. Registry から kind に対応する Provider を取得し、`ExecPlan` を生成。
+4. ExecPlan の env を `config.Worker.Env` / WorkerCall.Env / 呼び出し時 env でマージし、`Sandbox.Exec` に渡す。
+5. stdout/stderr を受け取り、WorkerRunResult を記録（現状は JSON パースせず RawOutput を保持）。
+
+### 実装状態（2025-12-07）
+- **CodexProvider** (`internal/agenttools/codex.go`):
+  - mode: exec / chat をサポート。
+  - デフォルト付与: `--sandbox workspace-write`, `--json`, `--cwd /workspace/project`。
+  - 透過: model / temperature / max-tokens / flags / env。UseStdin 指定時は `--stdin` + stdin へ送る計画だが、Sandbox 側が未対応のため現在はブロック。
+- **Stub Providers** (`stub_providers.go`):
+  - gemini-cli / claude-code / cursor-cli をスタブ登録し、未実装エラーを明示。実装時は Registry 差し替えで有効化。
+- **WorkerCall 拡張** (`internal/meta/protocol.go`):
+  - model, temperature, max_tokens, cli_path, flags, env, tool_specific, workdir, use_stdin を追加し、後続の Provider で活用可能にした。
+- **Worker 実行経路** (`internal/worker/executor.go`):
+  - `RunWorker` は Codex 用のデフォルト WorkerCall を作り、新しい `RunWorkerCall` に委譲。
+  - ExecPlan を受けて Sandbox.Exec を実行。env は複数ソースをマージ。stdin が指定された場合は未サポートとして明示エラー。
+
+### 設計上のポイント
+- **拡張優先**: 共通化は最小限。model や flags は Provider がそのまま解釈できる形で透過させ、ツール固有の挙動を阻害しない。
+- **安全性**: 未サポート機能（現時点では stdin）を黙って無視せずエラーにすることで、想定外の実行を防ぐ。
+- **差し替え容易性**: kind ごとの factory 登録のみで新 CLI を差し替え可能。既存呼び出し側は WorkerCall/Request を介すため変更を局所化できる。
+
+### 今後の実装方針
+- Sandbox.Exec で stdin をサポートし、UseStdin 経路を有効化（CodexProvider での `--stdin` 送出と対で動作させる）。
+- Gemini / Claude Code / Cursor 各 CLI のフラグ体系に合わせた Provider を追加し、stub を置換。
+- Meta 層の CLI 対応（AgentToolProvider を Meta でも利用するか、あるいは Meta 側は別レイヤで CLI 実行するか方針決定）。+
+- ExecPlan 出力の JSON をパースして WorkerRunResult.Summary を改善（codex --json を活用）。
+
 #### 5. External Outputs
 
 | コンポーネント | 説明                   |

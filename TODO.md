@@ -1,295 +1,111 @@
 # TODO: multiverse v3.0 - Phase 4 Implementation
 
-Based on PRD v3.0 - LLM 本番接続と実タスク実行
+Based on PRD v3.0 - Codex CLI 統合と実タスク実行
 
 ---
 
 ## 現在のステータス
 
-| フェーズ    | 内容                           | ステータス |
-| ----------- | ------------------------------ | ---------- |
-| Phase 1     | チャット → タスク生成          | ✅ 完了    |
-| Phase 2     | 依存関係グラフ・WBS 表示       | ✅ 完了    |
-| Phase 3     | 自律実行ループ                 | ✅ 完了    |
-| **Phase 4** | **LLM 本番接続と実タスク実行** | 🚧 進行中  |
+| フェーズ    | 内容                             | ステータス |
+| ----------- | -------------------------------- | ---------- |
+| Phase 1     | チャット → タスク生成            | ✅ 完了    |
+| Phase 2     | 依存関係グラフ・WBS 表示         | ✅ 完了    |
+| Phase 3     | 自律実行ループ                   | ✅ 完了    |
+| **Phase 4** | **Codex CLI 統合と実タスク実行** | 🚧 進行中  |
 
 ---
 
-## Phase 4 タスク一覧
+## 設計方針（重要・現状差分あり）
 
-### 1. バックエンド: LLM 接続の本番化
+> [!IMPORTANT]
+> API キーは不要。Codex / Claude Code / Gemini / Cursor など **CLI サブスクリプションセッションを優先利用**する。Meta 層も CLI セッション前提に置き換え、API キー依存を排除する。
 
-#### 1.1 LLM 設定管理
+**現在のデータフロー（実装ベース）:**
 
-- [ ] **LLMConfigStore の実装**
-  - 場所: `internal/ide/llm_config.go`
-  - 内容:
-    - LLM 設定の JSON 永続化（`~/.multiverse/config/llm.json`）
-    - API キーの暗号化保存（OS keychain 連携検討）
-    - 設定のリロード機能
-
-```go
-type LLMConfig struct {
-    Kind         string `json:"kind"`
-    Model        string `json:"model"`
-    BaseURL      string `json:"baseUrl,omitempty"`
-    SystemPrompt string `json:"systemPrompt,omitempty"`
-    // APIKey は keychain または環境変数から取得
-}
 ```
-
-- [ ] **環境変数検証の強化**
-
-  - 場所: `app.go:newMetaClientFromEnv()`
-  - 内容:
-    - `OPENAI_API_KEY` が空の場合のエラーメッセージ改善
-    - 設定ファイルからの読み込みフォールバック
-
-- [ ] **LLM 接続テスト API**
-  - 場所: `app.go`
-  - 内容:
-    - `TestLLMConnection()` メソッド追加
-    - タイムアウト付きテストリクエスト
-
-#### 1.2 プロンプトエンジニアリング
-
-- [ ] **Decompose プロンプトの洗練**
-
-  - 場所: `internal/meta/client.go:decomposeSystemPrompt`
-  - 内容:
-    - 日本語/英語のプロジェクト判定
-    - より具体的なタスク分解指示
-    - 出力フォーマットの厳格化
-
-- [ ] **エラーハンドリングの改善**
-  - 場所: `internal/meta/client.go:Decompose()`
-  - 内容:
-    - YAML パースエラー時のリカバリ
-    - 不完全なレスポンスの検出
-
----
-
-### 2. フロントエンド: 設定 UI
-
-#### 2.1 LLM 設定画面
-
-- [ ] **LLMSettings コンポーネント**
-
-  - 場所: `frontend/ide/src/lib/settings/LLMSettings.svelte`
-  - 内容:
-    - プロバイダ選択（mock / openai-chat）
-    - API キー入力（マスク表示）
-    - モデル選択
-    - 接続テストボタン
-
-- [ ] **設定画面の統合**
-  - 場所: `frontend/ide/src/App.svelte` またはツールバー
-  - 内容:
-    - 設定画面へのナビゲーション
-    - モーダルまたはサイドパネル
-
-#### 2.2 Wails バインディング
-
-- [ ] **App API の追加**
-
-  - 場所: `app.go`
-  - 内容:
-    ```go
-    func (a *App) GetLLMConfig() LLMConfig
-    func (a *App) SetLLMConfig(config LLMConfig) error
-    func (a *App) TestLLMConnection() (string, error)
-    ```
-
-- [ ] **wailsjs 再生成**
-  - 場所: `frontend/ide/wailsjs/`
-  - コマンド: `wails generate module`
-
----
-
-### 3. フロントエンド: 実行制御 UI
-
-#### 3.1 ExecutionControls コンポーネント
-
-- [ ] **ExecutionControls の完成**
-
-  - 場所: `frontend/ide/src/lib/toolbar/ExecutionControls.svelte`
-  - 内容:
-    - 開始/一時停止/再開/停止ボタン
-    - 実行状態インジケーター
-    - ツールチップ表示
-
-- [ ] **executionStore の改善**
-  - 場所: `frontend/ide/src/stores/executionStore.ts`
-  - 内容:
-    - エラーハンドリング
-    - トースト通知連携
-
-#### 3.2 Toolbar への統合
-
-- [ ] **Toolbar レイアウト更新**
-  - 場所: `frontend/ide/src/lib/toolbar/Toolbar.svelte`
-  - 内容:
-    - ExecutionControls の配置
-    - レスポンシブ対応
-
----
-
-### 4. タスク実行ログのリアルタイム表示
-
-#### 4.1 バックエンド: ログストリーミング
-
-- [ ] **StreamingExecuteTask の実装**
-
-  - 場所: `internal/orchestrator/executor.go`
-  - 内容:
-    - stdout/stderr のリアルタイム送信
-    - EventEmitter 経由でフロントエンドに転送
-
-- [ ] **TaskLogEvent の定義**
-  - 場所: `internal/orchestrator/events.go`
-  - 内容:
-
-    ```go
-    const EventTaskLog = "task:log"
-
-    type TaskLogEvent struct {
-        TaskID    string    `json:"taskId"`
-        AttemptID string    `json:"attemptId"`
-        Stream    string    `json:"stream"` // stdout / stderr
-        Line      string    `json:"line"`
-        Timestamp time.Time `json:"timestamp"`
-    }
-    ```
-
-#### 4.2 フロントエンド: ログビューワー
-
-- [ ] **taskLogStore の実装**
-
-  - 場所: `frontend/ide/src/stores/taskLogStore.ts`
-  - 内容:
-    - タスク ID ごとのログ管理
-    - 最大行数制限
-    - クリア機能
-
-- [ ] **TaskLogView コンポーネント**
-
-  - 場所: `frontend/ide/src/lib/components/TaskLogView.svelte`
-  - 内容:
-    - ログ行の表示
-    - 自動スクロール
-    - ストリーム別の色分け
-
-- [ ] **FloatingChatWindow への統合**
-  - 場所: `frontend/ide/src/lib/components/chat/FloatingChatWindow.svelte`
-  - 内容:
-    - Log タブでタスクログを表示
-    - タスク選択で対象を切り替え
-
----
-
-### 5. 統合テスト
-
-#### 5.1 E2E テスト
-
-- [ ] **LLM 設定テスト**
-
-  - 場所: `frontend/ide/tests/llm_settings.spec.ts`
-  - 内容:
-    - 設定画面の表示
-    - 設定の保存・読み込み
-    - 接続テスト（モック）
-
-- [ ] **実行制御テスト**
-
-  - 場所: `frontend/ide/tests/execution_controls.spec.ts`
-  - 内容:
-    - 開始/一時停止/再開/停止の操作
-    - 状態表示の更新
-
-- [ ] **ログ表示テスト**
-  - 場所: `frontend/ide/tests/task_log.spec.ts`
-  - 内容:
-    - ログイベントの受信
-    - 表示の更新
-
-#### 5.2 バックエンド統合テスト
-
-- [ ] **LLM 接続テスト**
-  - 場所: `test/integration/llm_connection_test.go`
-  - 内容:
-    - モック LLM でのパイプライン検証
-    - 本番 LLM でのドライラン（CI スキップ）
-
----
-
-### 6. ドキュメント更新
-
-- [x] **PRD.md の更新**
-
-  - Phase 4 の追加
-  - Phase 1-3 を「完了済み」としてマーク
-
-- [x] **TODO.md の更新**
-
-  - Phase 4 タスクの詳細化
-
-- [ ] **GEMINI.md の更新**
-
-  - 新規コンポーネントの追加
-
-- [ ] **CLAUDE.md の更新**
-  - 開発ガイドラインの更新
-
----
-
-## 完了条件
-
-| ID       | 条件                                                  | ステータス |
-| -------- | ----------------------------------------------------- | ---------- |
-| AC-P4-01 | OpenAI API キーを設定画面から入力・保存できる         | ⬜         |
-| AC-P4-02 | 設定画面から LLM 接続テストを実行できる               | ⬜         |
-| AC-P4-03 | チャットメッセージが本番 LLM で処理される             | ⬜         |
-| AC-P4-04 | 生成されたタスクが実際に agent-runner で実行される    | ⬜         |
-| AC-P4-05 | タスク実行ログがリアルタイムで表示される              | ⬜         |
-| AC-P4-06 | 実行コントロール（開始/一時停止/再開/停止）が機能する | ⬜         |
-
----
-
-## 依存関係
-
-```mermaid
-graph TD
-    A[1.1 LLMConfigStore] --> B[2.1 LLMSettings UI]
-    A --> C[1.2 プロンプト洗練]
-    B --> D[2.2 Wails バインディング]
-    E[3.1 ExecutionControls] --> F[3.2 Toolbar 統合]
-    G[4.1 ログストリーミング] --> H[4.2 TaskLogView]
-    H --> I[4.3 FloatingChatWindow 統合]
-
-    D --> J[5.1 E2E テスト]
-    F --> J
-    I --> J
-    J --> K[6. ドキュメント更新]
+Chat → Meta-agent (openai-chat via HTTP + OPENAI_API_KEY) → Task 生成
+                                                            ↓
+ExecutionOrchestrator → agent-runner → Docker Sandbox → codex CLI（既存セッション想定）
 ```
 
 ---
 
-## 実装優先順位
+## 現在の実装メモ（2025-12-07 時点）
 
-1. **高優先度（Week 1）**
+### バックエンド
+- [x] **LLMConfigStore** (`internal/ide/llm_config.go`)
+  - Kind/Model/BaseURL/SystemPrompt を `~/.multiverse/config/llm.json` に永続化
+  - 環境変数オーバーライドあり（API キー保存は不要にする方針）
+- [x] **App API** (`app.go`)
+  - `GetLLMConfig` / `SetLLMConfig` / `TestLLMConnection` を追加
+  - ただし **ChatHandler 生成は `newMetaClientFromEnv()` 固定**で LLMConfigStore の設定が Meta 層に反映されない
+  - `TestLLMConnection` は OpenAI API キー前提の HTTP 呼び出し（API キー不要の CLI セッション検証に置換予定）
+- [x] **AgentToolProvider 基盤** (`internal/agenttools`)
+  - 共通 Request/ExecPlan/ProviderConfig と registry を追加
+  - Codex CLI プロバイダ実装（exec/chat、model/temperature/max-tokens/flags/env を透過）
+  - Gemini / Claude Code / Cursor は stub プロバイダで登録（未実装アラートのみ）
+- [x] **Worker Executor**
+  - `RunWorker` → `RunWorkerCall` に内部委譲し、AgentToolProvider 経由で ExecPlan を構築して Sandbox.Exec 実行
+  - `meta.WorkerCall` に model/flags/env/tool_specific/use_stdin などを拡張し、CLI 切替の土台を用意
+  - stdin 実行は未サポート（現在はエラーにする）
 
-   - 1.1 LLMConfigStore の実装
-   - 2.1 LLMSettings コンポーネント
-   - 2.2 Wails バインディング
-   - 3.1 ExecutionControls の完成
+### フロントエンド
+- [x] **LLMSettings** (`frontend/ide/src/lib/settings/LLMSettings.svelte`)
+  - プロバイダ選択、モデル/エンドポイント入力、接続テスト UI
+  - API キーは「環境変数に設定済みか」を表示するのみ（保存不可）
+- [x] **Toolbar 設定ボタン & モーダル** (`Toolbar.svelte`, `App.svelte`)
+  - 設定モーダルから LLMSettings を呼び出し
 
-2. **中優先度（Week 2）**
+### ビルド検証
+- [x] `go build .`
+- [x] `pnpm build`（警告 5 件、エラー 0）
+- [x] `pnpm check`
 
-   - 1.2 プロンプトエンジニアリング
-   - 4.1 ログストリーミング
-   - 4.2 TaskLogView コンポーネント
-   - 5.1 E2E テスト
+---
 
-3. **低優先度（継続）**
-   - 6. ドキュメント更新
-   - 細かい UI 調整
+## 残りのタスク（優先度順）
+
+### 完了済み（Phase4 実装要点）
+- [x] Meta/LLM: LLMConfigStore 経由で `codex-cli` 初期化、接続テストを CLI セッション検証に変更
+- [x] Worker: コンテナ起動前に Codex セッション検証を強制し、未ログインなら IDE へエラー通知して中断
+- [x] Orchestrator: 実行ログを `task:log` イベントでストリーミング
+- [x] UI: LLMSettings を CLI セッション表示に対応（codex-cli 選択可）
+- [x] Doc: PRD/TODO/Golden テスト設計を CLI 前提に更新
+
+### 残タスク（フォローアップ）
+- [ ] CLI サブスクリプション運用手順を GEMINI.md / CLAUDE.md / guides に追記
+- [ ] E2E: CLI セッション未設定時の IDE 通知を含む回帰テストを追加
+- [ ] Sandbox Exec で stdin 入力をサポートし、AgentToolProvider の UseStdin を有効化
+- [ ] Gemini / Claude Code / Cursor の実プロバイダを実装し、registry stub を置換
+- [ ] Meta 層からの WorkerCall 生成で新フィールド（model/flags/env/tool_specific）を活用する経路を整備
+
+---
+
+## 設計上の注意点
+
+### Codex / CLI 統合（現状）
+1. **Meta-agent (decompose)**: `internal/meta/client.go` が HTTP で OpenAI Chat Completion を呼び出す（`OPENAI_API_KEY` 必須）。CLI サブスクリプション非対応。
+2. **Worker (codex-cli)**: `internal/worker/executor.go` が Docker サンドボックス内で `codex exec ...` を実行。CLI セッション引き継ぎ方法は未整備。
+
+### セッション/環境（現状）
+
+| 項目                    | 用途                                       | 備考                         |
+| ----------------------- | ------------------------------------------ | ---------------------------- |
+| `MULTIVERSE_META_KIND`  | Meta-agent の種別                          | 現状: mock / openai-chat     |
+| `MULTIVERSE_META_MODEL` | Meta-agent のモデル                        | 現状: gpt-5.1-codex-max-high |
+| CLI セッション          | Codex / Claude Code / Gemini / Cursor 等   | **API キー不要。要セッション** |
+
+---
+
+## 次のアクション
+
+1. Meta 層を CLI セッション対応に変更する設計・実装方針を決定（AgentToolProvider と整合）
+2. `agent-runner` + worker へ CLI セッションを確実に引き継ぐ仕組みを確認（env/マウント/cli path）
+3. `go test ./internal/ide/...` 実行で LLMConfigStore の回帰確認
+4. ストリーミングログと CLI ベース接続の E2E テストを追加
+
+---
+
+## 追加で必要な対応（漏れ防止メモ）
+- [ ] CLI サブスクリプション運用手順のドキュメント化（auth.json / env / codex login）
+- [ ] CLI 未ログイン時の IDE 通知と再試行 UX の改善（案内リンク・ボタン）

@@ -62,73 +62,53 @@ Meta-agent が自律的にタスクを分解・実行・評価する AI 開発�
 
 ---
 
-## 3. Phase 4: LLM 本番接続と実タスク実行【現在のフェーズ】
+## 3. Phase 4: CLI セッション統合と実タスク実行【現在のフェーズ】
 
 ### 3.1 概要
 
-Phase 1-3 で構築した基盤を活用し、モック LLM から本番 LLM（OpenAI API 等）への接続を実現する。
+Phase 1-3 で構築した基盤を活用し、モック LLM から CLI セッション（Codex CLI 等）ベースの実タスク実行を実現する。
 チャットメッセージから生成されたタスクを、実際に agent-runner で実行できるようにする。
+
+**重要方針:**
+- API キーは不要。Codex / Claude Code / Gemini / Cursor など **CLI サブスクリプションセッションを優先利用**する
+- Meta 層も CLI セッション前提に置き換え、API キー依存を排除する
 
 ### 3.2 機能要件
 
-#### FR-P4-001: LLM プロバイダ接続
+#### FR-P4-001: CLI プロバイダ接続
 
 **設計方針:**
 
-- 環境変数 `MULTIVERSE_META_KIND` で LLM プロバイダを切り替え
-- デフォルトは `mock`（開発用）、本番は `openai-chat` を想定
-- 将来的に Claude、Gemini 等への拡張を考慮した抽象化
+- LLMConfigStore で CLI プロバイダを管理（`codex-cli`, `claude-code`, `gemini-cli`, `cursor-cli` 等）
+- デフォルトは `mock`（開発用）、本番は `codex-cli` を想定
+- CLI セッションの検証と引き継ぎを実装（環境変数、ソケット、マウント等）
 
-**現在の実装状況:**
+**実装方針（最新版反映）:**
 
-```go
-// app.go:newMetaClientFromEnv()
-func newMetaClientFromEnv() *meta.Client {
-    kind := os.Getenv("MULTIVERSE_META_KIND")
-    if kind == "" {
-        kind = "mock"  // デフォルトはモック
-    }
-    switch kind {
-    case "openai-chat":
-        apiKey := os.Getenv("OPENAI_API_KEY")
-        model := os.Getenv("MULTIVERSE_META_MODEL")
-        systemPrompt := os.Getenv("MULTIVERSE_META_SYSTEM_PROMPT")
-        return meta.NewClient("openai-chat", apiKey, model, systemPrompt)
-    default:
-        return meta.NewMockClient()
-    }
-}
-```
-
-**追加実装:**
-
-| 項目              | 内容                                            |
-| ----------------- | ----------------------------------------------- |
-| 環境変数検証      | `OPENAI_API_KEY` が空の場合のエラーハンドリング |
-| プロバイダ選択 UI | 設定画面で LLM プロバイダを切り替え             |
-| API キー管理      | セキュアな API キー保存（OS keychain 連携）     |
-| 接続テスト        | 設定画面から接続テストを実行可能に              |
+| 項目                    | 内容                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| CLI プロバイダ基盤       | `internal/agenttools` に ProviderConfig/Request/ExecPlan/registry を実装               |
+| Codex プロバイダ         | `internal/agenttools/codex.go`（exec/chat、model/temperature/max-tokens/flags/env）   |
+| 他プロバイダ             | Gemini / Claude Code / Cursor は stub 登録のみ（未実装エラーを明示）                  |
+| Worker 実行              | `internal/worker/executor.go` が WorkerCall→ExecPlan 変換後に Sandbox.Exec で実行     |
+| WorkerCall 拡張          | model/flags/env/tool_specific/use_stdin/workdir 等を許容（Meta/Orchestrator から指定可） |
+| stdin サポート           | まだ Sandbox.Exec では未対応。UseStdin 指定時はエラーで弾く                          |
+| セッション検証           | Codex CLI セッションは既存の `verifyCodexSession`（auth.json or CODEX_API_KEY）を利用 |
 
 ```go
-// internal/meta/provider.go（新規）
-
-// Provider は LLM プロバイダを抽象化する
-type Provider interface {
-    Name() string
-    Decompose(ctx context.Context, req *DecomposeRequest) (*DecomposeResponse, error)
-    PlanTask(ctx context.Context, prdText string) (*PlanTaskResponse, error)
-    NextAction(ctx context.Context, taskSummary *TaskSummary) (*NextActionResponse, error)
-    CompletionAssessment(ctx context.Context, taskSummary *TaskSummary) (*CompletionAssessmentResponse, error)
-    TestConnection(ctx context.Context) error
-}
-
-// ProviderConfig は LLM プロバイダの設定
-type ProviderConfig struct {
-    Kind         string `json:"kind"`         // openai-chat, anthropic, google-gemini, mock
-    APIKey       string `json:"apiKey"`       // API キー（暗号化保存）
-    Model        string `json:"model"`        // モデル ID
-    SystemPrompt string `json:"systemPrompt"` // カスタムシステムプロンプト
-    BaseURL      string `json:"baseUrl"`      // カスタムエンドポイント（オプション）
+// internal/agenttools/types.go
+type Request struct {
+    Prompt       string
+    Mode         string
+    Model        string
+    Temperature  *float64
+    MaxTokens    *int
+    Workdir      string
+    Timeout      time.Duration
+    ExtraEnv     map[string]string
+    Flags        []string
+    ToolSpecific map[string]interface{}
+    UseStdin     bool
 }
 ```
 
@@ -383,12 +363,13 @@ func (a *App) TestLLMConnection() (string, error) {
 
 | ID       | 条件                                                  |
 | -------- | ----------------------------------------------------- |
-| AC-P4-01 | OpenAI API キーを設定画面から入力・保存できる         |
-| AC-P4-02 | 設定画面から LLM 接続テストを実行できる               |
-| AC-P4-03 | チャットメッセージが本番 LLM で処理される             |
+| AC-P4-01 | CLI プロバイダ（Codex CLI 等）を設定画面から選択・保存できる |
+| AC-P4-02 | 設定画面から CLI セッション検証を実行できる               |
+| AC-P4-03 | チャットメッセージが CLI プロバイダで処理される             |
 | AC-P4-04 | 生成されたタスクが実際に agent-runner で実行される    |
 | AC-P4-05 | タスク実行ログがリアルタイムで表示される              |
 | AC-P4-06 | 実行コントロール（開始/一時停止/再開/停止）が機能する |
+| AC-P4-07 | Docker サンドボックスで Codex CLI セッションが引き継がれる |
 
 ---
 
@@ -490,11 +471,13 @@ func (a *App) TestLLMConnection() (string, error) {
 
 ### 6.3 LLM プロバイダ（Phase 4-5）
 
-| プロバイダ | エンドポイント                    | モデル              |
-| ---------- | --------------------------------- | ------------------- |
-| OpenAI     | api.openai.com                    | gpt-4o, gpt-4o-mini |
-| Anthropic  | api.anthropic.com                 | claude-3.5-sonnet   |
-| Google     | generativelanguage.googleapis.com | gemini-1.5-pro      |
+| プロバイダ     | 実行方式                    | セッション管理              |
+| -------------- | --------------------------- | --------------------------- |
+| Codex CLI      | `codex chat` コマンド       | CLI サブスクリプションセッション |
+| Claude Code CLI| `claude-code chat` コマンド  | CLI サブスクリプションセッション |
+| Gemini CLI     | `gemini chat` コマンド       | CLI サブスクリプションセッション |
+| Cursor CLI     | `cursor chat` コマンド       | CLI サブスクリプションセッション |
+| Mock           | モック実装                  | なし                        |
 
 ---
 
@@ -522,9 +505,9 @@ func (a *App) TestLLMConnection() (string, error) {
 
 | リスク               | 影響度 | 対策                                           |
 | -------------------- | ------ | ---------------------------------------------- |
-| LLM API のレート制限 | 高     | 指数バックオフリトライ（実装済み）             |
-| API キーの漏洩       | 高     | OS keychain 連携、環境変数の暗号化             |
-| 本番 LLM のコスト増  | 中     | モデル選択 UI、usage トラッキング              |
+| CLI セッション未認証 | 高     | 起動時検証、明示エラー表示                     |
+| Docker 内セッション引き継ぎ失敗 | 高     | 環境変数/ボリュームマウントでセッション情報を伝播 |
+| CLI コマンド実行エラー | 中     | エラーハンドリング、リトライポリシー           |
 | LLM 応答の不安定さ   | 中     | プロンプトエンジニアリング、バリデーション強化 |
 
 ---
@@ -533,7 +516,8 @@ func (a *App) TestLLMConnection() (string, error) {
 
 | 用語         | 説明                                               |
 | ------------ | -------------------------------------------------- |
-| Meta-agent   | LLM を使ってタスク分解・評価を行うエージェント     |
+| Meta-agent   | CLI セッション（Codex CLI 等）を使ってタスク分解・評価を行うエージェント     |
 | Decompose    | ユーザー入力からタスクを分解するプロトコル         |
 | agent-runner | Docker 内でタスクを実行するコアエンジン            |
 | Worker       | 実際のコード生成・テスト実行を行う CLI（Codex 等） |
+| CLI セッション | Codex / Claude Code / Gemini / Cursor 等の CLI サブスクリプションセッション |
