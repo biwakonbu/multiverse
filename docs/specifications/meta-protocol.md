@@ -136,15 +136,20 @@ decision:
 
 ### 4.4 フィールド定義
 
-| フィールド                | 型     | 必須     | 説明                                    |
-| ------------------------- | ------ | -------- | --------------------------------------- |
-| `type`                    | string | ✅       | 固定値: `"next_action"`                 |
-| `decision.action`         | string | ✅       | `"run_worker"` または `"mark_complete"` |
-| `decision.reason`         | string | ✅       | 判断理由                                |
-| `worker_call`             | object | 条件付き | `action` が `"run_worker"` の場合必須   |
-| `worker_call.worker_type` | string | ✅       | Worker 種別（v1: `"codex-cli"`）        |
-| `worker_call.mode`        | string | ✅       | 実行モード（v1: `"exec"`）              |
-| `worker_call.prompt`      | string | ✅       | Worker への指示文                       |
+| フィールド                  | 型     | 必須     | 説明                                    |
+| --------------------------- | ------ | -------- | --------------------------------------- |
+| `type`                      | string | ✅       | 固定値: `"next_action"`                 |
+| `decision.action`           | string | ✅       | `"run_worker"` または `"mark_complete"` |
+| `decision.reason`           | string | ✅       | 判断理由                                |
+| `worker_call`               | object | 条件付き | `action` が `"run_worker"` の場合必須   |
+| `worker_call.worker_type`   | string | ✅       | Worker 種別（v1: `"codex-cli"`）        |
+| `worker_call.mode`          | string | ✅       | 実行モード（v1: `"exec"`）              |
+| `worker_call.prompt`        | string | ✅       | Worker への指示文                       |
+| `worker_call.model`         | string | 任意     | 使用するモデル ID                       |
+| `worker_call.flags`         | array  | 任意     | CLI フラグのリスト                      |
+| `worker_call.env`           | map    | 任意     | 環境変数のマップ                        |
+| `worker_call.tool_specific` | map    | 任意     | ツール固有の設定                        |
+| `worker_call.use_stdin`     | bool   | 任意     | 標準入力を使用するかどうか              |
 
 ### 4.5 実装例
 

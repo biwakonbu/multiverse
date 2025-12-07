@@ -359,6 +359,27 @@ func (c *Client) NextAction(ctx context.Context, taskSummary *TaskSummary) (*Nex
 		systemPrompt = `You are a Meta-agent that orchestrates a coding task.
 Decide the next action based on the current context.
 Output MUST be a YAML block with type: next_action.
+
+Schema for 'run_worker' action:
+type: next_action
+decision:
+  action: run_worker
+  reason: <string>
+worker_call:
+  worker_type: codex-cli
+  mode: exec
+  prompt: <string>
+  # Optional fields:
+  model: <string>
+  flags: [<string>]
+  env: {<key>: <value>}
+  use_stdin: <bool>
+
+Schema for 'mark_complete' action:
+type: next_action
+decision:
+  action: mark_complete
+  reason: <string>
 `
 	}
 	// Serialize context for LLM
