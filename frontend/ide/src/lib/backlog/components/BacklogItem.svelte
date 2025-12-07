@@ -1,15 +1,28 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import type { BacklogItem } from "../../../stores/backlogStore";
 
-  export let item: BacklogItem;
+  // Wails models (type: string) と Storybook プレビュー互換の型定義
+  type BacklogItemType = "FAILURE" | "QUESTION" | "BLOCKER";
+  interface BacklogItemProps {
+    id: string;
+    taskId: string;
+    type: BacklogItemType | string; // Wails models は string を生成するため
+    title: string;
+    description: string;
+    priority: number;
+    createdAt: string | Date; // Wails Go time 型対応
+    resolvedAt?: string | Date;
+    resolution?: string;
+  }
+
+  export let item: BacklogItemProps;
 
   const dispatch = createEventDispatcher<{
     resolve: void;
     delete: void;
   }>();
 
-  function getTypeLabel(type: BacklogItem["type"]): string {
+  function getTypeLabel(type: BacklogItemType | string): string {
     switch (type) {
       case "FAILURE":
         return "失敗";
@@ -30,8 +43,8 @@
     return "最低";
   }
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
+  function formatDate(dateValue: string | Date): string {
+    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
     return date.toLocaleString("ja-JP", {
       month: "short",
       day: "numeric",

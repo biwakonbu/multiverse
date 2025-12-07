@@ -1,8 +1,21 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import type { BacklogItem } from "../../../stores/backlogStore";
 
-  export let item: BacklogItem;
+  // Wails models (type: string) と Storybook プレビュー互換の型定義
+  type BacklogItemType = "FAILURE" | "QUESTION" | "BLOCKER";
+  interface BacklogItemProps {
+    id: string;
+    taskId: string;
+    type: BacklogItemType | string; // Wails models は string を生成するため
+    title: string;
+    description: string;
+    priority: number;
+    createdAt: string | Date; // Wails Go time 型対応
+    resolvedAt?: string | Date;
+    resolution?: string;
+  }
+
+  export let item: BacklogItemProps;
 
   let resolutionText = "";
 
