@@ -344,7 +344,7 @@
   .settings-modal {
     position: relative;
     max-width: var(--mv-content-max-width-sm);
-    max-height: 80vh;
+    max-height: var(--mv-settings-modal-max-height, 80vh);
     overflow-y: auto;
   }
 

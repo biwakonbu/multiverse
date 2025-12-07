@@ -194,9 +194,10 @@ export const drag = createDragStore();
 
 // CSS Transform用の派生ストア
 // 座標変換: スクリーン座標 = ワールド座標 * zoom + pan
-// transform の順序: 最初に translate でパン、次に scale でズーム
+// transform の適用順序は右から左なので、scale → translate の順で適用される
+// translate を先に書くことで pan がズームの影響を受けないようにする
 export const canvasTransform = derived(viewport, ($viewport) => {
-  return `translate(${$viewport.panX}px, ${$viewport.panY}px) scale(${$viewport.zoom})`;
+  return `translate3d(${$viewport.panX}px, ${$viewport.panY}px, 0) scale(${$viewport.zoom})`;
 });
 
 // ズームパーセント表示用

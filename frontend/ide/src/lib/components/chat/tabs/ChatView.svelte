@@ -169,11 +169,18 @@
      Floating Action Button - Crystal HUD スタイル
      ======================================== */
   .scroll-fab {
+    --scroll-fab-size: var(--mv-scroll-fab-size, var(--mv-size-action-btn));
+    --scroll-fab-offset: var(--mv-scroll-fab-offset, 16px);
+    --scroll-fab-glow-inset: var(--mv-scroll-fab-glow-inset, -4px);
+    --scroll-fab-badge-offset: var(--mv-scroll-fab-badge-offset, var(--mv-spacing-xxs));
+    --scroll-fab-icon-size: var(--mv-scroll-fab-icon-size, var(--mv-icon-size-md));
+    --scroll-fab-dot-size: var(--mv-scroll-fab-dot-size, 10px);
+
     position: absolute;
     right: var(--mv-spacing-md);
     bottom: var(--mv-spacing-lg);
-    width: 44px;
-    height: 44px;
+    width: var(--scroll-fab-size);
+    height: var(--scroll-fab-size);
     padding: 0;
     border: none;
     background: transparent;
@@ -182,7 +189,7 @@
 
     /* 初期状態: 非表示 */
     opacity: 0;
-    transform: translateY(16px) scale(0.8);
+    transform: translateY(var(--scroll-fab-offset)) scale(0.8);
     pointer-events: none;
 
     /* スムーズなトランジション */
@@ -200,8 +207,8 @@
   /* グロー背景レイヤー */
   .fab-glow {
     position: absolute;
-    inset: -4px;
-    border-radius: 50%;
+    inset: var(--scroll-fab-glow-inset);
+    border-radius: var(--mv-radius-full);
     background: radial-gradient(
       circle,
       var(--mv-glow-frost-2-light) 0%,
@@ -233,14 +240,13 @@
     justify-content: center;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: var(--mv-radius-full);
 
     /* Crystal Button スタイル */
     background: var(--mv-btn-crystal-bg);
-    border: 1px solid var(--mv-btn-crystal-border);
+    border: var(--mv-border-width-thin) solid var(--mv-btn-crystal-border);
     box-shadow: var(--mv-btn-crystal-shadow);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
 
     /* トランジション */
     transition:
@@ -269,8 +275,8 @@
 
   /* アイコン */
   .fab-icon {
-    width: 20px;
-    height: 20px;
+    width: var(--scroll-fab-icon-size);
+    height: var(--scroll-fab-icon-size);
     color: var(--mv-primitive-frost-2);
     filter: drop-shadow(0 0 4px var(--mv-glow-frost-2));
     transition:
@@ -293,21 +299,22 @@
   /* 新着バッジ */
   .fab-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: var(--scroll-fab-badge-offset);
+    right: var(--scroll-fab-badge-offset);
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .badge-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+    width: var(--scroll-fab-dot-size);
+    height: var(--scroll-fab-dot-size);
+    border-radius: var(--mv-radius-full);
     background: var(--mv-primitive-aurora-green);
-    box-shadow:
-      0 0 6px var(--mv-glow-green-strong),
-      0 0 12px var(--mv-glow-green);
+    box-shadow: var(
+      --scroll-fab-badge-shadow,
+      0 0 6px var(--mv-glow-green-strong), 0 0 12px var(--mv-glow-green)
+    );
     animation: badge-pulse 1.5s var(--mv-easing-default) infinite;
   }
 

@@ -6,7 +6,7 @@
   import { taskNodes, gridBounds, taskEdges } from "../../stores";
   import { zoom as zoomConfig } from "../../design-system";
 
-  let containerRef: HTMLDivElement;
+  let containerRef: HTMLDivElement | null = null;
 
   // マウス位置追跡（ズームの起点として使用）
   let lastMousePosition = { x: 0, y: 0 };
@@ -27,6 +27,7 @@
 
     if (event.ctrlKey || event.metaKey) {
       // Ctrl/Cmd + ホイールでズーム
+      if (!containerRef) return;
       const rect = containerRef.getBoundingClientRect();
       const mouseX = event.clientX - rect.left;
       const mouseY = event.clientY - rect.top;
@@ -45,6 +46,7 @@
     // 中クリックまたはスペース+左クリックでパン開始
     if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
       event.preventDefault();
+      if (!containerRef) return;
       containerRef.setPointerCapture(event.pointerId);
       drag.startDrag(
         event.clientX,
@@ -71,7 +73,7 @@
   // ドラッグ終了
   function handlePointerUp(event: PointerEvent) {
     if ($drag.isDragging) {
-      containerRef.releasePointerCapture(event.pointerId);
+      containerRef?.releasePointerCapture(event.pointerId);
       drag.endDrag();
     }
   }
@@ -209,7 +211,7 @@
   -->
   <div
     class="nodes-layer"
-    style="transform: translate({$viewport.panX}px, {$viewport.panY}px) scale({$viewport.zoom}); transform-origin: 0 0;"
+    style="transform: {$canvasTransform}; transform-origin: 0 0;"
   >
     {#each $taskNodes as node (node.task.id)}
       <GridNode
@@ -264,7 +266,6 @@
     transform-origin: 0 0;
     pointer-events: none;
     overflow: visible;
-    padding: var(--mv-spacing-xl);
   }
 
   .nodes-layer {
@@ -272,7 +273,6 @@
     top: 0;
     left: 0;
     transform-origin: 0 0;
-    padding: var(--mv-spacing-xl);
   }
 
   /* ズームインジケーター - ガラスモーフィズムスタイル */
