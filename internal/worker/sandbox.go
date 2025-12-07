@@ -18,7 +18,7 @@ import (
 // SandboxProvider defines the interface for sandbox management
 type SandboxProvider interface {
 	StartContainer(ctx context.Context, image string, repoPath string, env map[string]string) (string, error)
-	Exec(ctx context.Context, containerID string, cmd []string) (int, string, error)
+	Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader) (int, string, error)
 	StopContainer(ctx context.Context, containerID string) error
 }
 
@@ -111,11 +111,12 @@ func (s *SandboxManager) StartContainer(ctx context.Context, image string, repoP
 	return resp.ID, nil
 }
 
-func (s *SandboxManager) Exec(ctx context.Context, containerID string, cmd []string) (int, string, error) {
+func (s *SandboxManager) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader) (int, string, error) {
 	execConfig := types.ExecConfig{
 		Cmd:          cmd,
 		AttachStdout: true,
 		AttachStderr: true,
+		AttachStdin:  stdin != nil,
 		Tty:          false, // Use false to separate stdout/stderr if needed, but true is easier for reading.
 		// Let's use false and stdcopy to be robust.
 		WorkingDir: "/workspace/project",
@@ -131,6 +132,18 @@ func (s *SandboxManager) Exec(ctx context.Context, containerID string, cmd []str
 		return 0, "", err
 	}
 	defer hijacked.Close()
+
+	// If stdin is provided, stream it to the container in a goroutine
+	if stdin != nil {
+		go func() {
+			// Copy input to execution
+			// We ignore error here because if the process exits, writes will fail
+			defer func() {
+				_ = hijacked.CloseWrite()
+			}()
+			_, _ = io.Copy(hijacked.Conn, stdin)
+		}()
+	}
 
 	var outBuf, errBuf bytes.Buffer
 	// Copy output

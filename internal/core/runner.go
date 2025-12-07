@@ -24,7 +24,7 @@ type MetaClient interface {
 
 // WorkerExecutor interface for executing worker tasks
 type WorkerExecutor interface {
-	RunWorker(ctx context.Context, prompt string, env map[string]string) (*WorkerRunResult, error)
+	RunWorker(ctx context.Context, call meta.WorkerCall, env map[string]string) (*WorkerRunResult, error)
 	Start(ctx context.Context) error // Start persistent container
 	Stop(ctx context.Context) error  // Stop persistent container
 }
@@ -298,7 +298,7 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 			logger.Info("executing worker", slog.Int("prompt_length", len(action.WorkerCall.Prompt)))
 			logger.Debug("worker prompt", slog.String("prompt", action.WorkerCall.Prompt))
 			workerStart := time.Now()
-			res, err := r.Worker.RunWorker(ctx, action.WorkerCall.Prompt, r.Config.Runner.Worker.Env)
+			res, err := r.Worker.RunWorker(ctx, action.WorkerCall, r.Config.Runner.Worker.Env)
 			if err != nil {
 				logger.Error("worker execution failed", slog.Any("error", err), logging.LogDuration(workerStart))
 				// Worker execution failed (system error), record it but maybe continue?

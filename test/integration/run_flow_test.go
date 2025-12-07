@@ -73,9 +73,12 @@ func TestRunFlow_Success(t *testing.T) {
 		StopFunc: func(ctx context.Context) error {
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 			if env["TEST_ENV"] != "1" {
 				t.Error("Env var not passed to worker")
+			}
+			if call.Prompt != "Implement login" {
+				t.Errorf("Unexpected prompt: %s", call.Prompt)
 			}
 			return &core.WorkerRunResult{
 				ID:         "run-1",
@@ -219,7 +222,8 @@ func TestRunFlow_WorkerStartFailure(t *testing.T) {
 		StopFunc: func(ctx context.Context) error {
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			t.Error("RunWorker should not be called when Start fails")
 			return nil, nil
 		},
@@ -309,13 +313,11 @@ func TestRunFlow_CompletionAssessmentFailed(t *testing.T) {
 		StopFunc: func(ctx context.Context) error {
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			return &core.WorkerRunResult{
-				ID:         "run-1",
-				StartedAt:  time.Now(),
-				FinishedAt: time.Now(),
-				ExitCode:   0,
-				Summary:    "Worker executed successfully, but tests failed",
+				ExitCode: 0,
+				Summary:  "Done",
 			}, nil
 		},
 	}

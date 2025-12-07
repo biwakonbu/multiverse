@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"io"
+
+	"github.com/biwakonbu/agent-runner/internal/meta"
 	"github.com/biwakonbu/agent-runner/pkg/config"
 )
 
@@ -41,7 +44,7 @@ func (m *MockSandboxManager) StopContainer(ctx context.Context, containerID stri
 	return m.stopContainerErr
 }
 
-func (m *MockSandboxManager) Exec(ctx context.Context, containerID string, cmd []string) (int, string, error) {
+func (m *MockSandboxManager) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader) (int, string, error) {
 	m.execCalled = true
 	if m.execErr != nil {
 		return 1, "", m.execErr
@@ -207,7 +210,7 @@ func TestExecutor_RunWorker_WithPersistentContainer(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := executor.RunWorker(ctx, "test prompt", map[string]string{})
+	result, err := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "test prompt"}, map[string]string{})
 
 	if err != nil {
 		t.Fatalf("RunWorker() error = %v, want nil", err)
@@ -251,7 +254,7 @@ func TestExecutor_RunWorker_NoPersistentContainer(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := executor.RunWorker(ctx, "test prompt", map[string]string{})
+	result, err := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "test prompt"}, map[string]string{})
 
 	if err == nil {
 		t.Fatalf("RunWorker() expected error when no container running, got nil")
@@ -377,15 +380,15 @@ func TestExecutor_RunWorker_MultipleExecutionsInSameContainer(t *testing.T) {
 	}
 
 	// Phase 2: First RunWorker execution
-	result1, err1 := executor.RunWorker(ctx, "Task 1: Create calculator", map[string]string{})
+	res1, err1 := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "Task 1: Create calculator"}, map[string]string{})
 	if err1 != nil {
 		t.Fatalf("First RunWorker() failed: %v", err1)
 	}
-	if result1 == nil {
+	if res1 == nil {
 		t.Fatalf("First RunWorker() returned nil result")
 	}
-	if result1.ExitCode != 0 {
-		t.Errorf("First RunWorker() ExitCode = %d, want 0", result1.ExitCode)
+	if res1.ExitCode != 0 {
+		t.Errorf("First RunWorker() ExitCode = %d, want 0", res1.ExitCode)
 	}
 
 	// Verify containerID unchanged after first execution
@@ -396,18 +399,18 @@ func TestExecutor_RunWorker_MultipleExecutionsInSameContainer(t *testing.T) {
 
 	// Phase 3: Second RunWorker execution (reusing same container)
 	mockSandbox.execOutput = "Second task success"
-	result2, err2 := executor.RunWorker(ctx, "Task 2: Add tests", map[string]string{})
+	res2, err2 := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "Task 2: Add tests"}, map[string]string{})
 	if err2 != nil {
 		t.Fatalf("Second RunWorker() failed: %v", err2)
 	}
-	if result2 == nil {
+	if res2 == nil {
 		t.Fatalf("Second RunWorker() returned nil result")
 	}
-	if result2.ExitCode != 0 {
-		t.Errorf("Second RunWorker() ExitCode = %d, want 0", result2.ExitCode)
+	if res2.ExitCode != 0 {
+		t.Errorf("Second RunWorker() ExitCode = %d, want 0", res2.ExitCode)
 	}
-	if result2.RawOutput != "Second task success" {
-		t.Errorf("Second RunWorker() RawOutput = %s, want 'Second task success'", result2.RawOutput)
+	if res2.RawOutput != "Second task success" {
+		t.Errorf("Second RunWorker() RawOutput = %s, want 'Second task success'", res2.RawOutput)
 	}
 
 	// Verify containerID still unchanged after second execution

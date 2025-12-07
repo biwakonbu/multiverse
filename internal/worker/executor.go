@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -44,18 +45,8 @@ func (e *Executor) SetLogger(logger *slog.Logger) {
 	e.logger = logging.WithComponent(logger, "worker-executor")
 }
 
-func (e *Executor) RunWorker(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
-	call := meta.WorkerCall{
-		WorkerType: "codex-cli",
-		Mode:       "exec",
-		Prompt:     prompt,
-		Env:        env,
-	}
-	return e.RunWorkerCall(ctx, call, env)
-}
-
-// RunWorkerCall builds an ExecPlan via AgentToolProvider and executes it inside the sandbox.
-func (e *Executor) RunWorkerCall(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+// RunWorker executes a worker task
+func (e *Executor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 	logger := logging.WithTraceID(e.logger, ctx)
 
 	if e.containerID == "" {
@@ -63,10 +54,19 @@ func (e *Executor) RunWorkerCall(ctx context.Context, call meta.WorkerCall, env 
 		return nil, fmt.Errorf("container not started: call Start() first")
 	}
 
+	// Determine worker type (fallback to config default)
+	workerType := call.WorkerType
+	if workerType == "" {
+		workerType = e.Config.Kind
+	}
+	if workerType == "" {
+		workerType = "codex-cli"
+	}
+
 	// Build provider config and request
 	reqEnv := mergeEnvMaps(e.Config.Env, call.Env, env)
 	providerCfg := agenttools.ProviderConfig{
-		Kind:         call.WorkerType,
+		Kind:         workerType,
 		CLIPath:      call.CLIPath,
 		Model:        call.Model,
 		ExtraEnv:     nil, // Env is passed via Request for per-call overrides
@@ -94,7 +94,7 @@ func (e *Executor) RunWorkerCall(ctx context.Context, call meta.WorkerCall, env 
 		timeout = 30 * time.Minute
 	}
 
-	plan, err := agenttools.Build(ctx, call.WorkerType, providerCfg, req)
+	plan, err := agenttools.Build(ctx, workerType, providerCfg, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build agent tool plan: %w", err)
 	}
@@ -108,8 +108,9 @@ func (e *Executor) RunWorkerCall(ctx context.Context, call meta.WorkerCall, env 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	var stdin io.Reader
 	if plan.Stdin != "" {
-		return nil, fmt.Errorf("stdin execution is not supported in sandbox exec yet")
+		stdin = strings.NewReader(plan.Stdin)
 	}
 
 	cmd := []string{plan.Command}
@@ -137,7 +138,7 @@ func (e *Executor) RunWorkerCall(ctx context.Context, call meta.WorkerCall, env 
 	)
 
 	start := time.Now()
-	exitCode, output, execErr := e.Sandbox.Exec(ctx, containerID, cmd)
+	exitCode, output, execErr := e.Sandbox.Exec(ctx, containerID, cmd, stdin)
 	finish := time.Now()
 
 	res := &core.WorkerRunResult{

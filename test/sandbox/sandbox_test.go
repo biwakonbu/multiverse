@@ -43,7 +43,7 @@ func TestSandboxManager_StartStopContainer(t *testing.T) {
 	}
 
 	// Verify container is running by executing a simple command
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'test output'"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'test output'"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -92,7 +92,7 @@ func TestSandboxManager_EnvironmentVariables(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Check if environment variables are set
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $TEST_VAR_1"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $TEST_VAR_1"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -137,7 +137,7 @@ func TestSandboxManager_MountPoint(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Check if the file exists in the container at /workspace/project
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "ls -la /workspace/project/"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "ls -la /workspace/project/"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -176,7 +176,7 @@ func TestSandboxManager_FileWritePermission(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Write a file from container
-	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'created from container' > /workspace/project/output.txt"})
+	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'created from container' > /workspace/project/output.txt"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -224,7 +224,7 @@ func TestSandboxManager_NonZeroExitCode(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Execute command that fails
-	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "exit 42"})
+	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "exit 42"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -258,7 +258,7 @@ func TestSandboxManager_MultipleExec(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// First execution
-	exitCode1, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'first' > /workspace/project/file1.txt"})
+	exitCode1, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'first' > /workspace/project/file1.txt"}, nil)
 	if err != nil {
 		t.Fatalf("First Exec() error = %v", err)
 	}
@@ -268,7 +268,7 @@ func TestSandboxManager_MultipleExec(t *testing.T) {
 	}
 
 	// Second execution
-	exitCode2, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'second' > /workspace/project/file2.txt"})
+	exitCode2, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo 'second' > /workspace/project/file2.txt"}, nil)
 	if err != nil {
 		t.Fatalf("Second Exec() error = %v", err)
 	}
@@ -320,7 +320,7 @@ func TestSandboxManager_Cleanup(t *testing.T) {
 	// Attempting to execute in stopped container should fail
 	// Note: This may or may not fail depending on Docker implementation
 	// Just verify that the function completes without panic
-	_, _, _ = sm.Exec(ctx, containerID, []string{"echo", "test"})
+	_, _, _ = sm.Exec(ctx, containerID, []string{"echo", "test"}, nil)
 }
 
 // TestSandboxManager_ImagePull_AutoPull verifies automatic image pull when image doesn't exist locally
@@ -357,7 +357,7 @@ func TestSandboxManager_ImagePull_AutoPull(t *testing.T) {
 	}
 
 	// コンテナが実行可能であることを検証
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"echo", "test"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"echo", "test"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -436,7 +436,7 @@ func TestSandboxManager_ConcurrentExec(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		go func(index int) {
-			exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", fmt.Sprintf("echo 'Task %d'", index)})
+			exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", fmt.Sprintf("echo 'Task %d'", index)}, nil)
 			results <- result{exitCode, output, err}
 		}(i)
 	}
@@ -477,7 +477,7 @@ func TestSandboxManager_LargeOutput(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Generate large output (1000 lines)
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "for i in $(seq 1 1000); do echo \"Line $i: This is a test line with some content\"; done"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "for i in $(seq 1 1000); do echo \"Line $i: This is a test line with some content\"; done"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -518,7 +518,7 @@ func TestSandboxManager_LongRunningCommand(t *testing.T) {
 
 	// Run command that takes 3 seconds
 	start := time.Now()
-	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "sleep 3 && echo 'done'"})
+	exitCode, _, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "sleep 3 && echo 'done'"}, nil)
 	duration := time.Since(start)
 
 	if err != nil {
@@ -550,7 +550,7 @@ func TestSandboxManager_InvalidContainerID(t *testing.T) {
 	defer cancel()
 
 	// Try to exec with non-existent container ID
-	_, _, err = sm.Exec(ctx, "nonexistent-container-id-12345", []string{"echo", "test"})
+	_, _, err = sm.Exec(ctx, "nonexistent-container-id-12345", []string{"echo", "test"}, nil)
 	if err == nil {
 		t.Error("Exec() should fail with invalid container ID")
 	}
@@ -587,5 +587,47 @@ func TestSandboxManager_ContextCancellation(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "context canceled") && err != context.Canceled {
 		t.Logf("Expected context cancellation error, got: %v", err)
+	}
+}
+
+// TestSandboxManager_ExecWithStdin tests Exec with stdin input
+func TestSandboxManager_ExecWithStdin(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping Docker tests in short mode")
+	}
+
+	sm, err := worker.NewSandboxManager()
+	if err != nil {
+		t.Skipf("Docker not available: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	image := "alpine:3.19"
+	tmpDir := t.TempDir()
+
+	containerID, err := sm.StartContainer(ctx, image, tmpDir, map[string]string{})
+	if err != nil {
+		t.Fatalf("StartContainer() error = %v", err)
+	}
+	defer sm.StopContainer(ctx, containerID)
+
+	// Prepare stdin content
+	inputContent := "this is from stdin"
+	stdin := strings.NewReader(inputContent)
+
+	// Execute cat command reading from stdin
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"cat"}, stdin)
+	if err != nil {
+		t.Fatalf("Exec() with stdin error = %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("Exec() exit code = %d, want 0", exitCode)
+	}
+
+	if !strings.Contains(output, inputContent) {
+		t.Errorf("Exec() output should contain input content. Got: %q, Want substring: %q", output, inputContent)
 	}
 }

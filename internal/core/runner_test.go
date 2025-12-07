@@ -105,7 +105,7 @@ func TestRunner_Properties(t *testing.T) {
 					stopCalled = true
 					return nil
 				},
-				RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+				RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 					return &core.WorkerRunResult{
 						ExitCode: 0,
 						Summary:  "Done",
@@ -227,7 +227,8 @@ func TestRunner_TestCommand_Success(t *testing.T) {
 			stopCalled = true
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			return &core.WorkerRunResult{
 				ExitCode: 0,
 				Summary:  "Done",
@@ -332,7 +333,8 @@ func TestRunner_TestCommand_Failure(t *testing.T) {
 			stopCalled = true
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			return &core.WorkerRunResult{
 				ExitCode: 0,
 				Summary:  "Done",
@@ -436,7 +438,8 @@ func TestRunner_TestCommand_NotConfigured(t *testing.T) {
 			stopCalled = true
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			return &core.WorkerRunResult{
 				ExitCode: 0,
 				Summary:  "Done",
@@ -535,7 +538,8 @@ func TestRunner_TestCommand_RelativeCwd(t *testing.T) {
 			stopCalled = true
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
+			_ = call
 			return &core.WorkerRunResult{
 				ExitCode: 0,
 				Summary:  "Done",
@@ -625,7 +629,7 @@ func TestRunner_ContainerStartFailure(t *testing.T) {
 			// Stop may not be called due to early return
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 			// Should never be called if Start fails
 			t.Errorf("RunWorker should not be called when Start fails")
 			return nil, nil
@@ -730,7 +734,7 @@ func TestRunner_ValidatingState_MetaCallsSequence(t *testing.T) {
 			stopCalled = true
 			return nil
 		},
-		RunWorkerFunc: func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+		RunWorkerFunc: func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 			return &core.WorkerRunResult{
 				ExitCode: 0,
 				Summary:  "Work completed",

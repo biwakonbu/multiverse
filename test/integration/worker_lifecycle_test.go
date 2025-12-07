@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"io"
+
+	"github.com/biwakonbu/agent-runner/internal/meta"
 	"github.com/biwakonbu/agent-runner/internal/worker"
 	"github.com/biwakonbu/agent-runner/pkg/config"
 )
@@ -40,7 +43,7 @@ func (m *MockSandboxForLifecycle) StopContainer(ctx context.Context, containerID
 	return m.stopErr
 }
 
-func (m *MockSandboxForLifecycle) Exec(ctx context.Context, containerID string, cmd []string) (int, string, error) {
+func (m *MockSandboxForLifecycle) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader) (int, string, error) {
 	m.execCalled = true
 	m.execCallCount++
 	if m.execErr != nil {
@@ -112,7 +115,7 @@ func TestWorkerLifecycle_MultipleRunsInSameContainer(t *testing.T) {
 	}
 
 	// First RunWorker
-	result1, err := executor.RunWorker(ctx, "Task 1", map[string]string{})
+	result1, err := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "Task 1"}, map[string]string{})
 	if err != nil {
 		t.Fatalf("First RunWorker() failed: %v", err)
 	}
@@ -122,7 +125,7 @@ func TestWorkerLifecycle_MultipleRunsInSameContainer(t *testing.T) {
 
 	// Second RunWorker (same container)
 	mockSandbox.execOutput = "Second success"
-	result2, err := executor.RunWorker(ctx, "Task 2", map[string]string{})
+	result2, err := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "Task 2"}, map[string]string{})
 	if err != nil {
 		t.Fatalf("Second RunWorker() failed: %v", err)
 	}
@@ -226,7 +229,7 @@ func TestWorkerLifecycle_RunWorkerWithoutStart(t *testing.T) {
 	ctx := context.Background()
 
 	// Try to run worker without starting container
-	result, err := executor.RunWorker(ctx, "Task", map[string]string{})
+	result, err := executor.RunWorker(ctx, meta.WorkerCall{WorkerType: "codex-cli", Mode: "exec", Prompt: "Task"}, map[string]string{})
 	if err == nil {
 		t.Fatal("RunWorker() should fail when container not started")
 	}

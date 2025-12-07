@@ -4,17 +4,18 @@ import (
 	"context"
 
 	"github.com/biwakonbu/agent-runner/internal/core"
+	"github.com/biwakonbu/agent-runner/internal/meta"
 )
 
 type WorkerExecutor struct {
-	RunWorkerFunc func(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error)
+	RunWorkerFunc func(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error)
 	StartFunc     func(ctx context.Context) error
 	StopFunc      func(ctx context.Context) error
 }
 
-func (w *WorkerExecutor) RunWorker(ctx context.Context, prompt string, env map[string]string) (*core.WorkerRunResult, error) {
+func (w *WorkerExecutor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[string]string) (*core.WorkerRunResult, error) {
 	if w.RunWorkerFunc != nil {
-		return w.RunWorkerFunc(ctx, prompt, env)
+		return w.RunWorkerFunc(ctx, call, env)
 	}
 	return nil, nil
 }

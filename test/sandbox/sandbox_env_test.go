@@ -49,7 +49,7 @@ func TestSandboxManager_EnvPrefixHandling(t *testing.T) {
 	defer sm.StopContainer(ctx, containerID)
 
 	// Check TARGET_VAR
-	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $TARGET_VAR"})
+	exitCode, output, err := sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $TARGET_VAR"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
@@ -61,7 +61,7 @@ func TestSandboxManager_EnvPrefixHandling(t *testing.T) {
 	}
 
 	// Check NORMAL_VAR
-	exitCode, output, err = sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $NORMAL_VAR"})
+	exitCode, output, err = sm.Exec(ctx, containerID, []string{"sh", "-c", "echo $NORMAL_VAR"}, nil)
 	if err != nil {
 		t.Fatalf("Exec() error = %v", err)
 	}
