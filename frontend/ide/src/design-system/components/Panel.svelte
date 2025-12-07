@@ -5,15 +5,27 @@
    */
   import Box from "./Box.svelte";
 
-  export let variant: "default" | "glass" | "glass-strong" | "outlined" =
-    "glass";
-  export let padding: "none" | "sm" | "md" | "lg" = "md";
-  export let radius: "none" | "sm" | "md" | "lg" | "full" = "md";
-  export let hover: boolean = false;
-  export let glow: boolean = false;
 
-  let className = "";
-  export { className as class };
+  interface Props {
+    variant?: "default" | "glass" | "glass-strong" | "outlined";
+    padding?: "none" | "sm" | "md" | "lg";
+    radius?: "none" | "sm" | "md" | "lg" | "full";
+    hover?: boolean;
+    glow?: boolean;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    variant = "glass",
+    padding = "md",
+    radius = "md",
+    hover = false,
+    glow = false,
+    class: className = "",
+    children
+  }: Props = $props();
+  
 
   const paddingMap = {
     none: "0",
@@ -38,7 +50,7 @@
   style:--panel-p={paddingMap[padding]}
   style:--panel-r={radiusMap[radius]}
 >
-  <slot />
+  {@render children?.()}
 </div>
 
 <style>

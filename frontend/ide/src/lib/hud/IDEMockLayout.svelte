@@ -1,10 +1,16 @@
 <script lang="ts">
   import ProcessHUD from "./ProcessHUD.svelte";
-  import type { ResourceNode } from "../../stores/processStore";
+  import type { ResourceNode } from "./types";
 
-  export let executionState: "IDLE" | "RUNNING" | "PAUSED" = "RUNNING";
-  export let activeTaskTitle: string | undefined =
-    "Designing new UI components";
+  interface Props {
+    executionState?: "IDLE" | "RUNNING" | "PAUSED";
+    activeTaskTitle?: string | undefined;
+  }
+
+  let {
+    executionState = "RUNNING",
+    activeTaskTitle = "Designing new UI components",
+  }: Props = $props();
 
   // Mock Resources
   const resources: ResourceNode[] = [

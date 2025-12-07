@@ -3,16 +3,28 @@
   import type { WBSNode } from "../../stores/wbsStore";
   import type { TaskStatus } from "../../schemas";
 
-  // WBSNode properties exposed as controls
-  export let label: string = "Sample Node";
-  export let type: "phase" | "task" = "task";
-  export let phaseName: string = "実装";
-  export let status: TaskStatus = "PENDING";
-  export let hasChildren: boolean = false;
-  export let expanded: boolean = false;
+  
+  interface Props {
+    // WBSNode properties exposed as controls
+    label?: string;
+    type?: "phase" | "task";
+    phaseName?: string;
+    status?: TaskStatus;
+    hasChildren?: boolean;
+    expanded?: boolean;
+  }
+
+  let {
+    label = "Sample Node",
+    type = "task",
+    phaseName = "実装",
+    status = "PENDING",
+    hasChildren = false,
+    expanded = false
+  }: Props = $props();
 
   // Construct node object from flat props
-  $: node = {
+  let node = $derived({
     id: "sample-id",
     type,
     label,
@@ -33,7 +45,7 @@
           }
         : undefined,
     progress: { total: 0, completed: 0, percentage: 0 },
-  } as unknown as WBSNode; // Cast as WBSNode
+  } as unknown as WBSNode); // Cast as WBSNode
 </script>
 
 <div

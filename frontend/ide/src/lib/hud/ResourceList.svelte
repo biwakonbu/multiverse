@@ -1,22 +1,12 @@
-<script context="module" lang="ts">
-  export interface ResourceNode {
-    id: string;
-    name: string;
-    type: "META" | "WORKER" | "CONTAINER" | "ORCHESTRATOR";
-    status: "IDLE" | "RUNNING" | "THINKING" | "PAUSED" | "ERROR" | "DONE";
-    detail?: string;
-    children?: ResourceNode[];
-    expanded?: boolean;
-  }
-</script>
-
 <script lang="ts">
   import { slide } from "svelte/transition";
+  import type { ResourceNode, ResourceType, ResourceStatus } from "./types";
 
-  type ResourceType = ResourceNode["type"];
-  type ResourceStatus = ResourceNode["status"];
+  interface Props {
+    resources?: ResourceNode[];
+  }
 
-  export let resources: ResourceNode[] = [];
+  let { resources = $bindable([]) }: Props = $props();
 
   // Flatten the tree for rendering
   function flatten(
@@ -34,7 +24,7 @@
     return result;
   }
 
-  $: flatNodes = flatten(resources);
+  let flatNodes = $derived(flatten(resources));
 
   function toggleExpand(nodeId: string) {
     resources = toggleNode(resources, nodeId);
@@ -95,10 +85,10 @@
     {#each flatNodes as node (node.id)}
       <div
         class="resource-row"
-        on:click={() => toggleExpand(node.id)}
+        onclick={() => toggleExpand(node.id)}
         role="button"
         tabindex="0"
-        on:keydown={(e) => e.key === "Enter" && toggleExpand(node.id)}
+        onkeydown={(e) => e.key === "Enter" && toggleExpand(node.id)}
       >
         <!-- Name Column with Indent -->
         <div class="col-name" style:--depth={node.depth}>

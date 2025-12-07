@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/svelte';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import BrandLogo from './BrandLogo.svelte';
 import BrandText from './BrandText.svelte';
 import BrandFull from './BrandFull.svelte';
@@ -76,7 +76,9 @@ export const TextOnly: Story = {
   args: {
     size: 'lg',
   },
-  parameters: {
-    backgrounds: { default: 'dark' }, // Ensure contrast for the text
+  globals: {
+    backgrounds: {
+      value: "dark"
+    }
   }
 };

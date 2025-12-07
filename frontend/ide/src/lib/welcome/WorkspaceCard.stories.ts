@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/svelte';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import WorkspaceCard from './WorkspaceCard.svelte';
 
 // VRT用に固定タイムスタンプを使用（動的な値は視覚回帰テストを不安定にする）

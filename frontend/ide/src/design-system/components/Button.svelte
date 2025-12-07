@@ -1,62 +1,50 @@
+<script lang="ts" module>
+  export interface Props {
+    /** ボタンのバリアント */
+    variant?: "primary" | "secondary" | "ghost" | "danger" | "crystal";
+    /** ボタンのサイズ */
+    size?: "small" | "medium" | "large";
+    /** 無効状態 */
+    disabled?: boolean;
+    /** ローディング状態 */
+    loading?: boolean;
+    /** ボタンのタイプ */
+    type?: "button" | "submit" | "reset";
+    /** ボタンのラベル（Storybook用） */
+    label?: string;
+    /** ローディング時のラベル */
+    loadingLabel?: string;
+    /** ツールチップ用のタイトル属性 */
+    title?: string;
+    /** クリックイベントのコールバック */
+    onclick?: ((event: MouseEvent) => void) | undefined;
+    children?: import('svelte').Snippet;
+  }
+</script>
+
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import Spinner from "./Spinner.svelte";
 
-  /**
-   * ボタンのバリアント
-   * - primary: メインアクション用（目立つ緑）
-   * - secondary: 補助アクション用（控えめ）
-   * - ghost: テキストのみ（背景なし）
-   * - danger: 破壊的アクション用（赤）
-   * - crystal: ガラスモーフィズム + グロー（新デザイン）
-   */
-  export let variant: "primary" | "secondary" | "ghost" | "danger" | "crystal" =
-    "primary";
-
-  /**
-   * ボタンのサイズ
-   */
-  export let size: "small" | "medium" | "large" = "medium";
-
-  /**
-   * 無効状態
-   */
-  export let disabled = false;
-
-  /**
-   * ローディング状態
-   */
-  export let loading = false;
-
-  /**
-   * ボタンのタイプ
-   */
-  export let type: "button" | "submit" | "reset" = "button";
-
-  /**
-   * ボタンのラベル（slot の代替、Storybook用）
-   */
-  export let label = "";
-
-  /**
-   * ローディング時のラベル
-   */
-  export let loadingLabel = "";
-
-  /**
-   * ツールチップ用のタイトル属性
-   */
-  export let title = "";
-
-  const dispatch = createEventDispatcher();
+  let {
+    variant = "primary",
+    size = "medium",
+    disabled = false,
+    loading = false,
+    type = "button",
+    label = "",
+    loadingLabel = "",
+    title = "",
+    onclick = undefined,
+    children
+  }: Props = $props();
 
   function handleClick(event: MouseEvent) {
     if (!disabled && !loading) {
-      dispatch("click", event);
+      onclick?.(event);
     }
   }
 
-  $: isDisabled = disabled || loading;
+  let isDisabled = $derived(disabled || loading);
 </script>
 
 <button
@@ -67,7 +55,7 @@
   class:disabled={isDisabled}
   class:loading
   class:crystal-glow={variant === "crystal"}
-  on:click={handleClick}
+  onclick={handleClick}
 >
   {#if loading}
     <Spinner size={size === "small" ? "xs" : "sm"} />
@@ -76,12 +64,12 @@
     {:else if label}
       {label}
     {:else}
-      <slot />
+      {@render children?.()}
     {/if}
   {:else if label}
     {label}
   {:else}
-    <slot />
+    {@render children?.()}
   {/if}
 </button>
 

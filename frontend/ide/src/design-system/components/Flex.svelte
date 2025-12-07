@@ -1,34 +1,55 @@
 <script lang="ts">
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   /**
    * Flex Component
    * Flexbox container helper.
    */
   import Box from "./Box.svelte";
 
-  export let direction: "row" | "column" | "row-reverse" | "column-reverse" =
-    "row";
-  export let align: "start" | "center" | "end" | "stretch" | "baseline" =
-    "stretch";
-  export let justify:
+
+  
+
+  interface Props {
+    direction?: "row" | "column" | "row-reverse" | "column-reverse";
+    align?: "start" | "center" | "end" | "stretch" | "baseline";
+    justify?: 
     | "start"
     | "center"
     | "end"
     | "between"
     | "around"
-    | "evenly" = "start";
-  export let wrap: "nowrap" | "wrap" | "wrap-reverse" = "nowrap";
-  export let gap: string = "0";
+    | "evenly";
+    wrap?: "nowrap" | "wrap" | "wrap-reverse";
+    gap?: string;
+    // Box props
+    p?: string;
+    m?: string;
+    bg?: string | undefined;
+    height?: string;
+    width?: string;
+    grow?: boolean;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  // Box props
-  export let p: string = "0";
-  export let m: string = "0";
-  export let bg: string | undefined = undefined;
-  export let height: string = "auto";
-  export let width: string = "auto";
-  export let grow: boolean = false;
-
-  let className = "";
-  export { className as class };
+  let {
+    direction = "row",
+    align = "stretch",
+    justify = "start",
+    wrap = "nowrap",
+    gap = "0",
+    p = "0",
+    m = "0",
+    bg = undefined,
+    height = "auto",
+    width = "auto",
+    grow = false,
+    class: className = "",
+    children
+  }: Props = $props();
+  
 
   const justifyMap = {
     start: "flex-start",
@@ -61,11 +82,11 @@
   style:--box-bg={bg}
   style:--box-h={height}
   style:--box-w={width}
-  on:click
-  on:keydown
+  onclick={bubble('click')}
+  onkeydown={bubble('keydown')}
   role="group"
 >
-  <slot />
+  {@render children?.()}
 </div>
 
 <style>

@@ -1,5 +1,5 @@
 
-import type { Meta, StoryObj } from '@storybook/svelte';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import ProcessHUD from './ProcessHUD.svelte';
 import type { ResourceNode } from '../../stores/processStore';
 

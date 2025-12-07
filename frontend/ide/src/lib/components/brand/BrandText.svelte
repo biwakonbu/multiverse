@@ -1,5 +1,9 @@
 <script lang="ts">
-  export let size: "sm" | "md" | "lg" | "xl" = "md";
+  interface Props {
+    size?: "sm" | "md" | "lg" | "xl";
+  }
+
+  let { size = "md" }: Props = $props();
 
   const fontSizes = {
     sm: "1rem", // 16px

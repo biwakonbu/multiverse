@@ -1,15 +1,31 @@
 <script lang="ts">
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
 
-  export let type: "text" | "password" | "search" | "email" = "text";
-  export let value = "";
-  export let placeholder = "";
-  export let label = "";
-  export let error = "";
-  export let disabled = false;
-  export let autofocus = false;
-  export let id = "";
+  interface Props {
+    type?: "text" | "password" | "search" | "email";
+    value?: string;
+    placeholder?: string;
+    label?: string;
+    error?: string;
+    disabled?: boolean;
+    autofocus?: boolean;
+    id?: string;
+  }
+
+  let {
+    type = "text",
+    value = $bindable(""),
+    placeholder = "",
+    label = "",
+    error = "",
+    disabled = false,
+    autofocus = false,
+    id = ""
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -37,7 +53,7 @@
   {/if}
 
   <div class="input-container">
-    <!-- svelte-ignore a11y-autofocus -->
+    <!-- svelte-ignore a11y_autofocus -->
     <input
       {id}
       {type}
@@ -46,11 +62,11 @@
       {disabled}
       {autofocus}
       class="input"
-      on:input={handleInput}
-      on:change={handleChange}
-      on:keydown={handleKeydown}
-      on:focus
-      on:blur
+      oninput={handleInput}
+      onchange={handleChange}
+      onkeydown={handleKeydown}
+      onfocus={bubble('focus')}
+      onblur={bubble('blur')}
     />
   </div>
 

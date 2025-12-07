@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import type { WBSNode } from "../../stores/wbsStore";
   import { expandedNodes } from "../../stores/wbsStore";
   import { selectedTaskId } from "../../stores";
@@ -9,36 +11,41 @@
   import { onDestroy } from "svelte";
   import { stripMarkdown } from "../utils/markdown";
 
-  // Props
-  export let node: WBSNode;
-  export let expanded: boolean = true;
-  export let index: number = 0;
+  
+  interface Props {
+    // Props
+    node: WBSNode;
+    expanded?: boolean;
+    index?: number;
+  }
 
-  $: isMilestone = node.type === "milestone";
-  $: isPhase = node.type === "phase";
-  $: isTask = node.type === "task";
-  $: hasChildren = node.children.length > 0;
-  $: phaseClass = phaseToCssClass(node.phaseName);
-  $: isSelected = node.task && $selectedTaskId === node.task.id;
-  $: progressPercent = node.progress.percentage;
-  $: progressColor = getProgressColor(progressPercent);
-  $: isOdd = index % 2 !== 0; // Check for zebra striping
+  let { node, expanded = true, index = 0 }: Props = $props();
+
+  let isMilestone = $derived(node.type === "milestone");
+  let isPhase = $derived(node.type === "phase");
+  let isTask = $derived(node.type === "task");
+  let hasChildren = $derived(node.children.length > 0);
+  let phaseClass = $derived(phaseToCssClass(node.phaseName));
+  let isSelected = $derived(node.task && $selectedTaskId === node.task.id);
+  let progressPercent = $derived(node.progress.percentage);
+  let progressColor = $derived(getProgressColor(progressPercent));
+  let isOdd = $derived(index % 2 !== 0); // Check for zebra striping
 
   // Indentation with fixed width unit
   const INDENT_WIDTH = 20;
   const INDENT_BASE = 12;
-  $: indentStyle = `padding-left: ${node.level * INDENT_WIDTH + INDENT_BASE}px`;
+  let indentStyle = $derived(`padding-left: ${node.level * INDENT_WIDTH + INDENT_BASE}px`);
 
   // Calculate guides for levels 0 to node.level - 1
-  $: indentGuides = Array(Math.max(0, node.level)).fill(0);
+  let indentGuides = $derived(Array(Math.max(0, node.level)).fill(0));
 
   // Retry Logic
-  $: isRetryWait = node.task?.status === "RETRY_WAIT";
-  $: attemptCount = node.task?.attemptCount || 0;
-  $: nextRetryAt = node.task?.nextRetryAt;
+  let isRetryWait = $derived(node.task?.status === "RETRY_WAIT");
+  let attemptCount = $derived(node.task?.attemptCount || 0);
+  let nextRetryAt = $derived(node.task?.nextRetryAt);
 
-  let timeRemaining = "";
-  let interval: any;
+  let timeRemaining = $state("");
+  let interval: any = $state();
 
   function updateTimeRemaining() {
     if (!nextRetryAt) {
@@ -57,7 +64,7 @@
     }
   }
 
-  $: {
+  run(() => {
     if (isRetryWait && nextRetryAt) {
       updateTimeRemaining();
       if (!interval) {
@@ -70,7 +77,7 @@
       }
       timeRemaining = "";
     }
-  }
+  });
 
   onDestroy(() => {
     if (interval) clearInterval(interval);
@@ -101,7 +108,7 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="wbs-node"
   class:is-phase={isPhase}
@@ -118,8 +125,8 @@
   tabindex="0"
   aria-expanded={(isPhase || isMilestone) && hasChildren ? expanded : undefined}
   aria-label={node.label}
-  on:click={handleClick}
-  on:keydown={handleKeydown}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
 >
   <!-- Indentation Guides -->
   <!-- stylelint-disable-next-line scale-unlimited/declaration-strict-value -->
@@ -134,7 +141,7 @@
   {#if (isPhase || isMilestone) && hasChildren}
     <button
       class="toggle-btn"
-      on:click={handleToggle}
+      onclick={handleToggle}
       aria-label={expanded ? "折りたたむ" : "展開する"}
     >
       <svg

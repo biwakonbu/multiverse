@@ -1,13 +1,19 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import WBSGraphView from "./WBSGraphView.svelte";
   import { tasks } from "../../stores/taskStore";
   import type { Task } from "../../types";
 
   type PhaseName = "概念設計" | "実装設計" | "実装" | "検証";
 
-  export let taskCount = 5;
-  export let completedRatio = 0.4;
-  export let showAllPhases = true;
+  interface Props {
+    taskCount?: number;
+    completedRatio?: number;
+    showAllPhases?: boolean;
+  }
+
+  let { taskCount = 5, completedRatio = 0.4, showAllPhases = true }: Props = $props();
 
   const phases: PhaseName[] = ["概念設計", "実装設計", "実装", "検証"];
   const statuses: Task["status"][] = [
@@ -45,10 +51,10 @@
   }
 
   // タスクストアを更新
-  $: {
+  run(() => {
     const sampleTasks = generateSampleTasks(taskCount, completedRatio);
     tasks.setTasks(sampleTasks);
-  }
+  });
 </script>
 
 <div class="preview-container">

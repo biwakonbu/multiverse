@@ -1,14 +1,30 @@
 <script lang="ts">
+  import { stopPropagation } from 'svelte/legacy';
+
   import { createEventDispatcher } from "svelte";
 
-  export let initialPosition = { x: 20, y: 20 };
-  export let title: string = "";
-  export let controls = { minimize: true, close: true };
+  interface Props {
+    initialPosition?: any;
+    title?: string;
+    controls?: any;
+    header?: import('svelte').Snippet;
+    children?: import('svelte').Snippet;
+    footer?: import('svelte').Snippet;
+  }
 
-  let position = { ...initialPosition };
+  let {
+    initialPosition = { x: 20, y: 20 },
+    title = "",
+    controls = { minimize: true, close: true },
+    header,
+    children,
+    footer
+  }: Props = $props();
+
+  let position = $state({ ...initialPosition });
   let isDragging = false;
-  let windowEl: HTMLElement;
-  let isMinimized = false;
+  let windowEl: HTMLElement = $state();
+  let isMinimized = $state(false);
 
   const dispatch = createEventDispatcher<{
     close: void;
@@ -48,26 +64,26 @@
   }
 </script>
 
-<svelte:window on:mousemove={onMouseMove} />
+<svelte:window onmousemove={onMouseMove} />
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="floating-window"
   class:minimized={isMinimized}
   style="top: {position.y}px; left: {position.x}px;"
   bind:this={windowEl}
 >
-  <div class="header" on:mousedown={startDrag}>
+  <div class="header" onmousedown={startDrag}>
     <div class="header-content">
-      <slot name="header">
+      {#if header}{@render header()}{:else}
         <span class="title">{title}</span>
-      </slot>
+      {/if}
     </div>
     <div class="window-controls">
       {#if controls.minimize}
         <button
           class="control-btn"
-          on:click|stopPropagation={toggleMinimize}
+          onclick={stopPropagation(toggleMinimize)}
           aria-label="Minimize"
           type="button"
         >
@@ -77,7 +93,7 @@
       {#if controls.close}
         <button
           class="control-btn close"
-          on:click|stopPropagation={closeWindow}
+          onclick={stopPropagation(closeWindow)}
           aria-label="Close"
           type="button"
         >
@@ -89,12 +105,12 @@
 
   {#if !isMinimized}
     <div class="content">
-      <slot />
+      {@render children?.()}
     </div>
 
-    {#if $$slots.footer}
+    {#if footer}
       <div class="footer">
-        <slot name="footer" />
+        {@render footer?.()}
       </div>
     {/if}
   {/if}

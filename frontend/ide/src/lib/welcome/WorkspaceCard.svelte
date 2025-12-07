@@ -2,7 +2,11 @@
   import { createEventDispatcher } from 'svelte';
   import type { WorkspaceSummary } from '../../schemas';
 
-  export let workspace: WorkspaceSummary;
+  interface Props {
+    workspace: WorkspaceSummary;
+  }
+
+  let { workspace }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     open: string;
@@ -55,8 +59,8 @@
 
 <div
   class="workspace-card"
-  on:click={handleClick}
-  on:keydown={handleKeydown}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
   role="button"
   tabindex="0"
 >
@@ -76,7 +80,7 @@
 
   <button
     class="remove-btn"
-    on:click={handleRemove}
+    onclick={handleRemove}
     title="履歴から削除"
     aria-label="履歴から削除"
   >

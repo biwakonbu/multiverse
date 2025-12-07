@@ -5,12 +5,16 @@
   import { GRAPH_NODE_WIDTH, GRAPH_NODE_HEIGHT } from "./utils";
   import WBSStatusBadge from "./WBSStatusBadge.svelte"; // Import new component
 
-  export let node: WBSNode;
-  export let x: number;
-  export let y: number;
+  interface Props {
+    node: WBSNode;
+    x: number;
+    y: number;
+  }
 
-  $: expanded = $expandedNodes.has(node.id);
-  $: phaseClass = phaseToCssClass(node.phaseName);
+  let { node, x, y }: Props = $props();
+
+  let expanded = $derived($expandedNodes.has(node.id));
+  let phaseClass = $derived(phaseToCssClass(node.phaseName));
   // statusClass removed as it's handled by StatusBadge
 
   function normalizeStatus(status: string): any {
@@ -30,15 +34,15 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="graph-node {phaseClass}"
   style:left="{x}px"
   style:top="{y}px"
   style:width="{GRAPH_NODE_WIDTH}px"
   style:height="{GRAPH_NODE_HEIGHT}px"
-  on:click={handleGenericClick}
-  on:keydown={handleKeydown}
+  onclick={handleGenericClick}
+  onkeydown={handleKeydown}
   role="button"
   tabindex="0"
 >

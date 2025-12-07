@@ -4,20 +4,16 @@
   import { taskNodes } from "../../stores";
   import { getEdgeEndpointsInWorld } from "./geometry";
 
-  // Props
-  export let edge: TaskEdge = { from: "", to: "", satisfied: false };
+  
+  interface Props {
+    // Props
+    edge?: TaskEdge;
+  }
 
-  // ノード位置のマップを取得
-  $: nodePositions = new Map(
-    $taskNodes.map((n) => [n.task.id, { col: n.col, row: n.row }])
-  );
+  let { edge = { from: "", to: "", satisfied: false } }: Props = $props();
 
-  // 始点と終点の座標を計算
-  $: fromPos = nodePositions.get(edge.from);
-  $: toPos = nodePositions.get(edge.to);
 
-  // SVGパスを計算
-  $: pathData = calculatePath(fromPos, toPos);
+
 
   function calculatePath(
     from: { col: number; row: number } | undefined,
@@ -57,11 +53,20 @@
     }
   }
 
+  // ノード位置のマップを取得
+  let nodePositions = $derived(new Map(
+    $taskNodes.map((n) => [n.task.id, { col: n.col, row: n.row }])
+  ));
+  // 始点と終点の座標を計算
+  let fromPos = $derived(nodePositions.get(edge.from));
+  let toPos = $derived(nodePositions.get(edge.to));
+  // SVGパスを計算
+  let pathData = $derived(calculatePath(fromPos, toPos));
   // 線のスタイルクラス
-  $: lineClass = edge.satisfied ? "satisfied" : "unsatisfied";
-  $: strokeColor = edge.satisfied
+  let lineClass = $derived(edge.satisfied ? "satisfied" : "unsatisfied");
+  let strokeColor = $derived(edge.satisfied
     ? "var(--mv-color-status-succeeded-border)"
-    : "var(--mv-color-status-blocked-border)";
+    : "var(--mv-color-status-blocked-border)");
 </script>
 
 {#if pathData}

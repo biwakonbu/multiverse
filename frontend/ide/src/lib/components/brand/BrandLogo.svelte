@@ -1,8 +1,12 @@
 <script lang="ts">
   import logo from "../../../assets/logo.svg";
 
-  export let size: "sm" | "md" | "lg" | "xl" | "custom" = "md";
-  export let customSize: string = "32px";
+  interface Props {
+    size?: "sm" | "md" | "lg" | "xl" | "custom";
+    customSize?: string;
+  }
+
+  let { size = "md", customSize = "32px" }: Props = $props();
 
   const sizes = {
     sm: "24px",
@@ -12,7 +16,7 @@
     custom: customSize,
   };
 
-  $: computedSize = size === "custom" ? customSize : sizes[size];
+  let computedSize = $derived(size === "custom" ? customSize : sizes[size]);
 </script>
 
 <div class="brand-logo" style:--logo-size={computedSize}>

@@ -67,8 +67,8 @@
   ];
 
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
-  $: hasPoolSummaries = $poolSummaries.length > 0;
-  $: isGraphMode = $viewMode === "graph";
+  let hasPoolSummaries = $derived($poolSummaries.length > 0);
+  let isGraphMode = $derived($viewMode === "graph");
 </script>
 
 <header class="toolbar crystal-hud">
@@ -151,7 +151,7 @@
       <button
         class="switch-item"
         class:active={isGraphMode}
-        on:click={() => viewMode.setGraph()}
+        onclick={() => viewMode.setGraph()}
         title="Graph View"
       >
         <Network size="16" />
@@ -159,7 +159,7 @@
       <button
         class="switch-item"
         class:active={!isGraphMode}
-        on:click={() => viewMode.setWBS()}
+        onclick={() => viewMode.setWBS()}
         title="WBS View"
       >
         <ListTree size="16" />
@@ -167,7 +167,7 @@
     </div>
 
     <!-- Settings Button -->
-    <button class="settings-btn" on:click={openSettings} title="LLM Settings">
+    <button class="settings-btn" onclick={openSettings} title="LLM Settings">
       <Settings size="18" />
     </button>
   </div>

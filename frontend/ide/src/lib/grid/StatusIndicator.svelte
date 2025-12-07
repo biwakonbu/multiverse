@@ -7,14 +7,21 @@
 <script lang="ts">
   import type { StatusKey } from "../../design-system/tokens/colors";
 
-  // ステータス（必須）
-  export let status: StatusKey = "pending";
+  
 
-  // サイズ
-  export let size: "small" | "medium" | "large" = "medium";
+  
 
-  // ラベル表示（アクセシビリティ）
-  export let showLabel = false;
+  
+  interface Props {
+    // ステータス（必須）
+    status?: StatusKey;
+    // サイズ
+    size?: "small" | "medium" | "large";
+    // ラベル表示（アクセシビリティ）
+    showLabel?: boolean;
+  }
+
+  let { status = "pending", size = "medium", showLabel = false }: Props = $props();
 
   // ステータスラベルのマッピング
   const statusLabels: Record<StatusKey, string> = {

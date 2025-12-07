@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { createBubbler, stopPropagation } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { onMount, onDestroy } from "svelte";
   import WorkspaceSelector from "./lib/WorkspaceSelector.svelte";
   import TitleBar from "./lib/TitleBar.svelte";
@@ -29,21 +32,21 @@
 
   const log = Logger.withComponent("App");
 
-  let workspaceId: string | null = null;
+  let workspaceId: string | null = $state(null);
   let interval: ReturnType<typeof setInterval> | null = null;
 
   // 実行中のタスクを取得するリアクティブ変数
-  $: runningTask = $tasks.find((t) => t.status === "RUNNING");
+  let runningTask = $derived($tasks.find((t) => t.status === "RUNNING"));
 
   // Chat State
-  let isChatVisible = true;
-  let chatPosition = { x: 0, y: 0 };
+  let isChatVisible = $state(true);
+  let chatPosition = $state({ x: 0, y: 0 });
 
   // Backlog State
-  let isBacklogVisible = false;
+  let isBacklogVisible = $state(false);
 
   // Settings State
-  let isSettingsVisible = false;
+  let isSettingsVisible = $state(false);
 
   onMount(() => {
     // Calculate initial position (Bottom-Right)
@@ -169,11 +172,11 @@
 
     <!-- チャット再表示ボタン (簡易FAB) -->
     {#if !isChatVisible}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div
         class="chat-fab"
-        on:click={() => (isChatVisible = true)}
-        on:keydown={(e) => e.key === "Enter" && (isChatVisible = true)}
+        onclick={() => (isChatVisible = true)}
+        onkeydown={(e) => e.key === "Enter" && (isChatVisible = true)}
         role="button"
         tabindex="0"
         aria-label="Open Chat"
@@ -183,12 +186,12 @@
     {/if}
 
     <!-- バックログ表示ボタン -->
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
       class="backlog-fab"
       class:has-items={$unresolvedCount > 0}
-      on:click={() => (isBacklogVisible = !isBacklogVisible)}
-      on:keydown={(e) =>
+      onclick={() => (isBacklogVisible = !isBacklogVisible)}
+      onkeydown={(e) =>
         e.key === "Enter" && (isBacklogVisible = !isBacklogVisible)}
       role="button"
       tabindex="0"
@@ -210,19 +213,19 @@
 
     <!-- 設定モーダル -->
     {#if isSettingsVisible}
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
       <div
         class="settings-overlay"
-        on:click={() => (isSettingsVisible = false)}
+        onclick={() => (isSettingsVisible = false)}
         role="dialog"
         aria-modal="true"
         aria-label="LLM Settings"
       >
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div class="settings-modal" on:click|stopPropagation role="document">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div class="settings-modal" onclick={stopPropagation(bubble('click'))} role="document">
           <button
             class="close-btn"
-            on:click={() => (isSettingsVisible = false)}
+            onclick={() => (isSettingsVisible = false)}
             aria-label="Close"
           >
             ×

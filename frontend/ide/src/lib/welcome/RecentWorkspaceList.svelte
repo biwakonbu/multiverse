@@ -3,8 +3,12 @@
   import WorkspaceCard from './WorkspaceCard.svelte';
   import type { WorkspaceSummary } from '../../schemas';
 
-  export let workspaces: WorkspaceSummary[] = [];
-  export let loading: boolean = false;
+  interface Props {
+    workspaces?: WorkspaceSummary[];
+    loading?: boolean;
+  }
+
+  let { workspaces = [], loading = false }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     open: string;

@@ -1,4 +1,4 @@
-<script context="module" lang="ts">
+<script module lang="ts">
   // バックログアイテム型（stores/backlogStore.ts からコピー）
   export type BacklogItemType = "FAILURE" | "QUESTION" | "BLOCKER";
   export interface BacklogItem {
@@ -22,8 +22,13 @@
   import ResolveDialog from "./components/ResolveDialog.svelte";
   import EmptyBacklog from "./components/EmptyBacklog.svelte";
 
-  // Props
-  export let items: BacklogItem[] = [];
+  
+  interface Props {
+    // Props
+    items?: BacklogItem[];
+  }
+
+  let { items = [] }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     resolve: { id: string; resolution: string };
@@ -31,10 +36,10 @@
   }>();
 
   // 未解決アイテム数
-  $: unresolvedCount = items.filter((item) => !item.resolvedAt).length;
+  let unresolvedCount = $derived(items.filter((item) => !item.resolvedAt).length);
 
   // 解決ダイアログ
-  let resolvingItem: BacklogItem | null = null;
+  let resolvingItem: BacklogItem | null = $state(null);
 
   function openResolveDialog(item: BacklogItem) {
     resolvingItem = item;

@@ -2,8 +2,12 @@
   import BrandLogo from "./BrandLogo.svelte";
   import BrandText from "./BrandText.svelte";
 
-  export let size: "sm" | "md" | "lg" | "xl" = "md";
-  export let layout: "horizontal" | "vertical" = "horizontal";
+  interface Props {
+    size?: "sm" | "md" | "lg" | "xl";
+    layout?: "horizontal" | "vertical";
+  }
+
+  let { size = "md", layout = "horizontal" }: Props = $props();
 
   // Adjust logo size to match text size visually
   const sizeMap: Record<

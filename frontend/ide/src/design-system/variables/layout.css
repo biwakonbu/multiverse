@@ -4,6 +4,93 @@
  */
 :root {
   /* ========================================
+     スペーシング: ユーティリティ (Tailwind-like scale)
+     ======================================== */
+  --mv-space-px: 1px;
+  --mv-space-0: 0px;
+  --mv-space-0-5: 2px;
+  --mv-space-0-75: 3px;
+  --mv-space-1: 4px;
+  --mv-space-1-5: 6px;
+  --mv-space-2: 8px;
+  --mv-space-3: 12px;
+  --mv-space-4: 16px;
+  --mv-space-5: 20px;
+  --mv-space-6: 24px;
+  --mv-space-8: 32px;
+  --mv-space-10: 40px;
+  --mv-space-12: 48px;
+  --mv-space-14: 56px;
+  --mv-space-16: 64px;
+  --mv-space-20: 80px;
+  --mv-space-24: 96px;
+  --mv-space-28: 112px;
+  --mv-space-32: 128px;
+  --mv-space-40: 160px;
+  --mv-space-48: 192px;
+  --mv-space-56: 224px;
+  --mv-space-64: 256px;
+  --mv-space-72: 288px;
+  --mv-space-80: 320px;
+  --mv-space-96: 384px;
+  --mv-space-hidden: -9999px;
+
+  /* ========================================
+     ポジショニング
+     ======================================== */
+  --mv-position-center: 50%;
+  --mv-transform-center-x: -50%;
+
+  /* ========================================
+     最大幅・最大高さ
+     ======================================== */
+  --mv-max-width-viewport-90: 90vw;
+
+  /* ========================================
+     不透明度
+     ======================================== */
+  --mv-opacity-0: 0;
+  --mv-opacity-10: 0.1;
+  --mv-opacity-20: 0.2;
+  --mv-opacity-30: 0.3;
+  --mv-opacity-40: 0.4;
+  --mv-opacity-50: 0.5;
+  --mv-opacity-60: 0.6;
+  --mv-opacity-70: 0.7;
+  --mv-opacity-80: 0.8;
+  --mv-opacity-90: 0.9;
+  --mv-opacity-100: 1;
+
+  /* ========================================
+     Z-Index
+     ======================================== */
+  --mv-z-index-base: 0;
+  --mv-z-index-dropdown: 100;
+  --mv-z-index-sticky: 200;
+  --mv-z-index-fixed: 300;
+  --mv-z-index-modal-backdrop: 400;
+  --mv-z-index-modal: 500;
+  --mv-z-index-popover: 600;
+  --mv-z-index-overlay: 700;
+  --mv-z-index-top: 9999;
+
+  /* ========================================
+     ボーダー幅（追加）
+     ======================================== */
+  --mv-border-width-sm: 1px;
+  --mv-border-width-md: 2px;
+  --mv-border-width-lg: 3px;
+
+  /* ========================================
+     スケール
+     ======================================== */
+  --mv-scale-half: 0.5;
+  --mv-scale-75: 0.75;
+  --mv-scale-100: 1;
+  --mv-scale-125: 1.25;
+  --mv-scale-150: 1.5;
+
+  /* ========================================
      スペーシング: グリッド
      ======================================== */
   --mv-grid-cell-width: 160px;

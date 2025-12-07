@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/svelte";
+import type { Meta, StoryObj } from "@storybook/svelte-vite";
 import ChatMessage from "./ChatMessage.svelte";
 
 const meta = {
@@ -33,12 +33,7 @@ const meta = {
       },
     },
   },
-  decorators: [
-    () => ({
-      Component: ChatMessage,
-      props: {},
-    }),
-  ],
+
 } satisfies Meta<ChatMessage>;
 
 export default meta;

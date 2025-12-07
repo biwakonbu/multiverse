@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   /**
    * MainViewPreview - メインビュー全体のプレビューコンポーネント
    *
@@ -20,18 +22,42 @@
 
   // === Props ===
 
-  // ビュー設定
-  export let viewMode: "graph" | "wbs" = "wbs";
+  
 
-  // タスクデータ
-  export let taskList: Task[] = [];
-  export let poolSummaries: PoolSummary[] = [];
+  
 
-  // 進捗
-  export let overallProgress = { percentage: 0, completed: 0, total: 0 };
+  
 
-  // ステータス別カウント
-  export let taskCountsByStatus: Record<TaskStatus, number> = {
+  
+
+  
+
+  
+  interface Props {
+    // ビュー設定
+    viewMode?: "graph" | "wbs";
+    // タスクデータ
+    taskList?: Task[];
+    poolSummaries?: PoolSummary[];
+    // 進捗
+    overallProgress?: any;
+    // ステータス別カウント
+    taskCountsByStatus?: Record<TaskStatus, number>;
+    // 選択中タスク（ストア同期用。UI描画では未使用）
+    selectedTask?: Task | null;
+    // モーダル・チャット・バックログ
+    showChat?: boolean;
+    chatPosition?: any;
+    showBacklog?: boolean;
+    unresolvedCount?: number;
+  }
+
+  let {
+    viewMode = "wbs",
+    taskList = [],
+    poolSummaries = [],
+    overallProgress = { percentage: 0, completed: 0, total: 0 },
+    taskCountsByStatus = {
     PENDING: 0,
     READY: 0,
     RUNNING: 0,
@@ -41,26 +67,23 @@
     CANCELED: 0,
     BLOCKED: 0,
     RETRY_WAIT: 0,
-  };
-
-  // 選択中タスク（ストア同期用。UI描画では未使用）
-  export let selectedTask: Task | null = null;
-
-  // モーダル・チャット・バックログ
-  export let showChat = true;
-  export let chatPosition = { x: 600, y: 300 };
-  export let showBacklog = false;
-  export let unresolvedCount = 0;
+  },
+    selectedTask = null,
+    showChat = true,
+    chatPosition = { x: 600, y: 300 },
+    showBacklog = $bindable(false),
+    unresolvedCount = 0
+  }: Props = $props();
 
   // タスクストアを更新
-  $: {
+  run(() => {
     tasks.setTasks(taskList);
     if (selectedTask) {
       selectedTaskId.select(selectedTask.id);
     } else {
       selectedTaskId.clear();
     }
-  }
+  });
 
   function handleCloseChat() {
     dispatch("closeChat");
@@ -101,12 +124,12 @@
   </div>
 
   <!-- バックログ表示ボタン -->
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="backlog-fab"
     class:has-items={unresolvedCount > 0}
-    on:click={() => (showBacklog = !showBacklog)}
-    on:keydown={(e) => e.key === "Enter" && (showBacklog = !showBacklog)}
+    onclick={() => (showBacklog = !showBacklog)}
+    onkeydown={(e) => e.key === "Enter" && (showBacklog = !showBacklog)}
     role="button"
     tabindex="0"
     aria-label="Toggle Backlog"
@@ -135,11 +158,11 @@
 
   <!-- チャット再表示ボタン -->
   {#if !showChat}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <div
       class="chat-fab"
-      on:click={handleOpenChat}
-      on:keydown={(e) => e.key === "Enter" && handleOpenChat()}
+      onclick={handleOpenChat}
+      onkeydown={(e) => e.key === "Enter" && handleOpenChat()}
       role="button"
       tabindex="0"
       aria-label="Open Chat"

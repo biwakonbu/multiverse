@@ -93,23 +93,23 @@
     return edges;
   }
 
-  $: positionedNodes = calculateLayout($wbsTree);
-  $: edges = getEdges(positionedNodes);
-  $: canvasWidth = Math.max(
+  let positionedNodes = $derived(calculateLayout($wbsTree));
+  let edges = $derived(getEdges(positionedNodes));
+  let canvasWidth = $derived(Math.max(
     800,
     ...positionedNodes.map((n) => n.x + NODE_WIDTH + PADDING)
-  );
-  $: canvasHeight = Math.max(
+  ));
+  let canvasHeight = $derived(Math.max(
     400,
     ...positionedNodes.map((n) => n.y + NODE_HEIGHT + PADDING)
-  );
+  ));
 
   // --- Zoom & Pan Logic ---
-  let container: HTMLDivElement;
+  let container: HTMLDivElement = $state();
   let isDragging = false;
-  let scale = 0.5; // Default 50%
-  let translateX = 0;
-  let translateY = 0;
+  let scale = $state(0.5); // Default 50%
+  let translateX = $state(0);
+  let translateY = $state(0);
   let startX = 0;
   let startY = 0;
 
@@ -178,15 +178,15 @@
   </div>
 
   <!-- グラフキャンバス -->
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="graph-container"
     bind:this={container}
-    on:mousedown={handleMouseDown}
-    on:mousemove={handleMouseMove}
-    on:mouseup={handleMouseUp}
-    on:mouseleave={handleMouseUp}
-    on:wheel={handleWheel}
+    onmousedown={handleMouseDown}
+    onmousemove={handleMouseMove}
+    onmouseup={handleMouseUp}
+    onmouseleave={handleMouseUp}
+    onwheel={handleWheel}
     role="application"
     aria-label="WBS グラフキャンバス"
   >

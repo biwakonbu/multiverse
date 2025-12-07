@@ -2,11 +2,15 @@
   import { createEventDispatcher } from "svelte";
   import BrandLogo from "../brand/BrandLogo.svelte"; // Verify path
 
-  export let disabled = false;
+  interface Props {
+    disabled?: boolean;
+  }
+
+  let { disabled = false }: Props = $props();
 
   const dispatch = createEventDispatcher<{ send: string }>();
 
-  let value = "";
+  let value = $state("");
 
   function handleSend() {
     if (value.trim() && !disabled) {
@@ -30,14 +34,14 @@
       placeholder="Ask Multiverse..."
       class="transparent-input"
       class:disabled
-      on:keydown={handleKeydown}
+      onkeydown={handleKeydown}
       rows="1"
       {disabled}
     ></textarea>
   </div>
   <button
     class="send-btn"
-    on:click={handleSend}
+    onclick={handleSend}
     disabled={disabled || !value.trim()}
     aria-label="Send"
   >

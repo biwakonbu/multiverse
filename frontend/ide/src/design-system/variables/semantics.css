@@ -46,4 +46,22 @@
      ======================================== */
   --mv-color-accent-primary: var(--mv-primitive-frost-1);
   --mv-color-accent-secondary: var(--mv-primitive-frost-3);
+
+  /* ========================================
+     背景カラー（エイリアス）
+     ======================================== */
+  --mv-color-bg-primary: var(--mv-primitive-deep-0);
+  --mv-color-bg-secondary: var(--mv-primitive-deep-1);
+  --mv-color-bg-tertiary: var(--mv-primitive-deep-2);
+
+  /* ========================================
+     ブランドカラー
+     ======================================== */
+  --mv-color-brand-primary: var(--mv-primitive-frost-1);
+  --mv-color-brand-secondary: var(--mv-primitive-frost-3);
+
+  /* ========================================
+     その他のユーティリティ
+     ======================================== */
+  --mv-color-current: currentColor;
 }

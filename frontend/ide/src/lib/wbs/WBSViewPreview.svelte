@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import WBSListView from "./WBSListView.svelte";
   import { tasks } from "../../stores/taskStore";
   import { expandedNodes } from "../../stores/wbsStore";
@@ -6,10 +8,15 @@
   import type { PhaseName } from "../../schemas";
   import { onMount, onDestroy } from "svelte";
 
-  // Props
-  export let taskCount: number = 5;
-  export let completedRatio: number = 0.4;
-  export let showAllPhases: boolean = true;
+  
+  interface Props {
+    // Props
+    taskCount?: number;
+    completedRatio?: number;
+    showAllPhases?: boolean;
+  }
+
+  let { taskCount = 5, completedRatio = 0.4, showAllPhases = true }: Props = $props();
 
   // サンプルタスクを生成
   function generateTasks(count: number, ratio: number): Task[] {
@@ -68,10 +75,10 @@
   });
 
   // Props変更時に再生成
-  $: {
+  run(() => {
     const sampleTasks = generateTasks(taskCount, completedRatio);
     tasks.setTasks(sampleTasks);
-  }
+  });
 </script>
 
 <div class="preview-container">

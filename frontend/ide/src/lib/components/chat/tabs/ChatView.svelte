@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { onMount } from "svelte";
   import ChatMessage from "../ChatMessage.svelte";
   import {
@@ -8,14 +10,18 @@
     type ChatResponse,
   } from "../../../../stores/chat";
 
-  export let conflicts: NonNullable<ChatResponse["conflicts"]> = [];
+  interface Props {
+    conflicts?: NonNullable<ChatResponse["conflicts"]>;
+  }
+
+  let { conflicts = [] }: Props = $props();
 
   const MAX_DISPLAY_MESSAGES = 10000;
 
-  let contentEl: HTMLElement;
-  let showScrollToBottom = false;
-  let hasNewMessages = false;
-  let lastSeenMessageCount = 0;
+  let contentEl: HTMLElement = $state();
+  let showScrollToBottom = $state(false);
+  let hasNewMessages = $state(false);
+  let lastSeenMessageCount = $state(0);
 
   // スクロール位置を監視して「最新に移動」ボタンの表示を制御
   function handleScroll() {
@@ -32,12 +38,14 @@
   }
 
   // 新しいメッセージが追加されたかチェック
-  $: if ($chatMessages.length > lastSeenMessageCount && showScrollToBottom) {
-    hasNewMessages = true;
-  }
+  run(() => {
+    if ($chatMessages.length > lastSeenMessageCount && showScrollToBottom) {
+      hasNewMessages = true;
+    }
+  });
 
   // 表示するメッセージ（最新10000件まで）
-  $: displayMessages = $chatMessages.slice(-MAX_DISPLAY_MESSAGES);
+  let displayMessages = $derived($chatMessages.slice(-MAX_DISPLAY_MESSAGES));
 
   // 最新に移動
   function scrollToBottom() {
@@ -55,7 +63,7 @@
 </script>
 
 <div class="chat-view-container">
-  <div class="chat-view" bind:this={contentEl} on:scroll={handleScroll}>
+  <div class="chat-view" bind:this={contentEl} onscroll={handleScroll}>
     {#if $chatError}
       <div class="error-banner" role="alert">
         {$chatError}
@@ -100,7 +108,7 @@
     class="scroll-fab"
     class:visible={showScrollToBottom}
     class:has-new={hasNewMessages}
-    on:click={scrollToBottom}
+    onclick={scrollToBottom}
     type="button"
     aria-label="最新のメッセージに移動"
     aria-hidden={!showScrollToBottom}

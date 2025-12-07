@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/svelte';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import Button from './Button.svelte';
 
 const meta = {
@@ -52,8 +52,10 @@ export const Crystal: Story = {
   args: {
     variant: 'crystal',
   },
-  parameters: {
-    backgrounds: { default: 'multiverse-app' }
+  globals: {
+    backgrounds: {
+      value: "multiverse-app"
+    }
   }
 };
 

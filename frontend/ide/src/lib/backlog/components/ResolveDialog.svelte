@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { createBubbler, stopPropagation } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { createEventDispatcher } from "svelte";
 
   // Wails models (type: string) と Storybook プレビュー互換の型定義
@@ -15,9 +18,13 @@
     resolution?: string;
   }
 
-  export let item: BacklogItemProps;
+  interface Props {
+    item: BacklogItemProps;
+  }
 
-  let resolutionText = "";
+  let { item }: Props = $props();
+
+  let resolutionText = $state("");
 
   const dispatch = createEventDispatcher<{
     close: void;
@@ -33,12 +40,12 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="dialog-overlay" on:click={handleClose}>
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <div class="dialog" on:click|stopPropagation>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="dialog-overlay" onclick={handleClose}>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="dialog" onclick={stopPropagation(bubble('click'))}>
     <h4>バックログを解決</h4>
     <p class="dialog-item-title">{item.title}</p>
     <label>
@@ -47,11 +54,11 @@
         bind:value={resolutionText}
         placeholder="どのように解決したかを入力..."
         rows="3"
-      />
+></textarea>
     </label>
     <div class="dialog-actions">
-      <button class="btn-cancel" on:click={handleClose}> キャンセル </button>
-      <button class="btn-confirm" on:click={handleResolve}> 解決 </button>
+      <button class="btn-cancel" onclick={handleClose}> キャンセル </button>
+      <button class="btn-confirm" onclick={handleResolve}> 解決 </button>
     </div>
   </div>
 </div>

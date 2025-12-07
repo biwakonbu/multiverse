@@ -10,15 +10,15 @@
 
 <div class="toast-container">
   {#each $toasts as toast (toast.id)}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="toast {toast.type}"
       animate:flip
       transition:fly={{ y: 20, duration: 300 }}
       role="alert"
-      on:click={() => handleClick(toast.id)}
+      onclick={() => handleClick(toast.id)}
       tabindex="0"
     >
       <div class="message">{toast.message}</div>

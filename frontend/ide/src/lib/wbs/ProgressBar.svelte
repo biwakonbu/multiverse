@@ -1,17 +1,21 @@
 <script lang="ts">
   import { getProgressColor } from "./utils";
 
-  export let percentage: number = 0;
-  export let size: "sm" | "md" | "mini" = "sm";
-  export let className: string = "";
+  interface Props {
+    percentage?: number;
+    size?: "sm" | "md" | "mini";
+    className?: string;
+  }
 
-  $: progressColor = getProgressColor(percentage);
+  let { percentage = 0, size = "sm", className = "" }: Props = $props();
+
+  let progressColor = $derived(getProgressColor(percentage));
 
   // Calculate dynamic shadow and background for the container
-  $: containerShadow =
-    size === "md"
+  let containerShadow =
+    $derived(size === "md"
       ? `0 0 2px ${progressColor.glow}, ${progressColor.insetShadow}`
-      : progressColor.insetShadow;
+      : progressColor.insetShadow);
 </script>
 
 <div

@@ -17,17 +17,17 @@
     hasApiKey: boolean;
   }
 
-  let config: LLMConfig = {
+  let config: LLMConfig = $state({
     kind: "codex-cli",
     model: "gpt-4o",
     baseUrl: "",
     systemPrompt: "",
     hasApiKey: false,
-  };
+  });
 
-  let testing = false;
-  let saving = false;
-  let loading = true;
+  let testing = $state(false);
+  let saving = $state(false);
+  let loading = $state(true);
 
   onMount(async () => {
     await loadConfig();

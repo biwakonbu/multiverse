@@ -1,9 +1,14 @@
 <script lang="ts">
-  /**
+  
+
+
+
+  interface Props {
+    /**
    * Text Component
    * Standard typography component.
    */
-  export let variant:
+    variant?: 
     | "primary"
     | "secondary"
     | "muted"
@@ -11,17 +16,27 @@
     | "success"
     | "warning"
     | "error"
-    | "info" = "primary";
+    | "info";
+    size?: "xs" | "sm" | "md" | "lg" | "xl";
+    weight?: "normal" | "medium" | "semibold" | "bold";
+    mono?: boolean;
+    glow?: boolean;
+    as?: string;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  export let size: "xs" | "sm" | "md" | "lg" | "xl" = "md";
-  export let weight: "normal" | "medium" | "semibold" | "bold" = "normal";
-  export let mono: boolean = false;
-  export let glow: boolean = false;
-
-  export let as: string = "p";
-
-  let className = "";
-  export { className as class };
+  let {
+    variant = "primary",
+    size = "md",
+    weight = "normal",
+    mono = false,
+    glow = false,
+    as = "p",
+    class: className = "",
+    children
+  }: Props = $props();
+  
 
   const variantMap = {
     primary: "var(--mv-color-text-primary)",
@@ -60,7 +75,7 @@
   style:--text-weight={weightMap[weight]}
   style:--text-glow-color={variantMap[variant]}
 >
-  <slot />
+  {@render children?.()}
 </svelte:element>
 
 <style>

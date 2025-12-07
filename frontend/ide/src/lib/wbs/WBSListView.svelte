@@ -5,7 +5,7 @@
   import type { WBSNode as WBSNodeType } from "../../stores/wbsStore";
 
   // 展開状態を取得
-  $: expandedSet = $expandedNodes;
+  let expandedSet = $derived($expandedNodes);
 
   // ノードが展開されているか判定
   function isExpanded(nodeId: string): boolean {
@@ -39,8 +39,8 @@
     return result;
   }
 
-  $: flatNodes = flattenTree($wbsTree);
-  $: visibleNodes = flatNodes.filter((item) => item.visible);
+  let flatNodes = $derived(flattenTree($wbsTree));
+  let visibleNodes = $derived(flatNodes.filter((item) => item.visible));
 </script>
 
 <div class="wbs-list-view">

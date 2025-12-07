@@ -12,11 +12,20 @@
     viewModeChange: "graph" | "wbs";
   }>();
 
-  // Props (matching Stores in Toolbar.svelte)
-  export let poolSummaries: PoolSummary[] = [];
-  export let overallProgress = { percentage: 0, completed: 0, total: 0 };
-  export let viewMode: "graph" | "wbs" = "graph";
-  export let taskCountsByStatus: Record<TaskStatus, number> = {
+  
+  interface Props {
+    // Props (matching Stores in Toolbar.svelte)
+    poolSummaries?: PoolSummary[];
+    overallProgress?: any;
+    viewMode?: "graph" | "wbs";
+    taskCountsByStatus?: Record<TaskStatus, number>;
+  }
+
+  let {
+    poolSummaries = [],
+    overallProgress = { percentage: 0, completed: 0, total: 0 },
+    viewMode = "graph",
+    taskCountsByStatus = {
     PENDING: 0,
     READY: 0,
     RUNNING: 0,
@@ -26,7 +35,8 @@
     CANCELED: 0,
     BLOCKED: 0,
     RETRY_WAIT: 0,
-  };
+  }
+  }: Props = $props();
 
   // ステータスサマリの表示設定（フォールバック用）
   const statusDisplay: {
@@ -64,8 +74,8 @@
   }
 
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
-  $: hasPoolSummaries = poolSummaries.length > 0;
-  $: isGraphMode = viewMode === "graph";
+  let hasPoolSummaries = $derived(poolSummaries.length > 0);
+  let isGraphMode = $derived(viewMode === "graph");
 </script>
 
 <header class="toolbar crystal-hud">
@@ -149,7 +159,7 @@
       <button
         class="switch-item"
         class:active={isGraphMode}
-        on:click={setGraphMode}
+        onclick={setGraphMode}
         title="Graph View"
       >
         <Network size="16" />
@@ -157,7 +167,7 @@
       <button
         class="switch-item"
         class:active={!isGraphMode}
-        on:click={setWBSMode}
+        onclick={setWBSMode}
         title="WBS View"
       >
         <ListTree size="16" />

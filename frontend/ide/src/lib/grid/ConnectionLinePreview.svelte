@@ -3,11 +3,16 @@
   // ConnectionLineはGridCanvas内のSVGコンテキストで動作するため、
   // ここでは視覚的なデモのみ行う
 
-  // Props
-  export let satisfied: boolean = true;
+  
+  interface Props {
+    // Props
+    satisfied?: boolean;
+  }
+
+  let { satisfied = true }: Props = $props();
 
   // SVGマーカー定義用
-  $: markerId = satisfied ? 'arrowhead-satisfied' : 'arrowhead-unsatisfied';
+  let markerId = $derived(satisfied ? 'arrowhead-satisfied' : 'arrowhead-unsatisfied');
 </script>
 
 <div class="preview-container">

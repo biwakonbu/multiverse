@@ -15,7 +15,11 @@
     resolution?: string;
   }
 
-  export let item: BacklogItemProps;
+  interface Props {
+    item: BacklogItemProps;
+  }
+
+  let { item }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     resolve: void;
@@ -65,10 +69,10 @@
   <h4 class="item-title">{item.title}</h4>
   <p class="item-description">{item.description}</p>
   <div class="item-actions">
-    <button class="btn-resolve" on:click={() => dispatch("resolve")}>
+    <button class="btn-resolve" onclick={() => dispatch("resolve")}>
       解決
     </button>
-    <button class="btn-delete" on:click={() => dispatch("delete")}>
+    <button class="btn-delete" onclick={() => dispatch("delete")}>
       削除
     </button>
   </div>

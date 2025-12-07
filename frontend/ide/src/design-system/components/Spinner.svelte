@@ -1,13 +1,18 @@
 <script lang="ts">
-  /**
+  
+
+  interface Props {
+    /**
    * Spinner Component
    * Loading indicator.
    */
-  export let size: "xs" | "sm" | "md" | "lg" = "sm";
-  export let color: "current" | "primary" | "secondary" = "current";
+    size?: "xs" | "sm" | "md" | "lg";
+    color?: "current" | "primary" | "secondary";
+    class?: string;
+  }
 
-  let className = "";
-  export { className as class };
+  let { size = "sm", color = "current", class: className = "" }: Props = $props();
+  
 
   const sizeMap = {
     xs: "var(--mv-icon-size-xs)",

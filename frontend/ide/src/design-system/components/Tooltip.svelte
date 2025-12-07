@@ -1,19 +1,30 @@
 <script lang="ts">
-  /**
+  
+
+  interface Props {
+    /**
    * Tooltip Component
    * Simple Tooltip implementation.
    * Note: In a real app, this might stick to a parent. Here we implement a simple wrapper or standalone box.
    * For this design system, we'll make it a wrapper that shows the tip on hover.
    */
-  export let content: string;
-  export let position: "top" | "bottom" | "left" | "right" = "top";
+    content: string;
+    position?: "top" | "bottom" | "left" | "right";
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  let className = "";
-  export { className as class };
+  let {
+    content,
+    position = "top",
+    class: className = "",
+    children
+  }: Props = $props();
+  
 </script>
 
 <div class="tooltip-wrapper {className}">
-  <slot />
+  {@render children?.()}
   <div class="tooltip position-{position}">
     {content}
   </div>

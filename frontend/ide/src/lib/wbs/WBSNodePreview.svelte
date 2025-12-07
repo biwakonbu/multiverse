@@ -3,16 +3,31 @@
   import type { WBSNode as WBSNodeType } from '../../stores/wbsStore';
   import type { Task, TaskStatus, PhaseName } from '../../types';
 
-  // Props
-  export let type: 'phase' | 'task' = 'task';
-  export let label: string = 'タスク名';
-  export let phaseName: PhaseName = '実装';
-  export let status: TaskStatus = 'PENDING';
-  export let level: number = 0;
-  export let completed: number = 0;
-  export let total: number = 1;
-  export let expanded: boolean = true;
-  export let hasChildren: boolean = false;
+  
+  interface Props {
+    // Props
+    type?: 'phase' | 'task';
+    label?: string;
+    phaseName?: PhaseName;
+    status?: TaskStatus;
+    level?: number;
+    completed?: number;
+    total?: number;
+    expanded?: boolean;
+    hasChildren?: boolean;
+  }
+
+  let {
+    type = 'task',
+    label = 'タスク名',
+    phaseName = '実装',
+    status = 'PENDING',
+    level = 0,
+    completed = 0,
+    total = 1,
+    expanded = true,
+    hasChildren = false
+  }: Props = $props();
 
   // WBSNodeを構築
   function buildNode(): WBSNodeType {
@@ -54,7 +69,7 @@
     };
   }
 
-  $: node = buildNode();
+  let node = $derived(buildNode());
 </script>
 
 <div class="preview-container">

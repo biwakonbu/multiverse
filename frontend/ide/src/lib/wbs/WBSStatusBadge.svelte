@@ -4,7 +4,11 @@
 
   // Badgeと同じpropsを受け取る
   type BadgeProps = ComponentProps<Badge>;
-  export let status: BadgeProps["status"];
+  interface Props {
+    status: BadgeProps["status"];
+  }
+
+  let { status }: Props = $props();
 
   // WBS用の固定幅バッジ
   // 表示がガタガタになるのを防ぐため、十分な固定幅を確保する

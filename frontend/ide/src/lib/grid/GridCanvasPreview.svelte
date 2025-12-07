@@ -19,16 +19,29 @@
     row: number;
   }
 
-  // サンプルノードデータ
-  export let nodes: NodeData[] = [];
+  
 
-  // ビューポート状態
-  export let zoom = 1;
-  export let panX = 32;
-  export let panY = 32;
+  
 
-  // 選択状態
-  export let selectedId: string | null = null;
+  
+  interface Props {
+    // サンプルノードデータ
+    nodes?: NodeData[];
+    // ビューポート状態
+    zoom?: number;
+    panX?: number;
+    panY?: number;
+    // 選択状態
+    selectedId?: string | null;
+  }
+
+  let {
+    nodes = [],
+    zoom = $bindable(1),
+    panX = $bindable(32),
+    panY = $bindable(32),
+    selectedId = $bindable(null)
+  }: Props = $props();
 
   // ズーム設定
   const zoomConfig = {
@@ -38,7 +51,7 @@
     wheelFactor: 0.1,
   };
 
-  let containerRef: HTMLDivElement;
+  let containerRef: HTMLDivElement = $state();
   let isDragging = false;
   let dragStartX = 0;
   let dragStartY = 0;
@@ -46,8 +59,8 @@
   let dragStartPanY = 0;
 
   // CSS transform 文字列
-  $: canvasTransform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
-  $: zoomPercent = Math.round(zoom * 100);
+  let canvasTransform = $derived(`translate(${panX}px, ${panY}px) scale(${zoom})`);
+  let zoomPercent = $derived(Math.round(zoom * 100));
 
   // ホイールズーム
   function handleWheel(event: WheelEvent) {
@@ -134,16 +147,16 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div
   class="canvas-container"
   bind:this={containerRef}
-  on:wheel={handleWheel}
-  on:pointerdown={handlePointerDown}
-  on:pointermove={handlePointerMove}
-  on:pointerup={handlePointerUp}
-  on:pointercancel={handlePointerUp}
-  on:keydown={handleKeydown}
+  onwheel={handleWheel}
+  onpointerdown={handlePointerDown}
+  onpointermove={handlePointerMove}
+  onpointerup={handlePointerUp}
+  onpointercancel={handlePointerUp}
+  onkeydown={handleKeydown}
   role="application"
   aria-label="タスクグリッド"
   tabindex="0"
@@ -181,8 +194,8 @@
   >
     {#each nodes as node (node.id)}
       <div
-        on:click={() => handleNodeClick(node.id)}
-        on:keydown={(e) => e.key === "Enter" && handleNodeClick(node.id)}
+        onclick={() => handleNodeClick(node.id)}
+        onkeydown={(e) => e.key === "Enter" && handleNodeClick(node.id)}
         role="button"
         tabindex="-1"
       >

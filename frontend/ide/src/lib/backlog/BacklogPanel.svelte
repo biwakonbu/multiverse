@@ -11,7 +11,7 @@
   import EmptyBacklog from "./components/EmptyBacklog.svelte";
 
   // 解決ダイアログ
-  let resolvingItem: BacklogItem | null = null;
+  let resolvingItem: BacklogItem | null = $state(null);
 
   function openResolveDialog(item: BacklogItem) {
     resolvingItem = item;

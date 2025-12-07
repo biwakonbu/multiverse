@@ -1,20 +1,26 @@
 <script lang="ts">
   import type { ExecutionState } from "../../stores/executionStore";
-  import type { ResourceNode } from "../../stores/processStore"; // Import definition
-  import ResourceList from "./ResourceList.svelte"; // Use ResourceList
+  import type { ResourceNode } from "./types";
+  import ResourceList from "./ResourceList.svelte";
   import { slide } from "svelte/transition";
 
-  export let executionState: ExecutionState = "IDLE";
-  export let resources: ResourceNode[] = []; // Add resources prop
-  export let activeTaskTitle: string | undefined = undefined;
+  interface Props {
+    executionState?: ExecutionState;
+    resources?: ResourceNode[]; // Add resources prop
+    activeTaskTitle?: string | undefined;
+  }
 
-  let isExpanded = false;
+  let {
+    executionState = "IDLE",
+    resources = [],
+    activeTaskTitle = undefined,
+  }: Props = $props();
+
+  let isExpanded = $state(false);
 
   function toggle() {
     isExpanded = !isExpanded;
   }
-
-  $: stateColor = getStateColor(executionState);
 
   function getStateColor(state: string) {
     switch (state) {
@@ -26,12 +32,13 @@
         return "var(--mv-color-text-muted)";
     }
   }
+  let stateColor = $derived(getStateColor(executionState));
 </script>
 
 <div class="process-hud-container" class:expanded={isExpanded}>
   <!-- Header / Collapsed View -->
-  <!-- svelte-ignore a11y-click-events-have-key-events -->
-  <div class="hud-header" on:click={toggle} role="button" tabindex="0">
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="hud-header" onclick={toggle} role="button" tabindex="0">
     <div class="left-group">
       <div class="indicator" style:background={stateColor}>
         {#if executionState === "RUNNING"}

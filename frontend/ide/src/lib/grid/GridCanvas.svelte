@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { createBubbler, preventDefault } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { onMount } from "svelte";
   import GridNode from "./GridNode.svelte";
   import ConnectionLine from "./ConnectionLine.svelte";
@@ -6,7 +9,7 @@
   import { taskNodes, gridBounds, taskEdges } from "../../stores";
   import { zoom as zoomConfig } from "../../design-system";
 
-  let containerRef: HTMLDivElement | null = null;
+  let containerRef: HTMLDivElement | null = $state(null);
 
   // マウス位置追跡（ズームの起点として使用）
   let lastMousePosition = { x: 0, y: 0 };
@@ -171,18 +174,18 @@
   });
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="canvas-container"
   bind:this={containerRef}
-  on:wheel={handleWheel}
-  on:pointerdown={handlePointerDown}
-  on:mousemove={handleMouseMove}
-  on:pointermove={handlePointerMove}
-  on:pointerup={handlePointerUp}
-  on:pointercancel={handlePointerUp}
-  on:dragstart|preventDefault
-  on:selectstart|preventDefault
+  onwheel={handleWheel}
+  onpointerdown={handlePointerDown}
+  onmousemove={handleMouseMove}
+  onpointermove={handlePointerMove}
+  onpointerup={handlePointerUp}
+  onpointercancel={handlePointerUp}
+  ondragstart={preventDefault(bubble('dragstart'))}
+  onselectstart={preventDefault(bubble('selectstart'))}
   role="application"
   aria-label="タスクグリッド"
   tabindex="0"

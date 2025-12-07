@@ -1,44 +1,62 @@
 <script lang="ts">
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   /**
    * 汎用カードコンポーネント
    * パネルやノードのベースとして使用
    */
 
-  /**
+  
+
+  
+
+  
+
+  
+  interface Props {
+    /**
    * カードのバリアント
    * - default: 標準の背景
    * - elevated: 浮き上がった見た目（シャドウ付き）
    * - outlined: ボーダーのみ
    */
-  export let variant: 'default' | 'elevated' | 'outlined' = 'default';
-
-  /**
+    variant?: 'default' | 'elevated' | 'outlined';
+    /**
    * パディングサイズ
    */
-  export let padding: 'none' | 'small' | 'medium' | 'large' = 'medium';
-
-  /**
+    padding?: 'none' | 'small' | 'medium' | 'large';
+    /**
    * 選択状態
    */
-  export let selected = false;
-
-  /**
+    selected?: boolean;
+    /**
    * インタラクティブ（ホバー効果）
    */
-  export let interactive = false;
+    interactive?: boolean;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    variant = 'default',
+    padding = 'medium',
+    selected = false,
+    interactive = false,
+    children
+  }: Props = $props();
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="card variant-{variant} padding-{padding}"
   class:selected
   class:interactive
   role={interactive ? 'button' : undefined}
   tabindex={interactive ? 0 : undefined}
-  on:click
-  on:keydown
+  onclick={bubble('click')}
+  onkeydown={bubble('keydown')}
 >
-  <slot />
+  {@render children?.()}
 </div>
 
 <style>

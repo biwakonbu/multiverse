@@ -2,7 +2,11 @@
   import { createEventDispatcher } from "svelte";
   import { Button } from "../../design-system";
 
-  export let scale = 1.0;
+  interface Props {
+    scale?: number;
+  }
+
+  let { scale = 1.0 }: Props = $props();
 
   const dispatch = createEventDispatcher<{
     zoomIn: void;

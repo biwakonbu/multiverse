@@ -81,4 +81,25 @@
      ======================================== */
   --mv-status-dot-size: 6px;
   --mv-status-dot-glow-running: 0 0 4px var(--mv-color-status-running-text);
+
+  /* ========================================
+     ステータスカラー: Success（成功 - エイリアス）
+     ======================================== */
+  --mv-color-status-success-bg: var(--mv-color-status-running-bg);
+  --mv-color-status-success-border: var(--mv-color-status-running-border);
+  --mv-color-status-success-text: var(--mv-color-status-running-text);
+
+  /* ========================================
+     ステータスカラー: Warning（警告 - エイリアス）
+     ======================================== */
+  --mv-color-status-warning-bg: #2d2620;
+  --mv-color-status-warning-border: var(--mv-primitive-aurora-yellow);
+  --mv-color-status-warning-text: var(--mv-primitive-aurora-yellow);
+
+  /* ========================================
+     ステータスカラー: Info（情報）
+     ======================================== */
+  --mv-color-status-info-bg: var(--mv-color-status-ready-bg);
+  --mv-color-status-info-border: var(--mv-primitive-frost-1);
+  --mv-color-status-info-text: var(--mv-primitive-frost-1);
 }

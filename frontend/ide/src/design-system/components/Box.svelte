@@ -1,23 +1,46 @@
 <script lang="ts">
-  /**
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
+  
+
+  // Custom class
+  interface Props {
+    /**
    * Box Component
    * Basic container primitive with consistent spacing and colors.
    */
-  export let as: string = "div";
-  export let p: string = "0";
-  export let m: string = "0";
-  export let bg: string | undefined = undefined;
-  export let color: string | undefined = undefined;
-  export let border: string | undefined = undefined;
-  export let radius: string = "0";
-  export let height: string = "auto";
-  export let width: string = "auto";
-  export let grow: boolean = false;
-  export let shrink: boolean = false;
+    as?: string;
+    p?: string;
+    m?: string;
+    bg?: string | undefined;
+    color?: string | undefined;
+    border?: string | undefined;
+    radius?: string;
+    height?: string;
+    width?: string;
+    grow?: boolean;
+    shrink?: boolean;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  // Custom class
-  let className = "";
-  export { className as class };
+  let {
+    as = "div",
+    p = "0",
+    m = "0",
+    bg = undefined,
+    color = undefined,
+    border = undefined,
+    radius = "0",
+    height = "auto",
+    width = "auto",
+    grow = false,
+    shrink = false,
+    class: className = "",
+    children
+  }: Props = $props();
+  
 
   // Map simplified props to CSS vars or values
   // This is a simplified implementation. In a full system, we might map 'sm', 'md' to vars.
@@ -38,10 +61,10 @@
   style:--box-h={height}
   style:--box-w={width}
   role={as === "button" ? "button" : undefined}
-  on:click
-  on:keydown
+  onclick={bubble('click')}
+  onkeydown={bubble('keydown')}
 >
-  <slot />
+  {@render children?.()}
 </svelte:element>
 
 <style>

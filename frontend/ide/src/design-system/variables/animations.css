@@ -24,6 +24,7 @@
   /* ========================================
      アニメーション: トランジション
      ======================================== */
+  --mv-transition-base: var(--mv-duration-normal) var(--mv-easing-default);
   --mv-transition-hover: var(--mv-duration-fast) var(--mv-easing-out);
   --mv-transition-state: var(--mv-duration-normal) var(--mv-easing-default);
   --mv-transition-transform: var(--mv-duration-fast) var(--mv-easing-out);

@@ -1,13 +1,24 @@
 <script lang="ts">
-  /**
+  
+
+  interface Props {
+    /**
    * Heading Component
    * Brand typography for titles and headers.
    */
-  export let level: 1 | 2 | 3 | 4 | 5 | 6 = 1;
-  export let variant: "default" | "gradient" = "default";
+    level?: 1 | 2 | 3 | 4 | 5 | 6;
+    variant?: "default" | "gradient";
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  let className = "";
-  export { className as class };
+  let {
+    level = 1,
+    variant = "default",
+    class: className = "",
+    children
+  }: Props = $props();
+  
 
   // Font family determined by brand
   // Level affects size
@@ -27,7 +38,7 @@
   class="heading level-{level} variant-{variant} {className}"
   style:--heading-size={sizeMap[level]}
 >
-  <slot />
+  {@render children?.()}
 </svelte:element>
 
 <style>

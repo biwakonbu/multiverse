@@ -2,9 +2,13 @@
   import { statusToCssClass } from "../../schemas";
   import type { TaskStatus } from "../../schemas";
 
-  export let status: TaskStatus;
+  interface Props {
+    status: TaskStatus;
+  }
 
-  $: statusClass = statusToCssClass(status);
+  let { status }: Props = $props();
+
+  let statusClass = $derived(statusToCssClass(status));
 </script>
 
 <span class="status-badge status-{statusClass}">

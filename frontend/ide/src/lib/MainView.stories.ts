@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/svelte";
+import type { Meta, StoryObj } from "@storybook/svelte-vite";
 import MainViewPreview from "./MainViewPreview.svelte";
 import type { Task, TaskStatus } from "../types";
 

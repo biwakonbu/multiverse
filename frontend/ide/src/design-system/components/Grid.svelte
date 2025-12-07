@@ -5,21 +5,40 @@
    */
   import Box from "./Box.svelte";
 
-  export let columns: string = "1fr"; // e.g. "repeat(3, 1fr)"
-  export let rows: string = "auto";
-  export let gap: string = "var(--mv-spacing-md)";
-  export let align: "start" | "center" | "end" | "stretch" = "stretch";
-  export let justify: "start" | "center" | "end" | "stretch" = "stretch";
 
-  // Box props
-  export let p: string = "0";
-  export let m: string = "0";
-  export let bg: string | undefined = undefined;
-  export let height: string = "auto";
-  export let width: string = "auto";
+  
 
-  let className = "";
-  export { className as class };
+  interface Props {
+    columns?: string; // e.g. "repeat(3, 1fr)"
+    rows?: string;
+    gap?: string;
+    align?: "start" | "center" | "end" | "stretch";
+    justify?: "start" | "center" | "end" | "stretch";
+    // Box props
+    p?: string;
+    m?: string;
+    bg?: string | undefined;
+    height?: string;
+    width?: string;
+    class?: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    columns = "1fr",
+    rows = "auto",
+    gap = "var(--mv-spacing-md)",
+    align = "stretch",
+    justify = "stretch",
+    p = "0",
+    m = "0",
+    bg = undefined,
+    height = "auto",
+    width = "auto",
+    class: className = "",
+    children
+  }: Props = $props();
+  
 </script>
 
 <div
@@ -35,7 +54,7 @@
   style:--box-h={height}
   style:--box-w={width}
 >
-  <slot />
+  {@render children?.()}
 </div>
 
 <style>

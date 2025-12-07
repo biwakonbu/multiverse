@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/svelte';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import ConnectionLinePreview from './ConnectionLinePreview.svelte';
 
 const meta = {

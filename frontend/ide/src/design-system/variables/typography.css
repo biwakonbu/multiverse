@@ -25,8 +25,9 @@
   --mv-font-display: "Rajdhani", var(--mv-font-sans);
   --mv-font-brand: "Orbitron", var(--mv-font-sans);
 
-  --mv-font-size-xxs: 8px;
-  --mv-font-size-xs: 10px;
+  --mv-font-size-3xs: 8px;
+  --mv-font-size-2xs: 10px;
+  --mv-font-size-xs: 11px;
   --mv-font-size-sm: 12px;
   --mv-font-size-md: 14px;
   --mv-font-size-lg: 16px;

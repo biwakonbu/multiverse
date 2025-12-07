@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { stopPropagation } from 'svelte/legacy';
+
   import { createEventDispatcher, onMount } from "svelte";
   import ChatInput from "./ChatInput.svelte";
   import DraggableWindow from "./window/DraggableWindow.svelte";
@@ -12,13 +14,13 @@
   } from "../../../stores/chat";
   import { get } from "svelte/store";
 
-  export let initialPosition = { x: 20, y: 20 };
+  let { initialPosition = { x: 20, y: 20 } } = $props();
 
-  let conflicts: NonNullable<ChatResponse["conflicts"]> = [];
+  let conflicts: NonNullable<ChatResponse["conflicts"]> = $state([]);
 
   // Tabs
   const tabs = ["General", "Log"];
-  let activeTab = "General";
+  let activeTab = $state("General");
 
   const dispatch = createEventDispatcher();
 
@@ -68,19 +70,21 @@
 </script>
 
 <DraggableWindow {initialPosition} title="" on:close={closeWindow}>
-  <div slot="header" class="tabs">
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    {#each tabs as tab}
-      <button
-        class="tab"
-        class:active={activeTab === tab}
-        on:click|stopPropagation={() => (activeTab = tab)}
-        type="button"
-      >
-        {tab}
-      </button>
-    {/each}
-  </div>
+  {#snippet header()}
+    <div  class="tabs">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      {#each tabs as tab}
+        <button
+          class="tab"
+          class:active={activeTab === tab}
+          onclick={stopPropagation(() => (activeTab = tab))}
+          type="button"
+        >
+          {tab}
+        </button>
+      {/each}
+    </div>
+  {/snippet}
 
   {#if activeTab === "General"}
     <ChatView {conflicts} />
@@ -88,9 +92,11 @@
     <LogView />
   {/if}
 
-  <div slot="footer">
-    <ChatInput on:send={handleSend} disabled={$isChatLoading} />
-  </div>
+  {#snippet footer()}
+    <div >
+      <ChatInput on:send={handleSend} disabled={$isChatLoading} />
+    </div>
+  {/snippet}
 </DraggableWindow>
 
 <style>

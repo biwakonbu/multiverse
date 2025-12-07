@@ -7,9 +7,13 @@
     chatError,
   } from "../../../../stores/chat";
 
-  export let messageCount = 5;
-  export let isLoading = false;
-  export let error: string | null = null;
+  interface Props {
+    messageCount?: number;
+    isLoading?: boolean;
+    error?: string | null;
+  }
+
+  let { messageCount = 5, isLoading = false, error = null }: Props = $props();
 
   // Generate mock messages
   function generateMockMessages(count: number) {

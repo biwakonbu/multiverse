@@ -1,27 +1,33 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { formatLocalTime } from "../../utils/time";
   import { marked } from "marked";
   import DOMPurify from "dompurify";
 
-  export let role: "user" | "assistant" | "system" = "user";
-  export let content: string;
-  export let timestamp: string;
+  interface Props {
+    role?: "user" | "assistant" | "system";
+    content: string;
+    timestamp: string;
+  }
+
+  let { role = "user", content, timestamp }: Props = $props();
 
   const isUser = role === "user";
   const isSystem = role === "system";
 
-  $: displayTime = formatLocalTime(timestamp);
+  let displayTime = $derived(formatLocalTime(timestamp));
 
-  let htmlContent = "";
+  let htmlContent = $state("");
 
-  $: {
+  run(() => {
     // marked.parse returns string | Promise<string>.
     // Without async extensions, it is synchronous.
     // We cast to string to satisfy TS if we are sure we aren't using async features.
     // Or we handle the promise if needed. For now assuming sync.
     const raw = marked.parse(content, { async: false }) as string;
     htmlContent = DOMPurify.sanitize(raw);
-  }
+  });
 </script>
 
 <div class="message-container {role}">

@@ -1,10 +1,14 @@
 <script lang="ts">
-  /**
+  
+
+
+
+  interface Props {
+    /**
    * バッジコンポーネント
    * ステータス表示やラベル付けに使用
    */
-
-  export let status:
+    status?: 
     | "pending"
     | "ready"
     | "running"
@@ -14,20 +18,29 @@
     | "canceled"
     | "blocked"
     | "retryWait"
-    | undefined = undefined;
-
-  export let variant: "default" | "outline" | "glass" = "default";
-  export let color:
+    | undefined;
+    variant?: "default" | "outline" | "glass";
+    color?: 
     | "primary"
     | "secondary"
     | "success"
     | "warning"
     | "danger"
     | "info"
-    | "neutral" = "neutral";
+    | "neutral";
+    size?: "small" | "medium";
+    label?: string;
+    children?: import('svelte').Snippet;
+  }
 
-  export let size: "small" | "medium" = "medium";
-  export let label = "";
+  let {
+    status = undefined,
+    variant = "default",
+    color = "neutral",
+    size = "medium",
+    label = "",
+    children
+  }: Props = $props();
 
   // ステータスからカラーとラベルを自動解決
   const statusConfig: Record<
@@ -45,8 +58,8 @@
     retryWait: { color: "warning", label: "Retry Wait" },
   };
 
-  $: resolvedColor = status ? statusConfig[status].color : color;
-  $: resolvedLabel = label || (status ? statusConfig[status].label : "");
+  let resolvedColor = $derived(status ? statusConfig[status].color : color);
+  let resolvedLabel = $derived(label || (status ? statusConfig[status].label : ""));
 </script>
 
 <span
@@ -57,7 +70,7 @@
     <span class="pulse-dot"></span>
   {/if}
   {resolvedLabel}
-  <slot />
+  {@render children?.()}
 </span>
 
 <style>

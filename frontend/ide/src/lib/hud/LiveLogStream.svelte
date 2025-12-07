@@ -1,15 +1,20 @@
 <script lang="ts">
   import type { LogEntry } from "../../stores/logStore";
-  import { afterUpdate } from "svelte";
 
-  export let logs: LogEntry[] = [];
-  export let height = "200px";
+  interface Props {
+    logs?: LogEntry[];
+    height?: string;
+  }
 
-  let container: HTMLDivElement;
-  let autoScroll = true;
+  let { logs = [], height = "200px" }: Props = $props();
 
-  // 自動スクロール
-  afterUpdate(() => {
+  let container: HTMLDivElement | undefined = $state();
+  let autoScroll = $state(true);
+
+  // 自動スクロール（Svelte 5: $effect を使用）
+  $effect(() => {
+    // logs を追跡して変更時にスクロール
+    logs;
     if (autoScroll && container) {
       container.scrollTop = container.scrollHeight;
     }
@@ -37,7 +42,7 @@
     >
   </div>
 
-  <div class="log-content" bind:this={container} on:scroll={onScroll}>
+  <div class="log-content" bind:this={container} onscroll={onScroll}>
     {#each logs as log (log.id)}
       <div class="log-line">
         <span class="timestamp"

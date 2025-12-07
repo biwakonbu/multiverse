@@ -1,12 +1,17 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
 
-  /**
+  
+  interface Props {
+    /**
    * ワークスペースを開くボタン
    * VSCode/Cursor 風のクリーンでミニマルなデザイン
    */
-  export let loading = false;
-  export let disabled = false;
+    loading?: boolean;
+    disabled?: boolean;
+  }
+
+  let { loading = false, disabled = false }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -16,7 +21,7 @@
     }
   }
 
-  $: isDisabled = disabled || loading;
+  let isDisabled = $derived(disabled || loading);
 </script>
 
 <button
@@ -25,7 +30,7 @@
   class:loading
   class:disabled={isDisabled}
   disabled={isDisabled}
-  on:click={handleClick}
+  onclick={handleClick}
 >
   {#if loading}
     <svg class="spinner" viewBox="0 0 24 24" fill="none">

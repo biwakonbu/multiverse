@@ -6,11 +6,21 @@
 
   import { stripMarkdown } from "../utils/markdown";
 
-  // Props
-  export let task: Task = {} as Task;
-  export let col: number = 0;
-  export let row: number = 0;
-  export let zoomLevel: number = 1;
+  
+  interface Props {
+    // Props
+    task?: Task;
+    col?: number;
+    row?: number;
+    zoomLevel?: number;
+  }
+
+  let {
+    task = {} as Task,
+    col = 0,
+    row = 0,
+    zoomLevel = 1
+  }: Props = $props();
 
   // フェーズ名からCSSクラス名への変換
   function phaseToClass(phase: PhaseName | undefined): string {
@@ -33,15 +43,15 @@
   };
 
   // キャンバス座標を計算（ワールド座標）
-  $: worldPosition = gridToWorld({ col, row });
-  $: isSelected = $selectedTaskId === task.id;
-  $: statusClass = statusToCssClass(task.status);
-  $: phaseClass = phaseToClass(task.phaseName);
-  $: hasDependencies = task.dependencies && task.dependencies.length > 0;
+  let worldPosition = $derived(gridToWorld({ col, row }));
+  let isSelected = $derived($selectedTaskId === task.id);
+  let statusClass = $derived(statusToCssClass(task.status));
+  let phaseClass = $derived(phaseToClass(task.phaseName));
+  let hasDependencies = $derived(task.dependencies && task.dependencies.length > 0);
 
   // ズームレベルに応じた表示制御
-  $: showTitle = zoomLevel >= 0.4;
-  $: showDetails = zoomLevel >= 1.2;
+  let showTitle = $derived(zoomLevel >= 0.4);
+  let showDetails = $derived(zoomLevel >= 1.2);
 
   function handleClick() {
     selectedTaskId.select(task.id);
@@ -60,8 +70,8 @@
   class:selected={isSelected}
   class:has-deps={hasDependencies}
   style="left: {worldPosition.x}px; top: {worldPosition.y}px;"
-  on:click={handleClick}
-  on:keydown={handleKeydown}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
   role="button"
   tabindex="0"
   aria-label="{task.title} - {statusLabels[task.status]}"

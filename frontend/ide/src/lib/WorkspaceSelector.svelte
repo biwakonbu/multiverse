@@ -9,9 +9,9 @@
     selected: string;
   }>();
 
-  let recentWorkspaces: WorkspaceSummary[] = [];
-  let isLoading = false;
-  let isLoadingRecent = true;
+  let recentWorkspaces: WorkspaceSummary[] = $state([]);
+  let isLoading = $state(false);
+  let isLoadingRecent = $state(true);
 
   onMount(async () => {
     await loadRecentWorkspaces();

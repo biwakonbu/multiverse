@@ -9,11 +9,11 @@
     return { first: str[0], rest: str.slice(1) };
   }
 
-  $: percentage = $overallProgress?.percentage ?? 0;
-  $: completed = $overallProgress?.completed ?? 0;
-  $: total = $overallProgress?.total ?? 0;
-  $: progressParts = splitProgress(percentage);
-  $: progressColor = getProgressColor(percentage);
+  let percentage = $derived($overallProgress?.percentage ?? 0);
+  let completed = $derived($overallProgress?.completed ?? 0);
+  let total = $derived($overallProgress?.total ?? 0);
+  let progressParts = $derived(splitProgress(percentage));
+  let progressColor = $derived(getProgressColor(percentage));
 </script>
 
 <div class="wbs-header">
@@ -41,7 +41,7 @@
     <div class="header-actions">
       <button
         class="action-btn"
-        on:click={() => expandedNodes.expandAll()}
+        onclick={() => expandedNodes.expandAll()}
         title="Expand All"
         aria-label="Expand All"
       >
@@ -62,7 +62,7 @@
       </button>
       <button
         class="action-btn"
-        on:click={() => expandedNodes.collapseAll()}
+        onclick={() => expandedNodes.collapseAll()}
         title="Collapse All"
         aria-label="Collapse All"
       >

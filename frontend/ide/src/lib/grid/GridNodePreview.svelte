@@ -9,21 +9,38 @@
   import { gridToCanvas } from "../../design-system";
 
   // タスク情報（idはStorybookのargs用に保持）
-  // svelte-ignore unused-export-let
-  export let id = "task-1";
-  export let title = "タスク名";
-  export let status: TaskStatus = "PENDING";
-  export let poolId = "codegen";
+  
 
-  // グリッド位置
-  export let col = 0;
-  export let row = 0;
+  
 
-  // ズームレベル
-  export let zoomLevel = 1;
+  
 
-  // 選択状態
-  export let selected = false;
+  
+  interface Props {
+    // svelte-ignore unused-export-let
+    id?: string;
+    title?: string;
+    status?: TaskStatus;
+    poolId?: string;
+    // グリッド位置
+    col?: number;
+    row?: number;
+    // ズームレベル
+    zoomLevel?: number;
+    // 選択状態
+    selected?: boolean;
+  }
+
+  let {
+    id = "task-1",
+    title = "タスク名",
+    status = "PENDING",
+    poolId = "codegen",
+    col = 0,
+    row = 0,
+    zoomLevel = 1,
+    selected = false
+  }: Props = $props();
 
   // ステータスラベル
   const statusLabels: Record<TaskStatus, string> = {
@@ -39,14 +56,14 @@
   };
 
   // CSS クラス用の小文字変換
-  $: statusClass = status.toLowerCase();
+  let statusClass = $derived(status.toLowerCase());
 
   // キャンバス座標を計算
-  $: position = gridToCanvas(col, row);
+  let position = $derived(gridToCanvas(col, row));
 
   // ズームレベルに応じた表示制御
-  $: showTitle = zoomLevel >= 0.4;
-  $: showDetails = zoomLevel >= 1.2;
+  let showTitle = $derived(zoomLevel >= 0.4);
+  let showDetails = $derived(zoomLevel >= 1.2);
 </script>
 
 <div
