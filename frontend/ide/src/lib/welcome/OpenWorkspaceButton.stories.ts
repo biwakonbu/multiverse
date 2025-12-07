@@ -23,7 +23,7 @@ const meta = {
       ],
     },
   },
-} satisfies Meta<OpenWorkspaceButton>;
+} as Meta<typeof OpenWorkspaceButton>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

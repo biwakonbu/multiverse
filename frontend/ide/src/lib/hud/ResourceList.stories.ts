@@ -12,7 +12,7 @@ const meta = {
           default: 'dark',
       }
   }
-} satisfies Meta<ResourceList>;
+} as Meta<typeof ResourceList>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

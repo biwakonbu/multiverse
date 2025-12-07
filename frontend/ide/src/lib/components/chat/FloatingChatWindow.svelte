@@ -1,9 +1,9 @@
 <script lang="ts">
   import { stopPropagation } from 'svelte/legacy';
 
-  import { createEventDispatcher, onMount } from "svelte";
+  import { onMount } from "svelte";
   import ChatInput from "./ChatInput.svelte";
-  import DraggableWindow from "./window/DraggableWindow.svelte";
+  import DraggableWindow from "../ui/window/DraggableWindow.svelte";
   import ChatView from "./tabs/ChatView.svelte";
   import LogView from "./tabs/LogView.svelte";
   import {
@@ -13,8 +13,20 @@
     type ChatResponse,
   } from "../../../stores/chat";
   import { get } from "svelte/store";
+  import { windowStore } from "../../../stores/windowStore";
+  import type { Task } from "../../../types";
 
-  let { initialPosition = { x: 20, y: 20 } } = $props();
+  interface Props {
+    onclose?: () => void;
+    ontasksGenerated?: (data: { tasks: Task[]; understanding: string }) => void;
+  }
+
+  let { onclose, ontasksGenerated }: Props = $props();
+
+  let isOpen = $derived($windowStore.chat.isOpen);
+  let position = $derived($windowStore.chat.position);
+  let size = $derived($windowStore.chat.size);
+  let zIndex = $derived($windowStore.chat.zIndex);
 
   let conflicts: NonNullable<ChatResponse["conflicts"]> = $state([]);
 
@@ -22,20 +34,30 @@
   const tabs = ["General", "Log"];
   let activeTab = $state("General");
 
-  const dispatch = createEventDispatcher();
-
   // セッション初期化
   onMount(async () => {
-    await chatStore.initSession(); // Use initSession to restore or create
+    await chatStore.initSession();
   });
 
   function closeWindow() {
-    dispatch("close");
+    windowStore.close('chat');
+    onclose?.();
+  }
+
+  function handleMinimize(data: { minimized: boolean }) {
+    windowStore.minimize('chat', data.minimized);
+  }
+
+  function handleDragEnd(data: { x: number; y: number }) {
+    windowStore.updatePosition('chat', data.x, data.y);
+  }
+
+  function handleClick() {
+    windowStore.bringToFront('chat');
   }
 
   // チャット送信処理
-  async function handleSend(e: CustomEvent<string>) {
-    const text = e.detail;
+  async function handleSend(text: string) {
     if (!text.trim()) {
       console.warn("FloatingChatWindow: empty text");
       return;
@@ -59,45 +81,59 @@
     const response = await chatStore.sendMessage(text);
     conflicts = response?.conflicts ?? [];
 
-    // タスクが生成された場合はイベントを発行
+    // タスクが生成された場合はコールバックを呼び出す
     if (response?.generatedTasks && response.generatedTasks.length > 0) {
-      dispatch("tasksGenerated", {
-        tasks: response.generatedTasks,
-        understanding: response.understanding,
+      ontasksGenerated?.({
+        tasks: response.generatedTasks as Task[],
+        understanding: response.understanding ?? "",
       });
     }
   }
 </script>
 
-<DraggableWindow {initialPosition} title="" on:close={closeWindow}>
-  {#snippet header()}
-    <div  class="tabs">
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      {#each tabs as tab}
-        <button
-          class="tab"
-          class:active={activeTab === tab}
-          onclick={stopPropagation(() => (activeTab = tab))}
-          type="button"
-        >
-          {tab}
-        </button>
-      {/each}
-    </div>
-  {/snippet}
+{#if isOpen}
+  <DraggableWindow
+    id="chat"
+    title=""
+    initialPosition={position}
+    initialSize={size}
+    {zIndex}
+    onclose={closeWindow}
+    onminimize={handleMinimize}
+    ondragend={handleDragEnd}
+    onclick={handleClick}
+  >
+    {#snippet header()}
+      <div class="tabs">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        {#each tabs as tab}
+          <button
+            class="tab"
+            class:active={activeTab === tab}
+            onclick={stopPropagation(() => (activeTab = tab))}
+            type="button"
+          >
+            {tab}
+          </button>
+        {/each}
+      </div>
+    {/snippet}
 
-  {#if activeTab === "General"}
-    <ChatView {conflicts} />
-  {:else if activeTab === "Log"}
-    <LogView />
-  {/if}
+    {#snippet children()}
+      {#if activeTab === "General"}
+        <ChatView {conflicts} />
+      {:else if activeTab === "Log"}
+        <LogView />
+      {/if}
+    {/snippet}
 
-  {#snippet footer()}
-    <div >
-      <ChatInput on:send={handleSend} disabled={$isChatLoading} />
-    </div>
-  {/snippet}
-</DraggableWindow>
+    {#snippet footer()}
+      <div>
+        <ChatInput onsend={handleSend} disabled={$isChatLoading} />
+      </div>
+    {/snippet}
+  </DraggableWindow>
+{/if}
 
 <style>
   .tabs {

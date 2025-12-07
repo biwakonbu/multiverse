@@ -20,7 +20,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<ConnectionLinePreview>;
+} as Meta<typeof ConnectionLinePreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

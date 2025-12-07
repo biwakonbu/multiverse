@@ -18,7 +18,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<ChatViewPreview>;
+} as Meta<typeof ChatViewPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

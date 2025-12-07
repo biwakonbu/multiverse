@@ -25,7 +25,7 @@ const meta = {
   parameters: {
     layout: 'centered',
   },
-} satisfies Meta<WBSGraphNodePreview>;
+} as Meta<typeof WBSGraphNodePreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

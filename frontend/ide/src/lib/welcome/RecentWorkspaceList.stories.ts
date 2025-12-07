@@ -28,7 +28,7 @@ const meta = {
       }
     }
   }
-} satisfies Meta<RecentWorkspaceList>;
+} as Meta<typeof RecentWorkspaceList>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

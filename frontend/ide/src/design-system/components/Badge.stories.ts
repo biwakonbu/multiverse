@@ -20,7 +20,7 @@ const meta = {
     status: 'pending',
     size: 'medium',
   }
-} satisfies Meta<Badge>;
+} as Meta<typeof Badge>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

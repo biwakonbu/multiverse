@@ -30,7 +30,7 @@ const meta = {
     glow: false,
     as: 'p',
   }
-} satisfies Meta<Text>;
+} as Meta<typeof Text>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

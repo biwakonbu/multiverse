@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
+import type { ComponentProps } from 'svelte';
 import Tooltip from './Tooltip.svelte';
 
 const meta = {
@@ -7,23 +8,23 @@ const meta = {
   tags: ['autodocs'],
   argTypes: {
     content: { control: 'text' },
-    position: { 
-      control: 'select', 
-      options: ['top', 'bottom', 'left', 'right'] 
+    position: {
+      control: 'select',
+      options: ['top', 'bottom', 'left', 'right']
     },
   },
   args: {
     content: 'This is a tooltip',
     position: 'top',
   }
-} satisfies Meta<Tooltip>;
+} as Meta<typeof Tooltip>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Wrapper for demonstration since Svelte slots in Storybook are strings
 export const Default: Story = {
-  render: (args) => ({
+  render: (args: ComponentProps<typeof Tooltip>) => ({
     Component: Tooltip,
     props: args,
   }),

@@ -21,7 +21,7 @@ const meta = {
     placeholder: 'Enter text...',
     label: 'Label',
   }
-} satisfies Meta<Input>;
+} as Meta<typeof Input>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

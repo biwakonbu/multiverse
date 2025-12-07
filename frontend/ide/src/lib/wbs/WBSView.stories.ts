@@ -28,7 +28,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<WBSViewPreview>;
+} as Meta<typeof WBSViewPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

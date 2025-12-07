@@ -54,7 +54,7 @@ Factorio風の2D俯瞰グリッドキャンバス。
       }
     }
   }
-} satisfies Meta<GridCanvasPreview>;
+} as Meta<typeof GridCanvasPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

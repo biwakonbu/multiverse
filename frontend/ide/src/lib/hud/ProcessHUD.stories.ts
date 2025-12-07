@@ -13,7 +13,7 @@ const meta = {
           default: 'dark',
       }
   }
-} satisfies Meta<ProcessHUD>;
+} as Meta<typeof ProcessHUD>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

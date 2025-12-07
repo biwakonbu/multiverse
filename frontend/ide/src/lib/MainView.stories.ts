@@ -26,7 +26,7 @@ const meta = {
       description: "チャットウィンドウ表示",
     },
   },
-} satisfies Meta<MainViewPreview>;
+} as Meta<typeof MainViewPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -439,6 +439,109 @@ export const LargeProject: Story = {
       description: {
         story:
           "50タスクの大規模プロジェクト。スクロールとパフォーマンスの確認用。",
+      },
+    },
+  },
+};
+
+// === Story: バックログパネル表示 ===
+export const WithBacklogOpen: Story = {
+  args: {
+    viewMode: "wbs",
+    taskList: errorStateTasks,
+    poolSummaries: [
+      { poolId: "codegen", running: 1, queued: 0, failed: 2, total: 4, counts: {} },
+    ],
+    overallProgress: calcProgress(errorStateTasks),
+    taskCountsByStatus: countByStatus(errorStateTasks),
+    selectedTask: null,
+    showChat: true,
+    chatPosition: { x: 600, y: 300 },
+    showBacklog: true,
+    unresolvedCount: 3,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "バックログパネルが展開された状態。エラー発生時にバックログで問題を管理。",
+      },
+    },
+  },
+};
+
+// === Story: 設定モーダル表示 ===
+export const WithSettingsOpen: Story = {
+  args: {
+    viewMode: "wbs",
+    taskList: developmentInProgressTasks,
+    poolSummaries: [
+      { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
+    ],
+    overallProgress: calcProgress(developmentInProgressTasks),
+    taskCountsByStatus: countByStatus(developmentInProgressTasks),
+    selectedTask: null,
+    showChat: true,
+    chatPosition: { x: 600, y: 300 },
+    showSettings: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "設定モーダルが表示された状態。LLMプロバイダの設定を確認・変更。",
+      },
+    },
+  },
+};
+
+// === Story: 全オーバーレイ表示 ===
+export const WithAllOverlays: Story = {
+  args: {
+    viewMode: "wbs",
+    taskList: errorStateTasks,
+    poolSummaries: [
+      { poolId: "codegen", running: 1, queued: 0, failed: 2, total: 4, counts: {} },
+    ],
+    overallProgress: calcProgress(errorStateTasks),
+    taskCountsByStatus: countByStatus(errorStateTasks),
+    selectedTask: null,
+    showChat: true,
+    chatPosition: { x: 600, y: 300 },
+    showBacklog: true,
+    unresolvedCount: 3,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "チャット、バックログが同時に表示された状態。複合UIのレイアウト確認用。",
+      },
+    },
+  },
+};
+
+// === Story: Graph ビュー + バックログ ===
+export const GraphViewWithBacklog: Story = {
+  args: {
+    viewMode: "graph",
+    taskList: errorStateTasks,
+    poolSummaries: [
+      { poolId: "codegen", running: 1, queued: 0, failed: 2, total: 4, counts: {} },
+    ],
+    overallProgress: calcProgress(errorStateTasks),
+    taskCountsByStatus: countByStatus(errorStateTasks),
+    selectedTask: null,
+    showChat: false,
+    chatPosition: { x: 600, y: 300 },
+    showBacklog: true,
+    unresolvedCount: 2,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Graphビューモードでバックログパネルを表示。チャットは非表示。",
       },
     },
   },

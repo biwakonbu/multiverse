@@ -28,7 +28,7 @@ const meta = {
     hover: false,
     glow: false,
   }
-} satisfies Meta<Panel>;
+} as Meta<typeof Panel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

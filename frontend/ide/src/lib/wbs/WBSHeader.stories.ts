@@ -22,7 +22,7 @@ const meta = {
   parameters: {
     layout: 'centered',
   },
-} satisfies Meta<WBSHeaderPreview>;
+} as Meta<typeof WBSHeaderPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

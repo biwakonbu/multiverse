@@ -1,20 +1,18 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-  import BrandLogo from "../brand/BrandLogo.svelte"; // Verify path
+  import BrandLogo from "../brand/BrandLogo.svelte";
 
   interface Props {
     disabled?: boolean;
+    onsend?: (text: string) => void;
   }
 
-  let { disabled = false }: Props = $props();
-
-  const dispatch = createEventDispatcher<{ send: string }>();
+  let { disabled = false, onsend }: Props = $props();
 
   let value = $state("");
 
   function handleSend() {
     if (value.trim() && !disabled) {
-      dispatch("send", value);
+      onsend?.(value);
       value = "";
     }
   }

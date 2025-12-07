@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
+import type { ComponentProps } from 'svelte';
 import Flex from './Flex.svelte';
 
 const meta = {
@@ -16,7 +17,7 @@ const meta = {
     p: 'var(--mv-spacing-md)',
     bg: 'var(--mv-color-surface-secondary)',
   }
-} satisfies Meta<Flex>;
+} as Meta<typeof Flex>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -28,7 +29,7 @@ type Story = StoryObj<typeof meta>;
 // Since we can't easily pass sub-components in args for slot, we will use a basic usage example.
 
 export const Row: Story = {
-  render: (args) => ({
+  render: (args: ComponentProps<typeof Flex>) => ({
     Component: Flex,
     props: args,
   }),

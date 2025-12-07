@@ -55,7 +55,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<WBSNodePreview>;
+} as Meta<typeof WBSNodePreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

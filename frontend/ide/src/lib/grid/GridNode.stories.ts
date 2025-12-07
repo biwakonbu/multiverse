@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
+import type { ComponentProps } from 'svelte';
 import GridNodePreview from './GridNodePreview.svelte';
 
 const meta = {
@@ -51,10 +52,12 @@ const meta = {
       // ノードの位置を見やすくするためのラッパー
     })
   ]
-} satisfies Meta<GridNodePreview>;
+} as Meta<typeof GridNodePreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+type GridNodeArgs = ComponentProps<typeof GridNodePreview>;
 
 // 各ステータス
 export const Pending: Story = {
@@ -69,7 +72,7 @@ export const Pending: Story = {
     selected: false
   },
   decorators: [
-    (_, { args }) => ({
+    (_: unknown, { args }: { args: GridNodeArgs }) => ({
       Component: GridNodePreview,
       props: args
     })

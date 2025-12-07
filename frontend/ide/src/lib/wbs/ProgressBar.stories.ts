@@ -16,7 +16,7 @@ const meta = {
       default: 'dark',
     }
   },
-} satisfies Meta<ProgressBar>;
+} as Meta<typeof ProgressBar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

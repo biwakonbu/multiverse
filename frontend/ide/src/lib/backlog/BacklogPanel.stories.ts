@@ -33,7 +33,7 @@ const meta = {
       control: "object",
     },
   },
-} satisfies Meta<BacklogPanelPreview>;
+} as Meta<typeof BacklogPanelPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

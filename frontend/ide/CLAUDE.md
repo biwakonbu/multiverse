@@ -480,7 +480,7 @@ tests/vrt/
 
 ## 技術スタック
 
-- **Svelte 4**: リアクティブ UI フレームワーク
+- **Svelte 5**: リアクティブ UI フレームワーク
 - **TypeScript 5**: 型安全な JavaScript
 - **Vite 5**: 高速ビルドツール
 - **Wails v2**: Go ↔ Web IPC

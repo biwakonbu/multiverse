@@ -130,7 +130,7 @@
   .brand {
     font-size: var(--mv-font-size-lg);
     font-weight: var(--mv-font-weight-bold);
-    letter-spacing: 0.1em;
+    letter-spacing: var(--mv-letter-spacing-heading);
     color: var(--mv-color-brand-primary);
   }
 
@@ -192,7 +192,7 @@
   /* モックノード */
   .mock-node {
     position: absolute;
-    width: 120px;
+    width: var(--mv-mock-node-width);
     padding: var(--mv-spacing-sm);
     background: var(--mv-glass-bg);
     border: var(--mv-border-width-sm) solid var(--mv-glass-border-subtle);

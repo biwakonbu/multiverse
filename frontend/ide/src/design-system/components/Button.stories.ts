@@ -23,7 +23,7 @@ const meta = {
     size: 'medium',
     label: 'Button',
   }
-} satisfies Meta<Button>;
+} as Meta<typeof Button>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

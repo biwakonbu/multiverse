@@ -19,7 +19,7 @@ const meta = {
       }
     }
   }
-} satisfies Meta<WelcomeHeader>;
+} as Meta<typeof WelcomeHeader>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

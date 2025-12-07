@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createBubbler, stopPropagation } from 'svelte/legacy';
+  import { createBubbler, stopPropagation } from "svelte/legacy";
 
   const bubble = createBubbler();
   import { onMount, onDestroy } from "svelte";
@@ -19,16 +19,18 @@
   // @ts-ignore - Wails自動生成ファイル
   import { ListTasks, GetPoolSummaries } from "../wailsjs/go/main/App";
   import FloatingChatWindow from "./lib/components/chat/FloatingChatWindow.svelte";
-  import { initExecutionEvents } from "./stores/executionStore";
+  // import ProcessHUD from "./lib/hud/ProcessHUD.svelte"; // Removed
+  import { initLogEvents, logs } from "./stores/logStore";
+  import { executionState, initExecutionEvents } from "./stores/executionStore";
+  import { initProcessEvents, processResources } from "./stores/processStore";
   import { initTaskEvents } from "./stores/taskStore";
   import { initChatEvents } from "./stores/chat";
   import { initBacklogEvents, unresolvedCount } from "./stores/backlogStore";
   import BacklogPanel from "./lib/backlog/BacklogPanel.svelte";
   import LLMSettings from "./lib/settings/LLMSettings.svelte";
-  import ProcessHUD from "./lib/hud/ProcessHUD.svelte";
-  import { initLogEvents, logs } from "./stores/logStore";
-  import { executionState } from "./stores/executionStore";
-  import { initProcessEvents, processResources } from "./stores/processStore";
+  import TaskBar from "./lib/hud/TaskBar.svelte";
+  import ProcessWindow from "./lib/hud/ProcessWindow.svelte";
+  import { windowStore } from "./stores/windowStore";
 
   const log = Logger.withComponent("App");
 
@@ -38,19 +40,19 @@
   // 実行中のタスクを取得するリアクティブ変数
   let runningTask = $derived($tasks.find((t) => t.status === "RUNNING"));
 
-  // Chat State
-  let isChatVisible = $state(true);
-  let chatPosition = $state({ x: 0, y: 0 });
+  // Chat State (Managed by windowStore now)
+  // let isChatVisible = $state(true);
+  // let chatPosition = $state({ x: 0, y: 0 });
 
-  // Backlog State
-  let isBacklogVisible = $state(false);
+  // Backlog State (Managed by windowStore now)
+  // let isBacklogVisible = $state(false);
 
   // Settings State
   let isSettingsVisible = $state(false);
 
   onMount(() => {
-    // Calculate initial position (Bottom-Right)
-    // 600px width, 350px height, 20px padding
+    // Window positioning is now handled by windowStore defaults
+    /*
     const width = 600;
     const height = 350;
     const padding = 20;
@@ -58,6 +60,7 @@
       x: window.innerWidth - width - padding,
       y: window.innerHeight - height - padding,
     };
+    */
     // Wails Events 初期化
     initExecutionEvents();
     initTaskEvents();
@@ -144,7 +147,6 @@
     <Toolbar on:showSettings={() => (isSettingsVisible = true)} />
 
     <!-- メインコンテンツ -->
-    <!-- メインコンテンツ -->
     <div class="main-content">
       <!-- 常にGraphViewを描画し、canvasとして機能させる -->
       <div
@@ -162,50 +164,18 @@
       {/if}
     </div>
 
-    <!-- チャットウィンドウ -->
-    {#if isChatVisible}
-      <FloatingChatWindow
-        initialPosition={chatPosition}
-        on:close={() => (isChatVisible = false)}
-      />
-    {/if}
+    <!-- Window System -->
+    <FloatingChatWindow />
+    <ProcessWindow resources={$processResources} />
 
-    <!-- チャット再表示ボタン (簡易FAB) -->
-    {#if !isChatVisible}
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <div
-        class="chat-fab"
-        onclick={() => (isChatVisible = true)}
-        onkeydown={(e) => e.key === "Enter" && (isChatVisible = true)}
-        role="button"
-        tabindex="0"
-        aria-label="Open Chat"
-      >
-        💬
-      </div>
-    {/if}
+    <!-- TaskBar (Dock) -->
+    <TaskBar />
 
-    <!-- バックログ表示ボタン -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div
-      class="backlog-fab"
-      class:has-items={$unresolvedCount > 0}
-      onclick={() => (isBacklogVisible = !isBacklogVisible)}
-      onkeydown={(e) =>
-        e.key === "Enter" && (isBacklogVisible = !isBacklogVisible)}
-      role="button"
-      tabindex="0"
-      aria-label="Toggle Backlog"
-    >
-      {#if $unresolvedCount > 0}
-        <span class="backlog-count">{$unresolvedCount}</span>
-      {:else}
-        &#9776;
-      {/if}
-    </div>
+    <!-- バックログ表示ボタン (TaskBarに統合) -->
 
-    <!-- バックログパネル -->
-    {#if isBacklogVisible}
+    <!-- バックログパネル (TODO: Window化するかサイドバーのままにするか。一旦サイドバーのままTaskBarでtoggle) -->
+    <!-- BacklogPanelはwindowStore.backlog.isOpenで制御する -->
+    {#if $windowStore.backlog.isOpen}
       <div class="backlog-sidebar">
         <BacklogPanel />
       </div>
@@ -222,7 +192,11 @@
         aria-label="LLM Settings"
       >
         <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div class="settings-modal" onclick={stopPropagation(bubble('click'))} role="document">
+        <div
+          class="settings-modal"
+          onclick={stopPropagation(bubble("click"))}
+          role="document"
+        >
           <button
             class="close-btn"
             onclick={() => (isSettingsVisible = false)}
@@ -234,38 +208,10 @@
         </div>
       </div>
     {/if}
-
-    <!-- Process Visualization HUD -->
-    <ProcessHUD
-      executionState={$executionState}
-      resources={$processResources}
-      activeTaskTitle={runningTask?.title}
-    />
   {/if}
 </main>
 
 <style>
-  .chat-fab {
-    position: fixed;
-    bottom: var(--mv-spacing-lg);
-    right: var(--mv-spacing-lg);
-    width: var(--mv-icon-size-xxxl);
-    height: var(--mv-icon-size-xxxl);
-    background: var(--mv-color-surface-primary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--mv-shadow-card);
-    cursor: pointer;
-    z-index: 1000;
-    font-size: var(--mv-icon-size-md);
-  }
-  .chat-fab:hover {
-    background: var(--mv-color-surface-hover);
-  }
-
   .app {
     height: 100vh;
     display: flex;
@@ -304,40 +250,6 @@
   }
 
   /* タスク作成モーダルは削除済み */
-
-  .backlog-fab {
-    position: fixed;
-    bottom: var(--mv-spacing-lg);
-    left: var(--mv-spacing-lg);
-    width: var(--mv-icon-size-xxxl);
-    height: var(--mv-icon-size-xxxl);
-    background: var(--mv-color-surface-primary);
-    border: var(--mv-border-width-thin) solid var(--mv-color-border-default);
-    border-radius: var(--mv-radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--mv-shadow-card);
-    cursor: pointer;
-    z-index: 1000;
-    font-size: var(--mv-icon-size-md);
-    transition: all var(--mv-transition-hover);
-  }
-
-  .backlog-fab:hover {
-    background: var(--mv-color-surface-hover);
-  }
-
-  .backlog-fab.has-items {
-    background: var(--mv-color-status-failed-bg);
-    border-color: var(--mv-color-status-failed-text);
-  }
-
-  .backlog-count {
-    font-size: var(--mv-font-size-sm);
-    font-weight: var(--mv-font-weight-bold);
-    color: var(--mv-color-status-failed-text);
-  }
 
   .backlog-sidebar {
     position: fixed;

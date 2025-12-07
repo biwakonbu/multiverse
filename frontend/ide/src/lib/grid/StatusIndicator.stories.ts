@@ -21,7 +21,7 @@ const meta = {
       description: 'ラベルを表示するか'
     }
   }
-} satisfies Meta<StatusIndicator>;
+} as Meta<typeof StatusIndicator>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

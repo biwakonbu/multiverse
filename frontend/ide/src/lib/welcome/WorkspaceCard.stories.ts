@@ -27,7 +27,7 @@ const meta = {
       }
     }
   }
-} satisfies Meta<WorkspaceCard>;
+} as Meta<typeof WorkspaceCard>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

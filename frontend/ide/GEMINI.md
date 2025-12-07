@@ -4,12 +4,13 @@
 
 ## 技術スタック
 
-- **Svelte 4**: リアクティブ UI フレームワーク
+- **Svelte 5**: リアクティブ UI フレームワーク
 - **TypeScript 5**: 型安全な JavaScript
 - **Vite 5**: 高速ビルドツール
 - **Wails v2**: Go ↔ Web IPC
 - **oxlint**: 高速リンター
-- **Storybook 8**: コンポーネントカタログ
+- **Vitest**: ユニットテストフレームワーク
+- **Storybook 8.6**: コンポーネントカタログ
 - **Playwright**: E2E テスト
 
 ## パッケージマネージャー

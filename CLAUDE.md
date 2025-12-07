@@ -4,18 +4,18 @@
 
 ## プロジェクト概要
 
-**multiverse** は、チャットインターフェースを通じて開発者の意図を理解し、Meta-agentが自律的にタスクを分解・実行・評価する AI 開発支援プラットフォームです。
+**multiverse** は、チャットインターフェースを通じて開発者の意図を理解し、Meta-agent が自律的にタスクを分解・実行・評価する AI 開発支援プラットフォームです。
 
 ### コアコンセプト（v2.0）
 
-- **チャット駆動**: チャットウィンドウが全ての入力経路（AIとの対話）
-- **自律タスク分解**: Meta-agentが概念設計→実装設計→実装計画→タスクに分解
-- **依存グラフ視覚化**: 2D俯瞰UIでタスクの依存関係を有向グラフで表示
-- **WBS管理**: リリースマイルストーンを別枠で管理
-- **自律実行**: 計画→実行まで全自動（一時停止機能あり）
+- **チャット駆動**: チャットウィンドウが全ての入力経路（AI との対話）
+- **自律タスク分解**: Meta-agent が概念設計 → 実装設計 → 実装計画 → タスクに分解
+- **依存グラフ視覚化**: 2D 俯瞰 UI でタスクの依存関係を有向グラフで表示
+- **WBS 管理**: リリースマイルストーンを別枠で管理
+- **自律実行**: 計画 → 実行まで全自動（一時停止機能あり）
 - **バックログ管理**: 問題・検討材料を一元管理
 
-### 4層構造
+### 4 層構造
 
 - **multiverse IDE**: デスクトップ UI（Wails + Svelte）でチャット・タスクグラフ・WBS を管理
 - **Orchestrator**: ChatHandler、TaskGraphManager、ExecutionOrchestrator、タスク永続化
@@ -110,26 +110,26 @@ multiverse/
 
 ### ディレクトリの役割
 
-| ディレクトリ | 役割 | 詳細 |
-|------------|------|------|
-| `cmd/agent-runner/` | Core CLI エントリポイント | [CLAUDE.md](cmd/agent-runner/CLAUDE.md) |
-| `cmd/multiverse/` | Wails デスクトップアプリ | [CLAUDE.md](cmd/multiverse/CLAUDE.md) |
-| `cmd/multiverse-orchestrator/` | Orchestrator CLI | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
-| `internal/core/` | タスク FSM とオーケストレーション | [CLAUDE.md](internal/core/CLAUDE.md) |
-| `internal/meta/` | Meta-agent（LLM）との通信層 | [CLAUDE.md](internal/meta/CLAUDE.md) |
-| `internal/worker/` | Worker 実行と Docker 管理 | [CLAUDE.md](internal/worker/CLAUDE.md) |
-| `internal/note/` | タスク実行履歴の Markdown 出力 | [CLAUDE.md](internal/note/CLAUDE.md) |
-| `internal/mock/` | テスト用モック実装 | [CLAUDE.md](internal/mock/CLAUDE.md) |
-| `internal/orchestrator/` | Task 永続化・スケジューラ・IPC | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
-| `internal/ide/` | Workspace メタデータ管理 | [CLAUDE.md](internal/ide/CLAUDE.md) |
-| `internal/cli/` | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
-| `internal/logging/` | 統一ロギング（構造化ログ・Trace ID） | [CLAUDE.md](internal/logging/CLAUDE.md) |
-| `frontend/ide/` | Svelte + TS フロントエンド | [CLAUDE.md](frontend/ide/CLAUDE.md) |
-| `pkg/config/` | YAML 設定パース（再利用可能） | [CLAUDE.md](pkg/config/CLAUDE.md) |
-| `test/` | 4 段階テスト戦略 | [CLAUDE.md](test/CLAUDE.md) |
-| `docs/` | 設計・仕様・開発ガイド | [CLAUDE.md](docs/CLAUDE.md) |
-| `examples/` | サンプルタスク・実行スクリプト | [CLAUDE.md](examples/CLAUDE.md) |
-| `sandbox/` | Worker Docker イメージ定義 | [CLAUDE.md](sandbox/CLAUDE.md) |
+| ディレクトリ                   | 役割                                 | 詳細                                               |
+| ------------------------------ | ------------------------------------ | -------------------------------------------------- |
+| `cmd/agent-runner/`            | Core CLI エントリポイント            | [CLAUDE.md](cmd/agent-runner/CLAUDE.md)            |
+| `cmd/multiverse/`              | Wails デスクトップアプリ             | [CLAUDE.md](cmd/multiverse/CLAUDE.md)              |
+| `cmd/multiverse-orchestrator/` | Orchestrator CLI                     | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
+| `internal/core/`               | タスク FSM とオーケストレーション    | [CLAUDE.md](internal/core/CLAUDE.md)               |
+| `internal/meta/`               | Meta-agent（LLM）との通信層          | [CLAUDE.md](internal/meta/CLAUDE.md)               |
+| `internal/worker/`             | Worker 実行と Docker 管理            | [CLAUDE.md](internal/worker/CLAUDE.md)             |
+| `internal/note/`               | タスク実行履歴の Markdown 出力       | [CLAUDE.md](internal/note/CLAUDE.md)               |
+| `internal/mock/`               | テスト用モック実装                   | [CLAUDE.md](internal/mock/CLAUDE.md)               |
+| `internal/orchestrator/`       | Task 永続化・スケジューラ・IPC       | [CLAUDE.md](internal/orchestrator/CLAUDE.md)       |
+| `internal/ide/`                | Workspace メタデータ管理             | [CLAUDE.md](internal/ide/CLAUDE.md)                |
+| `internal/cli/`                | CLI フラグ処理                       | [CLAUDE.md](internal/cli/CLAUDE.md)                |
+| `internal/logging/`            | 統一ロギング（構造化ログ・Trace ID） | [CLAUDE.md](internal/logging/CLAUDE.md)            |
+| `frontend/ide/`                | Svelte + TS フロントエンド           | [CLAUDE.md](frontend/ide/CLAUDE.md)                |
+| `pkg/config/`                  | YAML 設定パース（再利用可能）        | [CLAUDE.md](pkg/config/CLAUDE.md)                  |
+| `test/`                        | 4 段階テスト戦略                     | [CLAUDE.md](test/CLAUDE.md)                        |
+| `docs/`                        | 設計・仕様・開発ガイド               | [CLAUDE.md](docs/CLAUDE.md)                        |
+| `examples/`                    | サンプルタスク・実行スクリプト       | [CLAUDE.md](examples/CLAUDE.md)                    |
+| `sandbox/`                     | Worker Docker イメージ定義           | [CLAUDE.md](sandbox/CLAUDE.md)                     |
 
 ## よく使うコマンド
 
@@ -198,7 +198,7 @@ docker build -t agent-runner-codex:latest sandbox/
 
 ## アーキテクチャ
 
-### 4層構造（v2.0）
+### 4 層構造（v2.0）
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -316,7 +316,19 @@ type Task struct {
 ```
 
 ```jsonl
-{"id":"task-1","title":"Feature A","status":"PENDING","poolId":"codegen","dependencies":["task-0"],"phaseName":"実装","wbsLevel":3,"createdAt":"...","updatedAt":"..."}
+{
+  "id": "task-1",
+  "title": "Feature A",
+  "status": "PENDING",
+  "poolId": "codegen",
+  "dependencies": [
+    "task-0"
+  ],
+  "phaseName": "実装",
+  "wbsLevel": 3,
+  "createdAt": "...",
+  "updatedAt": "..."
+}
 ```
 
 ### ChatSession
@@ -420,7 +432,7 @@ type BacklogItem struct {
 
 ### `/internal/chat` - チャット処理（NEW）
 
-- **handler.go**: ChatHandler（チャット→Meta-agent→タスク分解）
+- **handler.go**: ChatHandler（チャット →Meta-agent→ タスク分解）
 - **session_store.go**: ChatSession 永続化（JSONL）
 - **詳細**: [internal/chat/CLAUDE.md](internal/chat/CLAUDE.md)
 
@@ -469,7 +481,7 @@ task:
 
 runner:
   meta:
-    kind: "openai-chat"  # または "mock"
+    kind: "openai-chat" # または "mock"
     model: "gpt-5.1"
 
   worker:
@@ -521,7 +533,7 @@ type Runner struct {
 ### フロントエンド（multiverse IDE）
 
 - **Wails v2**: Go + Web フロントエンドのデスクトップアプリフレームワーク
-- **Svelte 4**: リアクティブ UI フレームワーク
+- **Svelte 5**: リアクティブ UI フレームワーク
 - **TypeScript 5**: 型安全なフロントエンド
 - **Vite 5**: 高速ビルドツール
 
@@ -541,33 +553,33 @@ export CODEX_API_KEY="..."
 
 ### 実装層パッケージ
 
-| 層 | パッケージ | 責務 | 詳細 |
-|----|-----------|------|------|
-| **IDE** | ide | Workspace メタデータ管理 | [CLAUDE.md](internal/ide/CLAUDE.md) |
-| **IDE** | orchestrator | Task永続化・依存グラフ・自律実行 | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
-| **IDE** | chat | ChatHandler・セッション管理 | [CLAUDE.md](internal/chat/CLAUDE.md) |
-| **Core** | core | FSM・TaskContext・状態遷移 | [CLAUDE.md](internal/core/CLAUDE.md) |
-| **Core** | meta | LLM 通信・YAML プロトコル | [CLAUDE.md](internal/meta/CLAUDE.md) |
-| **Core** | worker | CLI 実行・Docker サンドボックス | [CLAUDE.md](internal/worker/CLAUDE.md) |
-| **Util** | cli | CLI フラグ処理 | [CLAUDE.md](internal/cli/CLAUDE.md) |
-| **Util** | note | Task Note 生成・テンプレート | [CLAUDE.md](internal/note/CLAUDE.md) |
-| **Util** | mock | テストダブル・FuncField 注入 | [CLAUDE.md](internal/mock/CLAUDE.md) |
-| **Util** | logging | 構造化ログ・Trace ID 伝播 | [CLAUDE.md](internal/logging/CLAUDE.md) |
-| **Config** | pkg/config | YAML 設定スキーマ | [CLAUDE.md](pkg/config/CLAUDE.md) |
-| **Infra** | sandbox | Worker Docker イメージ定義 | [CLAUDE.md](sandbox/CLAUDE.md) |
+| 層         | パッケージ   | 責務                              | 詳細                                         |
+| ---------- | ------------ | --------------------------------- | -------------------------------------------- |
+| **IDE**    | ide          | Workspace メタデータ管理          | [CLAUDE.md](internal/ide/CLAUDE.md)          |
+| **IDE**    | orchestrator | Task 永続化・依存グラフ・自律実行 | [CLAUDE.md](internal/orchestrator/CLAUDE.md) |
+| **IDE**    | chat         | ChatHandler・セッション管理       | [CLAUDE.md](internal/chat/CLAUDE.md)         |
+| **Core**   | core         | FSM・TaskContext・状態遷移        | [CLAUDE.md](internal/core/CLAUDE.md)         |
+| **Core**   | meta         | LLM 通信・YAML プロトコル         | [CLAUDE.md](internal/meta/CLAUDE.md)         |
+| **Core**   | worker       | CLI 実行・Docker サンドボックス   | [CLAUDE.md](internal/worker/CLAUDE.md)       |
+| **Util**   | cli          | CLI フラグ処理                    | [CLAUDE.md](internal/cli/CLAUDE.md)          |
+| **Util**   | note         | Task Note 生成・テンプレート      | [CLAUDE.md](internal/note/CLAUDE.md)         |
+| **Util**   | mock         | テストダブル・FuncField 注入      | [CLAUDE.md](internal/mock/CLAUDE.md)         |
+| **Util**   | logging      | 構造化ログ・Trace ID 伝播         | [CLAUDE.md](internal/logging/CLAUDE.md)      |
+| **Config** | pkg/config   | YAML 設定スキーマ                 | [CLAUDE.md](pkg/config/CLAUDE.md)            |
+| **Infra**  | sandbox      | Worker Docker イメージ定義        | [CLAUDE.md](sandbox/CLAUDE.md)               |
 
 ### コマンド層
 
-| パッケージ | 責務 | 詳細 |
-|-----------|------|------|
-| cmd/agent-runner | AgentRunner Core CLI | [CLAUDE.md](cmd/agent-runner/CLAUDE.md) |
-| cmd/multiverse | Wails デスクトップアプリ | [CLAUDE.md](cmd/multiverse/CLAUDE.md) |
-| cmd/multiverse-orchestrator | Orchestrator CLI | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
+| パッケージ                  | 責務                     | 詳細                                               |
+| --------------------------- | ------------------------ | -------------------------------------------------- |
+| cmd/agent-runner            | AgentRunner Core CLI     | [CLAUDE.md](cmd/agent-runner/CLAUDE.md)            |
+| cmd/multiverse              | Wails デスクトップアプリ | [CLAUDE.md](cmd/multiverse/CLAUDE.md)              |
+| cmd/multiverse-orchestrator | Orchestrator CLI         | [CLAUDE.md](cmd/multiverse-orchestrator/CLAUDE.md) |
 
 ### フロントエンド
 
-| パッケージ | 責務 | 詳細 |
-|-----------|------|------|
+| パッケージ   | 責務                   | 詳細                                |
+| ------------ | ---------------------- | ----------------------------------- |
 | frontend/ide | Svelte + TypeScript UI | [CLAUDE.md](frontend/ide/CLAUDE.md) |
 
 ### テスト戦略
@@ -578,7 +590,7 @@ export CODEX_API_KEY="..."
 
 ### プロジェクト定義
 
-- **[PRD.md](PRD.md)** - multiverse v2.0 要件書（チャット駆動AI開発支援プラットフォーム）
+- **[PRD.md](PRD.md)** - multiverse v2.0 要件書（チャット駆動 AI 開発支援プラットフォーム）
 - **[TODO.md](TODO.md)** - 実装タスクリスト（Phase 1〜3）
 
 ### AI 開発者向け（メモリ・操作ガイド）
@@ -590,12 +602,12 @@ export CODEX_API_KEY="..."
 
 ### docs/ - 設計・仕様・開発ガイド
 
-| ファイル | 対象 | 用途 |
-|---------|------|------|
-| [README.md](docs/README.md) | 全員 | ドキュメントナビゲーション |
-| **specifications/** | 実装者 | 確定仕様 |
-| **design/** | アーキテクト | 設計ドキュメント |
-| **guides/** | 開発者 | 開発ガイド |
+| ファイル                    | 対象         | 用途                       |
+| --------------------------- | ------------ | -------------------------- |
+| [README.md](docs/README.md) | 全員         | ドキュメントナビゲーション |
+| **specifications/**         | 実装者       | 確定仕様                   |
+| **design/**                 | アーキテクト | 設計ドキュメント           |
+| **guides/**                 | 開発者       | 開発ガイド                 |
 
 ### エンドユーザー向け（不変）
 

@@ -15,7 +15,7 @@ const meta = {
   parameters: {
     layout: 'centered',
   },
-} satisfies Meta<StatusBadge>;
+} as Meta<typeof StatusBadge>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

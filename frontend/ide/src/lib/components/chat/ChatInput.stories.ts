@@ -24,7 +24,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<ChatInput>;
+} as Meta<typeof ChatInput>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -78,7 +78,7 @@ export const Focused: Story = {
       },
     },
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     // Storybook play function でフォーカス
     const textarea = canvasElement.querySelector("textarea");
     if (textarea) {

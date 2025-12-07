@@ -1,35 +1,44 @@
 <script lang="ts">
   import { stopPropagation } from 'svelte/legacy';
 
-  import { createEventDispatcher } from "svelte";
-
   interface Props {
-    initialPosition?: any;
+    id?: string;
+    initialPosition?: { x: number; y: number };
+    initialSize?: { width: number; height: number };
     title?: string;
-    controls?: any;
+    controls?: { minimize: boolean; close: boolean };
+    zIndex?: number;
     header?: import('svelte').Snippet;
     children?: import('svelte').Snippet;
     footer?: import('svelte').Snippet;
+    // コールバックプロップ
+    onclose?: () => void;
+    onminimize?: (data: { minimized: boolean }) => void;
+    onclick?: () => void;
+    ondragend?: (data: { x: number; y: number }) => void;
   }
 
   let {
+    id = "unknown",
     initialPosition = { x: 20, y: 20 },
+    initialSize = undefined,
     title = "",
     controls = { minimize: true, close: true },
+    zIndex = 100,
     header,
     children,
-    footer
+    footer,
+    onclose,
+    onminimize,
+    onclick,
+    ondragend,
   }: Props = $props();
 
   let position = $state({ ...initialPosition });
   let isDragging = false;
   let windowEl: HTMLElement | undefined = $state();
   let isMinimized = $state(false);
-
-  const dispatch = createEventDispatcher<{
-    close: void;
-    minimize: { minimized: boolean };
-  }>();
+  let size = $state(initialSize);
 
   function startDrag(e: MouseEvent) {
     if (e.button !== 0) return;
@@ -37,7 +46,9 @@
     if (!windowEl) return;
 
     isDragging = true;
+    (windowEl as HTMLElement).style.cursor = 'grabbing';
     window.addEventListener("mouseup", stopDrag);
+    onclick?.();
   }
 
   function onMouseMove(e: MouseEvent) {
@@ -51,16 +62,22 @@
 
   function stopDrag() {
     isDragging = false;
+    if (windowEl) (windowEl as HTMLElement).style.cursor = '';
     window.removeEventListener("mouseup", stopDrag);
+    ondragend?.(position);
   }
 
   function toggleMinimize() {
     isMinimized = !isMinimized;
-    dispatch("minimize", { minimized: isMinimized });
+    onminimize?.({ minimized: isMinimized });
   }
 
   function closeWindow() {
-    dispatch("close");
+    onclose?.();
+  }
+
+  function onWindowClick() {
+    onclick?.();
   }
 </script>
 
@@ -70,8 +87,13 @@
 <div
   class="floating-window"
   class:minimized={isMinimized}
-  style="top: {position.y}px; left: {position.x}px;"
+  style:top="{position.y}px"
+  style:left="{position.x}px"
+  style:z-index={zIndex}
+  style:width={size ? `${size.width}px` : undefined}
+  style:height={size && !isMinimized ? `${size.height}px` : undefined}
   bind:this={windowEl}
+  onmousedown={onWindowClick}
 >
   <div class="header" onmousedown={startDrag}>
     <div class="header-content">
@@ -119,8 +141,12 @@
 <style>
   .floating-window {
     position: fixed;
-    width: var(--mv-floating-window-width);
-    height: var(--mv-floating-window-height);
+
+    /* Default dims if not provided */
+    min-width: var(--mv-floating-window-min-width);
+    min-height: var(--mv-floating-window-min-height);
+
+    /* If width/height not set via style, use default checks, but we rely on style now */
 
     /* Crystal HUD: Slightly more assertive than Header */
     background: var(--mv-glass-bg-chat);
@@ -139,13 +165,15 @@
 
     display: flex;
     flex-direction: column;
-    z-index: 1000;
+
+    /* z-index is set via style */
     overflow: hidden;
     transition: height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .floating-window.minimized {
-    height: var(--mv-size-floating-header);
+    height: var(--mv-size-floating-header) !important; /* Force override style height */
+    overflow: hidden;
     background: var(--mv-glass-bg-minimized);
   }
 
@@ -218,7 +246,8 @@
     flex: 1;
     min-height: 0; /* Allow flex item to shrink below content size */
     overflow: hidden; /* Let slotted content handle its own scrolling */
-    padding: var(--mv-spacing-sm) var(--mv-spacing-md);
+
+    /* padding is controlled by children if needed, or default */
     display: flex;
     flex-direction: column;
   }

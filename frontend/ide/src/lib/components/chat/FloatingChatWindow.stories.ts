@@ -1,36 +1,30 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
-import FloatingChatWindow from './FloatingChatWindow.svelte';
 import MockMainView from './MockMainView.svelte';
 
 const meta = {
   title: 'Features/Chat/FloatingChatWindow',
-  component: FloatingChatWindow,
+  component: MockMainView,
   tags: ['autodocs'],
   argTypes: {},
   parameters: {
-      layout: 'centered',
-  }
-} satisfies Meta<FloatingChatWindow>;
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        component: 'フローティングチャットウィンドウ。ドラッグ可能なウィンドウ内にチャットUIを表示します。',
+      },
+    },
+  },
+} as Meta<typeof MockMainView>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Standalone: Story = {
-  args: {
-    initialPosition: { x: 0, y: 0 }, // Relative to story container
-  },
+export const Default: Story = {
   parameters: {
-      layout: 'centered', // Show in center to focus on component
-  }
+    docs: {
+      description: {
+        story: 'デフォルト状態のフローティングチャットウィンドウ。',
+      },
+    },
+  },
 };
-
-export const InLayout: Story = {
-    render: () => ({
-        Component: MockMainView,
-        props: {}
-    }),
-    args: {},
-    parameters: {
-        layout: 'fullscreen'
-    }
-}

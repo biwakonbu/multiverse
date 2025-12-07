@@ -17,7 +17,7 @@ const meta = {
     gap: 'var(--mv-spacing-md)',
     p: 'var(--mv-spacing-md)',
   }
-} satisfies Meta<Grid>;
+} as Meta<typeof Grid>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

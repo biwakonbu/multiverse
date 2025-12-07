@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
+import type { ComponentProps } from 'svelte';
 import Box from './Box.svelte';
 
 const meta = {
@@ -19,13 +20,13 @@ const meta = {
     color: 'var(--mv-color-text-primary)',
     radius: 'var(--mv-radius-md)',
   }
-} satisfies Meta<Box>;
+} as Meta<typeof Box>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  render: (args) => ({
+  render: (args: ComponentProps<typeof Box>) => ({
     Component: Box,
     props: args,
     // Slot content needs to be handled via template or specific render function in Svelte Storybook, 

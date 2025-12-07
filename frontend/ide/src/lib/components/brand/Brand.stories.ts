@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte';
+import type { ComponentProps } from 'svelte';
 import BrandLogo from './BrandLogo.svelte';
 import BrandText from './BrandText.svelte';
 import BrandFull from './BrandFull.svelte';
@@ -17,7 +18,7 @@ const meta = {
       options: ['horizontal', 'vertical'],
     },
   },
-} satisfies Meta<BrandFull>;
+} as Meta<typeof BrandFull>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -45,17 +46,10 @@ export const FullLogoSmall: Story = {
   },
 };
 
-// === Individual Components (via Render render function or specific stories if needed, 
-// but Storybook best practice is usually one component per file or using subcomponents. 
-// For simplicity in this demo, I'll create separate basic stories for the sub-components 
-// by just rendering them in a container if I want, but let's stick to the main export being BrandFull 
-// and maybe add separate exports if possible or just rely on BrandFull to show them off.)
-
-// Actually, let's make this file default to BrandFull, but we can have other stories that use the other components.
-// Storybook Svelte allows returning specific components in the render function.
+// === Individual Components ===
 
 export const LogoOnly: Story = {
-  render: (args) => ({
+  render: (args: ComponentProps<typeof BrandFull>) => ({
     Component: BrandLogo,
     props: {
       size: args.size,
@@ -67,7 +61,7 @@ export const LogoOnly: Story = {
 };
 
 export const TextOnly: Story = {
-  render: (args) => ({
+  render: (args: ComponentProps<typeof BrandFull>) => ({
     Component: BrandText,
     props: {
       size: args.size,

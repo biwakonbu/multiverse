@@ -8,7 +8,7 @@ const meta = {
   parameters: {
       layout: 'fullscreen',
   }
-} satisfies Meta<IDEMockLayout>;
+} as Meta<typeof IDEMockLayout>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

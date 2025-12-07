@@ -34,7 +34,7 @@ const meta = {
     },
   },
 
-} satisfies Meta<ChatMessage>;
+} as Meta<typeof ChatMessage>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

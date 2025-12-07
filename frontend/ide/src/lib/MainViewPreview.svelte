@@ -19,6 +19,7 @@
   const dispatch = createEventDispatcher();
 
   import BacklogPanelPreview from "./backlog/BacklogPanelPreview.svelte";
+  import LLMSettingsPreview from "./settings/LLMSettingsPreview.svelte";
 
   // === Props ===
 
@@ -47,9 +48,9 @@
     selectedTask?: Task | null;
     // モーダル・チャット・バックログ
     showChat?: boolean;
-    chatPosition?: any;
     showBacklog?: boolean;
     unresolvedCount?: number;
+    showSettings?: boolean;
   }
 
   let {
@@ -70,9 +71,9 @@
   },
     selectedTask = null,
     showChat = true,
-    chatPosition = { x: 600, y: 300 },
     showBacklog = $bindable(false),
-    unresolvedCount = 0
+    unresolvedCount = 0,
+    showSettings = $bindable(false)
   }: Props = $props();
 
   // タスクストアを更新
@@ -150,10 +151,7 @@
 
   <!-- チャットウィンドウ -->
   {#if showChat}
-    <FloatingChatWindow
-      initialPosition={chatPosition}
-      on:close={handleCloseChat}
-    />
+    <FloatingChatWindow onclose={handleCloseChat} />
   {/if}
 
   <!-- チャット再表示ボタン -->
@@ -168,6 +166,30 @@
       aria-label="Open Chat"
     >
       <MessageSquare size="24" />
+    </div>
+  {/if}
+
+  <!-- 設定モーダル -->
+  {#if showSettings}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div
+      class="settings-overlay"
+      onclick={() => (showSettings = false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="LLM Settings"
+    >
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <div class="settings-modal" onclick={(e) => e.stopPropagation()} role="document">
+        <button
+          class="close-btn"
+          onclick={() => (showSettings = false)}
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <LLMSettingsPreview />
+      </div>
     </div>
   {/if}
 </main>
@@ -281,5 +303,48 @@
     width: var(--mv-backlog-sidebar-width);
     z-index: 100;
     box-shadow: var(--mv-shadow-modal);
+  }
+
+  /* Settings Modal */
+  .settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--mv-glass-bg-overlay);
+    backdrop-filter: var(--mv-glass-blur);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+
+  .settings-modal {
+    position: relative;
+    max-width: var(--mv-content-max-width-sm);
+    max-height: var(--mv-container-max-height-modal);
+    overflow-y: auto;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: var(--mv-spacing-sm);
+    right: var(--mv-spacing-sm);
+    width: var(--mv-size-action-btn);
+    height: var(--mv-size-action-btn);
+    border: none;
+    border-radius: var(--mv-radius-full);
+    background: transparent;
+    color: var(--mv-color-text-muted);
+    font-size: var(--mv-font-size-xl);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--mv-transition-base);
+    z-index: 1;
+  }
+
+  .close-btn:hover {
+    color: var(--mv-color-text-primary);
+    background: var(--mv-glass-active);
   }
 </style>

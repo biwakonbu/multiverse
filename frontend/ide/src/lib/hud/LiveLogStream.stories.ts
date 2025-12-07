@@ -11,7 +11,7 @@ const meta = {
           default: 'dark',
       }
   }
-} satisfies Meta<LiveLogStream>;
+} as Meta<typeof LiveLogStream>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

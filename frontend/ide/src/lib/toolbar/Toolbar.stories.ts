@@ -34,7 +34,7 @@ const meta = {
       },
     },
   },
-} satisfies Meta<ToolbarPreview>;
+} as Meta<typeof ToolbarPreview>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

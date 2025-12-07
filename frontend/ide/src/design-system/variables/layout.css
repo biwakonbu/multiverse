@@ -13,6 +13,7 @@
   --mv-space-1: 4px;
   --mv-space-1-5: 6px;
   --mv-space-2: 8px;
+  --mv-space-2-5: 10px;
   --mv-space-3: 12px;
   --mv-space-4: 16px;
   --mv-space-5: 20px;
@@ -199,6 +200,8 @@
   /* フローティングウィンドウ */
   --mv-floating-window-width: 600px;
   --mv-floating-window-height: 350px;
+  --mv-floating-window-min-width: 300px;
+  --mv-floating-window-min-height: 200px;
   --mv-size-floating-header: 48px;
 
   /* ロゴサイズ */
@@ -269,4 +272,7 @@
   /* ChatView プレビュー */
   --mv-preview-chat-width: 550px;
   --mv-preview-chat-height: 300px;
+
+  /* モックレイアウト */
+  --mv-mock-node-width: 120px;
 }
