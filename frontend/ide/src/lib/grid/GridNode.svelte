@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { Task, PhaseName } from "../../types";
-  import { gridToCanvas } from "../../design-system";
+  import { gridToWorld } from "./geometry";
   import { statusToCssClass, statusLabels } from "../../types";
   import { selectedTaskId } from "../../stores";
 
   import { stripMarkdown } from "../utils/markdown";
 
   // Props
-  export let task: Task;
-  export let col: number;
-  export let row: number;
+  export let task: Task = {} as Task;
+  export let col: number = 0;
+  export let row: number = 0;
   export let zoomLevel: number = 1;
 
   // フェーズ名からCSSクラス名への変換
@@ -32,8 +32,8 @@
     検証: "VERIFY",
   };
 
-  // キャンバス座標を計算
-  $: position = gridToCanvas(col, row);
+  // キャンバス座標を計算（ワールド座標）
+  $: worldPosition = gridToWorld({ col, row });
   $: isSelected = $selectedTaskId === task.id;
   $: statusClass = statusToCssClass(task.status);
   $: phaseClass = phaseToClass(task.phaseName);
@@ -59,7 +59,7 @@
   class="node status-{statusClass} {phaseClass}"
   class:selected={isSelected}
   class:has-deps={hasDependencies}
-  style="left: {position.x}px; top: {position.y}px;"
+  style="left: {worldPosition.x}px; top: {worldPosition.y}px;"
   on:click={handleClick}
   on:keydown={handleKeydown}
   role="button"

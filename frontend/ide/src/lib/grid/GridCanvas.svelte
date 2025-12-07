@@ -11,6 +11,63 @@
   // マウス位置追跡（ズームの起点として使用）
   let lastMousePosition = { x: 0, y: 0 };
 
+  const DRAG_CLASS = "mv-canvas-dragging";
+  let isPanning = false;
+  let isCanvasPointerDown = false;
+  let prevBodyUserSelect: string | null = null;
+  let prevHtmlUserSelect: string | null = null;
+
+  const preventSelection = (event: Event) => {
+    if (isPanning || isCanvasPointerDown) {
+      event.preventDefault();
+    }
+  };
+
+  function enableGlobalNoSelect() {
+    if (isCanvasPointerDown) return;
+    prevBodyUserSelect = document.body.style.userSelect;
+    prevHtmlUserSelect = document.documentElement.style.userSelect;
+    document.body.style.userSelect = "none";
+    document.documentElement.style.userSelect = "none";
+    document.body.classList.add(DRAG_CLASS);
+    document.addEventListener("selectionstart", preventSelection, true);
+    document.addEventListener("dragstart", preventSelection, true);
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function disableGlobalNoSelect() {
+    document.body.classList.remove(DRAG_CLASS);
+    document.removeEventListener("selectionstart", preventSelection, true);
+    document.removeEventListener("dragstart", preventSelection, true);
+    if (prevBodyUserSelect !== null) {
+      document.body.style.userSelect = prevBodyUserSelect;
+      prevBodyUserSelect = null;
+    } else {
+      document.body.style.removeProperty("user-select");
+    }
+    if (prevHtmlUserSelect !== null) {
+      document.documentElement.style.userSelect = prevHtmlUserSelect;
+      prevHtmlUserSelect = null;
+    } else {
+      document.documentElement.style.removeProperty("user-select");
+    }
+  }
+
+  function handleCanvasPointerDown(event: PointerEvent) {
+    // 右クリック以外の押下で選択抑止を有効化（ドラッグ開始想定）
+    if (event.button !== 2) {
+      isCanvasPointerDown = true;
+      enableGlobalNoSelect();
+    }
+  }
+
+  function handleCanvasPointerUp() {
+    if (isCanvasPointerDown && !isPanning) {
+      isCanvasPointerDown = false;
+      disableGlobalNoSelect();
+    }
+  }
+
   // マウス移動時に位置を記録
   function handleMouseMove(event: MouseEvent) {
     if (!containerRef) return;
@@ -43,11 +100,14 @@
 
   // ドラッグ開始
   function handlePointerDown(event: PointerEvent) {
+    handleCanvasPointerDown(event);
     // 中クリックまたはスペース+左クリックでパン開始
     if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
       event.preventDefault();
       if (!containerRef) return;
       containerRef.setPointerCapture(event.pointerId);
+      isPanning = true;
+      enableGlobalNoSelect();
       drag.startDrag(
         event.clientX,
         event.clientY,
@@ -75,6 +135,10 @@
     if ($drag.isDragging) {
       containerRef?.releasePointerCapture(event.pointerId);
       drag.endDrag();
+      isPanning = false;
+      disableGlobalNoSelect();
+    } else {
+      handleCanvasPointerUp();
     }
   }
 
@@ -96,8 +160,13 @@
   onMount(() => {
     // グローバルキーボードイベント
     window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("pointerup", handleCanvasPointerUp, true);
+    window.addEventListener("pointercancel", handleCanvasPointerUp, true);
     return () => {
       window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("pointerup", handleCanvasPointerUp, true);
+      window.removeEventListener("pointercancel", handleCanvasPointerUp, true);
+      disableGlobalNoSelect();
     };
   });
 </script>
@@ -107,39 +176,45 @@
   class="canvas-container"
   bind:this={containerRef}
   on:wheel={handleWheel}
-  on:mousemove={handleMouseMove}
   on:pointerdown={handlePointerDown}
+  on:mousemove={handleMouseMove}
   on:pointermove={handlePointerMove}
   on:pointerup={handlePointerUp}
   on:pointercancel={handlePointerUp}
+  on:dragstart|preventDefault
+  on:selectstart|preventDefault
   role="application"
   aria-label="タスクグリッド"
   tabindex="0"
 >
-  <!-- グリッド背景パターン -->
-  <div class="grid-background" style="transform: {$canvasTransform};">
-    <svg class="grid-pattern" width="100%" height="100%">
-      <defs>
-        <pattern
-          id="grid-cross"
-          width="200"
-          height="140"
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d="M96 70H104M100 66V74"
-            stroke="var(--mv-primitive-aurora-yellow)"
-            stroke-width="1"
-            opacity="0.15"
-          />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#grid-cross)" />
-    </svg>
-  </div>
+  <div
+    class="canvas-viewport"
+    style="transform: {$canvasTransform}; transform-origin: 0 0;"
+  >
+    <!-- グリッド背景パターン -->
+    <div class="grid-background">
+      <svg class="grid-pattern" width="100%" height="100%">
+        <defs>
+          <pattern
+            id="grid-cross"
+            width="200"
+            height="140"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M96 70H104M100 66V74"
+              stroke="var(--mv-primitive-aurora-yellow)"
+              stroke-width="1"
+              opacity="0.15"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid-cross)" />
+      </svg>
+    </div>
 
-  <!-- 接続線レイヤー（ノードの下に表示） -->
-  <svg class="connections-layer" style="transform: {$canvasTransform};">
+    <!-- 接続線レイヤー（ノードの下に表示） -->
+    <svg class="connections-layer">
     <defs>
       <!-- Technical Markers -->
 
@@ -201,26 +276,19 @@
     {#each $taskEdges as edge (`${edge.from}-${edge.to}`)}
       <ConnectionLine {edge} />
     {/each}
-  </svg>
+    </svg>
 
-  <!-- ノードレイヤー -->
-  <!-- 
-    NOTE: transform: scale() を使用してマウス位置を起点としたズームを実現。
-    テキストの鮮明さは will-change: transform と transform-origin で最適化。
-    座標変換: スクリーン座標 = ワールド座標 * zoom + pan
-  -->
-  <div
-    class="nodes-layer"
-    style="transform: {$canvasTransform}; transform-origin: 0 0;"
-  >
-    {#each $taskNodes as node (node.task.id)}
-      <GridNode
-        task={node.task}
-        col={node.col}
-        row={node.row}
-        zoomLevel={$viewport.zoom}
-      />
-    {/each}
+    <!-- ノードレイヤー -->
+    <div class="nodes-layer">
+      {#each $taskNodes as node (node.task.id)}
+        <GridNode
+          task={node.task}
+          col={node.col}
+          row={node.row}
+          zoomLevel={$viewport.zoom}
+        />
+      {/each}
+    </div>
   </div>
 
   <!-- ズームインジケーター -->
@@ -237,6 +305,11 @@
     background: var(--mv-color-surface-app);
     cursor: grab;
     touch-action: none;
+    user-select: none;
+  }
+
+  :global(body.mv-canvas-dragging) {
+    user-select: none !important;
   }
 
   .canvas-container:active {
@@ -248,7 +321,6 @@
     inset: calc(var(--mv-canvas-overflow-size) * -1);
     width: calc(100% + var(--mv-canvas-overflow-size) * 2);
     height: calc(100% + var(--mv-canvas-overflow-size) * 2);
-    transform-origin: 0 0;
     pointer-events: none;
   }
 
@@ -263,7 +335,6 @@
     left: 0;
     width: 100%;
     height: 100%;
-    transform-origin: 0 0;
     pointer-events: none;
     overflow: visible;
   }
@@ -272,6 +343,11 @@
     position: absolute;
     top: 0;
     left: 0;
+  }
+
+  .canvas-viewport {
+    position: absolute;
+    inset: 0;
     transform-origin: 0 0;
   }
 

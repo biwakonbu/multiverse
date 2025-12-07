@@ -18,7 +18,7 @@
   }
 
   let config: LLMConfig = {
-    kind: "mock",
+    kind: "codex-cli",
     model: "gpt-4o",
     baseUrl: "",
     systemPrompt: "",
@@ -82,11 +82,31 @@
       <label for="provider">プロバイダ</label>
       <select id="provider" bind:value={config.kind}>
         <option value="mock">モック（開発用）</option>
-        <option value="openai-chat">OpenAI</option>
+        <option value="codex-cli">Codex CLI</option>
+        <option value="openai-chat">OpenAI（HTTP）</option>
       </select>
     </div>
 
-    {#if config.kind === "openai-chat"}
+    {#if config.kind === "codex-cli"}
+      <div class="form-group">
+        <div class="cli-session-status">
+          <span class="label">CLI セッション</span>
+          <span class="status info"
+            >Codex CLI のセッションが利用されます（~/.codex/auth.json または環境変数）</span
+          >
+        </div>
+      </div>
+
+      <div class="form-group">
+        <Input
+          label="モデル（オプション）"
+          bind:value={config.model}
+          placeholder="codex-cli では使用されません"
+          id="model"
+          disabled={true}
+        />
+      </div>
+    {:else if config.kind === "openai-chat"}
       <div class="form-group">
         <div class="api-key-status">
           <span class="label">API キー</span>
@@ -208,6 +228,21 @@
   .status.warning {
     color: var(--mv-color-status-paused-text);
     background: var(--mv-color-status-paused-bg);
+  }
+
+  .status.info {
+    color: var(--mv-color-text-secondary);
+    background: var(--mv-color-surface-secondary);
+  }
+
+  .cli-session-status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-xs);
+  }
+
+  .cli-session-status .label {
+    margin: 0;
   }
 
   .actions {

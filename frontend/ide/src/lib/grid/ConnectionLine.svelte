@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { grid, gridToCanvas } from "../../design-system";
+  import { grid } from "../../design-system";
   import type { TaskEdge } from "../../stores/taskStore";
   import { taskNodes } from "../../stores";
+  import { getEdgeEndpointsInWorld } from "./geometry";
 
   // Props
-  export let edge: TaskEdge;
+  export let edge: TaskEdge = { from: "", to: "", satisfied: false };
 
   // ノード位置のマップを取得
   $: nodePositions = new Map(
@@ -24,17 +25,11 @@
   ): string {
     if (!from || !to) return "";
 
-    const fromCanvas = gridToCanvas(from.col, from.row);
-    const toCanvas = gridToCanvas(to.col, to.row);
-
-    // テクニカルな接続点計算
-    // 始点: ノードの右端中央
-    const startX = fromCanvas.x + grid.cellWidth;
-    const startY = fromCanvas.y + grid.cellHeight / 2;
-
-    // 終点: ノードの左端中央
-    const endX = toCanvas.x;
-    const endY = toCanvas.y + grid.cellHeight / 2;
+    const { start, end } = getEdgeEndpointsInWorld(from, to);
+    const startX = start.x;
+    const startY = start.y;
+    const endX = end.x;
+    const endY = end.y;
 
     // 水平距離
     const dist = endX - startX;
