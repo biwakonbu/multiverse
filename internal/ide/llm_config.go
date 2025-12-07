@@ -10,7 +10,7 @@ import (
 // LLMConfig は LLM プロバイダの設定
 type LLMConfig struct {
 	Kind         string `json:"kind"`                   // mock, codex-cli, openai-chat
-	Model        string `json:"model"`                  // gpt-4o, gpt-4o-mini (codex-cli の場合は使用されない)
+	Model        string `json:"model"`                  // 空の場合は各プロバイダのデフォルトを使用（codex-cli: gpt-5.1）
 	BaseURL      string `json:"baseUrl,omitempty"`      // カスタムエンドポイント
 	SystemPrompt string `json:"systemPrompt,omitempty"` // カスタムシステムプロンプト
 }
@@ -19,7 +19,7 @@ type LLMConfig struct {
 func DefaultLLMConfig() *LLMConfig {
 	return &LLMConfig{
 		Kind:  "codex-cli", // デフォルトで実タスクを実行
-		Model: "gpt-4o",
+		Model: "",          // codex-cli 使用時は agenttools.DefaultMetaModel を使用
 	}
 }
 

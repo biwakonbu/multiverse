@@ -73,7 +73,7 @@ runner := core.NewRunner(&cfg, metaClient, workerExecutor, noteWriter)
 
 1. CLI フラグ (`-meta-model`)
 2. YAML 設定 (`runner.meta.model`)
-3. デフォルト値 (`gpt-5.1-codex-max-high`)
+3. デフォルト値 (`gpt-5.1`)
 
 ## ログ出力
 

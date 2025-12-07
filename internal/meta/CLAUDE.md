@@ -347,6 +347,59 @@ if len(matches) > 1 {
 - **診断**: エラーメッセージに response: %s を含めるため、ログから LLMレスポンスを確認可能
 - **対応**: System Promptを改善またはモデルを変更
 
+## Codex CLI プロバイダ（cli_provider.go）
+
+### 概要
+
+CodexCLIProvider は Codex CLI を使用して Meta-agent 機能を提供する。
+agenttools パッケージを使用してコマンドを構築・実行する。
+
+### タイムアウト設定
+
+```go
+// Meta-agent 用のデフォルトタイムアウト（10分）
+const DefaultMetaAgentTimeout = 10 * time.Minute
+```
+
+LLM の処理時間は予測困難なため、十分な時間を確保する。
+このタイムアウトは `agenttools.Execute()` で使用され、親コンテキストから独立して動作する。
+
+### YAML 抽出処理（extractYAML）
+
+Codex CLI の出力にはヘッダー情報が含まれるため、`extractYAML` 関数で YAML 部分を抽出する。
+
+**Codex CLI 出力例:**
+```
+OpenAI Codex v0.65.0 (research preview)
+--------
+workdir: /path/to/project
+model: gpt-5.1
+provider: openai
+--------
+user
+プロンプト内容...
+codex
+type: decompose
+version: 1
+payload:
+  understanding: "..."
+```
+
+**抽出方法（優先順）:**
+1. Markdown code block（```yaml ... ```）
+2. 汎用 code block（``` ... ```）
+3. バックティック除去
+4. `type:` で始まる行から末尾まで抽出（Codex CLI ヘッダー対応）
+
+```go
+// Method 4: Codex CLI 出力から "type:" で始まる YAML を抽出
+reTypeYAML := regexp.MustCompile(`(?m)^type:\s+\w+`)
+loc := reTypeYAML.FindStringIndex(response)
+if loc != nil {
+    return strings.TrimSpace(response[loc[0]:])
+}
+```
+
 ## パフォーマンス考慮
 
 ### API呼び出し回数

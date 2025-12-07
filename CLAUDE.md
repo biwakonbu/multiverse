@@ -470,7 +470,7 @@ task:
 runner:
   meta:
     kind: "openai-chat"  # または "mock"
-    model: "gpt-5.1-codex-max-high"
+    model: "gpt-5.1"
 
   worker:
     kind: "codex-cli"

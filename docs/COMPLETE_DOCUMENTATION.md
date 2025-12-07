@@ -235,7 +235,7 @@ Meta 用 LLM モデル ID は以下の優先順位で決定されます：
 
 1. **CLI オプション**: `--meta-model` で指定された値
 2. **Task YAML**: `runner.meta.model` で指定された値
-3. **ビルトインデフォルト**: `gpt-5.1-codex-max-high`
+3. **ビルトインデフォルト**: `gpt-5.1`
 
 ※ 設定ファイルによるデフォルト指定は将来拡張です。
 
@@ -271,7 +271,7 @@ task:
 runner:
   meta:
     kind: "openai-chat" # v1 は固定想定
-    model: "gpt-5.1-codex-max-high" # 任意。プロバイダのモデルIDを直接指定
+    model: "gpt-5.1" # 任意。プロバイダのモデルIDを直接指定
     # system_prompt: |              # 任意。Meta 用 system prompt を上書き
     max_loops: 5 # 任意。最大ループ回数（デフォルト: 5）
 
@@ -297,7 +297,7 @@ runner:
 | `task.repo`                      | `"."` (カレントディレクトリ)                     |
 | `task.test`                      | 未設定（テスト自動実行なし）                     |
 | `runner.meta.kind`               | `"openai-chat"`                                  |
-| `runner.meta.model`              | `gpt-5.1-codex-max-high` (プロバイダのモデル ID) |
+| `runner.meta.model`              | `gpt-5.1` (プロバイダのモデル ID) |
 | `runner.meta.max_loops`          | `5`                                              |
 | `runner.worker.kind`             | `"codex-cli"`                                    |
 | `runner.worker.docker_image`     | デフォルトイメージ                               |
@@ -2116,7 +2116,7 @@ task:
 runner:
   meta:
     kind: "openai-chat"
-    model: "gpt-5.1-codex-max-high"
+    model: "gpt-5.1"
     max_loops: 5
   worker:
     kind: "codex-cli"

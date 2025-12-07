@@ -230,9 +230,9 @@ export namespace main {
 export namespace meta {
 	
 	export class PotentialConflict {
-	    File: string;
-	    Tasks: string[];
-	    Warning: string;
+	    file: string;
+	    tasks: string[];
+	    warning: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PotentialConflict(source);
@@ -240,9 +240,9 @@ export namespace meta {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.File = source["File"];
-	        this.Tasks = source["Tasks"];
-	        this.Warning = source["Warning"];
+	        this.file = source["file"];
+	        this.tasks = source["tasks"];
+	        this.warning = source["warning"];
 	    }
 	}
 

@@ -17,17 +17,18 @@ var ErrUnsupportedMode = errors.New("agent tool mode not supported")
 // It is intentionally permissive so that tool-specific options can be passed
 // through without forcing a shared schema.
 type Request struct {
-	Prompt       string                 // Primary instruction/prompt for the tool
-	Mode         string                 // Tool-dependent mode (e.g., "exec", "chat")
-	Model        string                 // Optional model override
-	Temperature  *float64               // Optional sampling temperature
-	MaxTokens    *int                   // Optional token limit
-	Workdir      string                 // Optional working directory (tool specific)
-	Timeout      time.Duration          // Optional timeout override
-	ExtraEnv     map[string]string      // Additional environment variables
-	Flags        []string               // Extra CLI flags to append
-	ToolSpecific map[string]interface{} // Bag for tool-specific parameters
-	UseStdin     bool                   // If true, send prompt via stdin when supported
+	Prompt          string                 // Primary instruction/prompt for the tool
+	Mode            string                 // Tool-dependent mode (e.g., "exec")
+	Model           string                 // Optional model override
+	Temperature     *float64               // Optional sampling temperature
+	MaxTokens       *int                   // Optional token limit
+	ReasoningEffort string                 // Reasoning effort level: "low", "medium", "high"
+	Workdir         string                 // Optional working directory (tool specific)
+	Timeout         time.Duration          // Optional timeout override
+	ExtraEnv        map[string]string      // Additional environment variables
+	Flags           []string               // Extra CLI flags to append
+	ToolSpecific    map[string]interface{} // Bag for tool-specific parameters
+	UseStdin        bool                   // If true, send prompt via stdin when supported
 }
 
 // ExecPlan is the resolved command plan produced by a provider.

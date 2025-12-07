@@ -5,6 +5,8 @@ package codex
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,10 +51,21 @@ func (s *SmartMockSandbox) StopContainer(ctx context.Context, containerID string
 	return nil
 }
 
-func (s *SmartMockSandbox) Exec(ctx context.Context, containerID string, cmd []string) (int, string, error) {
-	// cmd is like: ["codex", "exec", ..., prompt]
-	if len(cmd) > 0 && cmd[0] == "codex" {
+func (s *SmartMockSandbox) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader) (int, string, error) {
+	// cmd is like: ["codex", "exec", ..., prompt] OR ["env", "...", "codex", ...]
+	fmt.Printf("DEBUG: Exec called with cmd: %v\n", cmd)
+
+	isCodex := false
+	for _, arg := range cmd {
+		if arg == "codex" {
+			isCodex = true
+			break
+		}
+	}
+
+	if isCodex && len(cmd) > 0 {
 		prompt := cmd[len(cmd)-1]
+		fmt.Printf("DEBUG: Prompt: %s\n", prompt)
 		s.handlePrompt(prompt)
 		return 0, "Mock execution successful", nil
 	}
@@ -109,6 +122,12 @@ data = json.load(sys.stdin)
 print(data.get('key'))
 `
 		os.WriteFile(filepath.Join(s.RepoPath, "parse_json.py"), []byte(content), 0644)
+	}
+	// For Golden Test GT-2
+	if strings.Contains(prompt, "TODO アプリを作成して") || strings.Contains(prompt, "TODO App") {
+		os.WriteFile(filepath.Join(s.RepoPath, "index.html"), []byte("<html>TODO</html>"), 0644)
+		os.WriteFile(filepath.Join(s.RepoPath, "style.css"), []byte("body {}"), 0644)
+		os.WriteFile(filepath.Join(s.RepoPath, "app.js"), []byte("console.log('todo')"), 0644)
 	}
 }
 

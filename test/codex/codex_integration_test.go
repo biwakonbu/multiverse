@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,10 +22,16 @@ import (
 
 // TestCase defines the structure of a test case YAML file
 type TestCase struct {
-	ID                 string                     `yaml:"id"`
-	Title              string                     `yaml:"title"`
-	PRD                string                     `yaml:"prd"`
-	AcceptanceCriteria []core.AcceptanceCriterion `yaml:"acceptance_criteria"`
+	ID                 string                    `yaml:"id"`
+	Title              string                    `yaml:"title"`
+	PRD                string                    `yaml:"prd"`
+	AcceptanceCriteria []TestAcceptanceCriterion `yaml:"acceptance_criteria"`
+}
+
+type TestAcceptanceCriterion struct {
+	ID          string `yaml:"id"`
+	Description string `yaml:"description"`
+	Type        string `yaml:"type"`
 }
 
 // TestCodex_TableDriven runs all test cases defined in test/codex/cases/*.yaml
@@ -99,13 +106,19 @@ func runTestCase(t *testing.T, casePath string) {
 
 	// Custom Mock Meta that returns a run_worker action based on the PRD
 	metaClient := &SmartMockMeta{
-		PRD: tc.PRD,
+		PRD:                tc.PRD,
+		AcceptanceCriteria: tc.AcceptanceCriteria,
 	}
 
 	// Create executor
 	executor, err := worker.NewExecutor(cfg.Runner.Worker, tmpDir)
 	if err != nil {
 		t.Skipf("Codex environment not available: %v", err)
+	}
+
+	// For test stability, use SmartMockSandbox if not explicitly using real backend
+	if os.Getenv("TEST_CODEX_REAL") != "1" {
+		executor.Sandbox = &SmartMockSandbox{RepoPath: tmpDir}
 	}
 
 	noteWriter := note.NewWriter()
@@ -136,26 +149,49 @@ func runTestCase(t *testing.T, casePath string) {
 	// The "SmartMockMeta" will tell the worker to "Implement the PRD".
 	// Codex CLI should generate files.
 
-	// Check for expected files based on ACs (heuristic)
+	// Check for expected files based on ACs
 	for _, ac := range tc.AcceptanceCriteria {
-		if filepath.Ext(ac.Description) == ".py" || filepath.Ext(ac.Description) == ".go" || filepath.Ext(ac.Description) == ".js" {
-			// Try to find mentioned files
-			// This is loose, but better than nothing.
+		if ac.Type == "file_exists" {
+			// Extract filename from description or just check if the logical file exists
+			// For "index.html が存在する", we extract "index.html"
+			// Simple heuristic: look for words ending in extension
+			words := strings.Fields(ac.Description)
+			found := false
+			for _, word := range words {
+				if strings.Contains(word, ".") {
+					// Check file existence
+					path := filepath.Join(tmpDir, word)
+					if _, err := os.Stat(path); err == nil {
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				t.Errorf("AC %s failed: file not found for description '%s'", ac.ID, ac.Description)
+			}
 		}
 	}
 }
 
 // SmartMockMeta is a mock MetaClient that returns a run_worker action first, then mark_complete.
 type SmartMockMeta struct {
-	PRD string
+	PRD                string
+	AcceptanceCriteria []TestAcceptanceCriterion
 }
 
 func (m *SmartMockMeta) PlanTask(ctx context.Context, prdText string) (*meta.PlanTaskResponse, error) {
+	acs := make([]meta.AcceptanceCriterion, len(m.AcceptanceCriteria))
+	for i, ac := range m.AcceptanceCriteria {
+		acs[i] = meta.AcceptanceCriterion{
+			ID:          ac.ID,
+			Description: ac.Description,
+			Type:        ac.Type,
+		}
+	}
 	return &meta.PlanTaskResponse{
-		TaskID: "MOCK-TASK",
-		AcceptanceCriteria: []meta.AcceptanceCriterion{
-			{ID: "AC-1", Description: "Mock AC", Type: "mock"},
-		},
+		TaskID:             "MOCK-TASK",
+		AcceptanceCriteria: acs,
 	}, nil
 }
 

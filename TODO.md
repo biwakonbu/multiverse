@@ -92,7 +92,7 @@ ExecutionOrchestrator → agent-runner → Docker Sandbox → codex CLI（既存
 | 項目                    | 用途                                       | 備考                         |
 | ----------------------- | ------------------------------------------ | ---------------------------- |
 | `MULTIVERSE_META_KIND`  | Meta-agent の種別                          | 現状: mock / openai-chat     |
-| `MULTIVERSE_META_MODEL` | Meta-agent のモデル                        | 現状: gpt-5.1-codex-max-high |
+| `MULTIVERSE_META_MODEL` | Meta-agent のモデル                        | 現状: gpt-5.1 |
 | CLI セッション          | Codex / Claude Code / Gemini / Cursor 等   | **API キー不要。要セッション** |
 
 ---

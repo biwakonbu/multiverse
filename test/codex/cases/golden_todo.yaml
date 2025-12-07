@@ -1,0 +1,25 @@
+id: "golden-todo-001"
+title: "TODO アプリを作成して"
+prd: |
+  TODO アプリを作成して。
+  技術スタックは HTML / CSS / JavaScript (Vanilla) とします。
+  以下の機能を持つこと:
+  1. タスクの追加
+  2. タスクの一覧表示
+  3. タスクの完了トグル
+  4. タスクの削除
+
+  ファイル構成:
+  - index.html
+  - style.css
+  - app.js
+acceptance_criteria:
+  - id: "AC-1"
+    description: "index.html が存在する"
+    type: "file_exists"
+  - id: "AC-2"
+    description: "style.css が存在する"
+    type: "file_exists"
+  - id: "AC-3"
+    description: "app.js が存在する"
+    type: "file_exists"

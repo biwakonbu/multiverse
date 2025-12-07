@@ -70,7 +70,7 @@ func TestResolveMetaModel(t *testing.T) {
 			name:      "Default used if both empty",
 			cliModel:  "",
 			yamlModel: "",
-			want:      "gpt-5.1-codex-max-high",
+			want:      "gpt-5.1",
 		},
 	}
 

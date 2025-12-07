@@ -245,7 +245,7 @@ func (e *Executor) generateTaskYAML(task *Task) string {
 	// Indentation must be correct (4 spaces for the text content)
 	promptTextIndented := ""
 	for _, line := range strings.Split(promptText, "\n") {
-		promptTextIndented += fmt.Sprintf("    %s\n", line)
+		promptTextIndented += fmt.Sprintf("      %s\n", line)
 	}
 
 	return fmt.Sprintf(`version: "1"

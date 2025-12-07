@@ -71,6 +71,14 @@ go test -tags=docker,codex -timeout=15m ./...
 
 # カバレッジレポート生成
 go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
+
+# ゴールデンテスト（一気通しテスト）
+## Backend (GT-1, GT-2)
+go test -v ./test/integration/... -run TestTaskBuilder_Golden
+go test -v -tags=codex ./test/codex/... -run TestCodex_TableDriven/golden_todo.yaml
+
+## Frontend E2E (GT-3)
+cd frontend/ide && pnpm test:e2e tests/golden_flow.spec.ts && cd ../..
 ```
 
 ### サンドボックス環境のセットアップ

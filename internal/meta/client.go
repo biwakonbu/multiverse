@@ -29,7 +29,7 @@ type Client struct {
 
 func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	if model == "" {
-		model = "gpt-5.1-codex-max-high" // Default
+		model = "gpt-5.1" // Meta-agent 用デフォルトモデル
 	}
 	c := &Client{
 		kind:         kind,
@@ -240,7 +240,37 @@ func (c *Client) callLLM(ctx context.Context, systemPrompt, userPrompt string) (
 	return "", fmt.Errorf("LLM request failed after %d retries", maxRetries)
 }
 
+// extractJSON extracts JSON content from LLM response, handling markdown code blocks
+func extractJSON(response string) string {
+	response = strings.TrimSpace(response)
+
+	// Method 1: Try to extract from markdown code block (```json ... ```)
+	reMarkdown := regexp.MustCompile("(?s)```json\\s*\\n(.+?)\\n```")
+	matches := reMarkdown.FindStringSubmatch(response)
+	if len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+
+	// Method 2: Try generic code block extraction (``` ... ```)
+	reGeneric := regexp.MustCompile("(?s)```\\s*\\n(.+?)\\n```")
+	matches = reGeneric.FindStringSubmatch(response)
+	if len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+
+	// Method 3: Strip leading/trailing backticks if present
+	if strings.HasPrefix(response, "```") && strings.HasSuffix(response, "```") {
+		response = strings.TrimPrefix(response, "```json")
+		response = strings.TrimPrefix(response, "```")
+		response = strings.TrimSuffix(response, "```")
+		return strings.TrimSpace(response)
+	}
+
+	return response
+}
+
 // extractYAML extracts YAML content from LLM response, handling markdown code blocks
+// and Codex CLI output which includes header information before the YAML
 func extractYAML(response string) string {
 	response = strings.TrimSpace(response)
 
@@ -267,7 +297,32 @@ func extractYAML(response string) string {
 		return strings.TrimSpace(response)
 	}
 
+	// Method 4: Extract YAML starting with "type:" from Codex CLI output
+	// Codex CLI includes header info (version, workdir, model, etc.) before the actual YAML
+	// Look for "type: " at the beginning of a line and extract from there
+	reTypeYAML := regexp.MustCompile(`(?m)^type:\s+\w+`)
+	loc := reTypeYAML.FindStringIndex(response)
+	if loc != nil {
+		return strings.TrimSpace(response[loc[0]:])
+	}
+
 	return response
+}
+
+// jsonToYAML translates JSON string to YAML string
+// This is used to maintain compatibility with existing YAML parsing logic
+func jsonToYAML(jsonStr string) (string, error) {
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return "", fmt.Errorf("failed to unmarshal JSON for conversion: %w", err)
+	}
+
+	yamlBytes, err := yaml.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal YAML for conversion: %w", err)
+	}
+
+	return string(yamlBytes), nil
 }
 
 func (c *Client) PlanTask(ctx context.Context, prdText string) (*PlanTaskResponse, error) {
@@ -290,16 +345,22 @@ func (c *Client) PlanTask(ctx context.Context, prdText string) (*PlanTaskRespons
 	if systemPrompt == "" {
 		systemPrompt = `You are a Meta-agent that plans software development tasks.
 Your goal is to read a PRD and break it down into Acceptance Criteria.
-Output MUST be a YAML block with the following structure:
-type: plan_task
-version: 1
-payload:
-  task_id: "TASK-..."
-  acceptance_criteria:
-    - id: "AC-1"
-      description: "..."
-      type: "e2e"
-      critical: true
+Output MUST be a JSON block with the following structure:
+{
+  "type": "plan_task",
+  "version": 1,
+  "payload": {
+    "task_id": "TASK-...",
+    "acceptance_criteria": [
+      {
+        "id": "AC-1",
+        "description": "...",
+        "type": "e2e",
+        "critical": true
+      }
+    ]
+  }
+}
 `
 	}
 	userPrompt := fmt.Sprintf("PRD:\n%s\n\nGenerate the plan.", prdText)
@@ -358,28 +419,34 @@ func (c *Client) NextAction(ctx context.Context, taskSummary *TaskSummary) (*Nex
 	if systemPrompt == "" {
 		systemPrompt = `You are a Meta-agent that orchestrates a coding task.
 Decide the next action based on the current context.
-Output MUST be a YAML block with type: next_action.
+Output MUST be a JSON block with type: next_action.
 
 Schema for 'run_worker' action:
-type: next_action
-decision:
-  action: run_worker
-  reason: <string>
-worker_call:
-  worker_type: codex-cli
-  mode: exec
-  prompt: <string>
-  # Optional fields:
-  model: <string>
-  flags: [<string>]
-  env: {<key>: <value>}
-  use_stdin: <bool>
+{
+  "type": "next_action",
+  "decision": {
+    "action": "run_worker",
+    "reason": "<string>"
+  },
+  "worker_call": {
+    "worker_type": "codex-cli",
+    "mode": "exec",
+    "prompt": "<string>",
+    "model": "<string>",
+    "flags": ["<string>"],
+    "env": {"<key>": "<value>"},
+    "use_stdin": <bool>
+  }
+}
 
 Schema for 'mark_complete' action:
-type: next_action
-decision:
-  action: mark_complete
-  reason: <string>
+{
+  "type": "next_action",
+  "decision": {
+    "action": "mark_complete",
+    "reason": "<string>"
+  }
+}
 `
 	}
 	// Serialize context for LLM
@@ -441,18 +508,24 @@ func (c *Client) CompletionAssessment(ctx context.Context, taskSummary *TaskSumm
 	if systemPrompt == "" {
 		systemPrompt = `You are a Meta-agent evaluating task completion.
 Review the Acceptance Criteria and Worker execution results.
-Output MUST be a YAML block with type: completion_assessment.
+Output MUST be a JSON block with type: completion_assessment.
 
 Example format:
-type: completion_assessment
-version: 1
-payload:
-  all_criteria_satisfied: true
-  summary: "All acceptance criteria met"
-  by_criterion:
-    - id: "AC-1"
-      status: "passed"
-      comment: "Feature X successfully implemented"
+{
+  "type": "completion_assessment",
+  "version": 1,
+  "payload": {
+    "all_criteria_satisfied": true,
+    "summary": "All acceptance criteria met",
+    "by_criterion": [
+      {
+        "id": "AC-1",
+        "status": "passed",
+        "comment": "Feature X successfully implemented"
+      }
+    ]
+  }
+}
 `
 	}
 
@@ -569,12 +642,18 @@ func (c *Client) Decompose(ctx context.Context, req *DecomposeRequest) (*Decompo
 		return nil, fmt.Errorf("LLM call failed: %w", err)
 	}
 
-	// YAML を抽出してパース
-	resp = extractYAML(resp)
+	// Extract JSON from response
+	jsonStr := extractJSON(resp)
+
+	// Convert JSON to YAML for internal compatibility
+	yamlStr, err := jsonToYAML(jsonStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert JSON to YAML: %w\nResponse: %s", err, resp)
+	}
 
 	var msg MetaMessage
-	if err := yaml.Unmarshal([]byte(resp), &msg); err != nil {
-		return nil, fmt.Errorf("failed to parse YAML: %w\nResponse: %s", err, resp)
+	if err := yaml.Unmarshal([]byte(yamlStr), &msg); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w\nYAML: %s", err, yamlStr)
 	}
 
 	payloadBytes, err := yaml.Marshal(msg.Payload)
@@ -605,48 +684,71 @@ Your goal is to:
 4. Identify dependencies between tasks
 5. Flag potential file conflicts
 
-Output MUST be a YAML block with the following structure:
-type: decompose
-version: 1
-payload:
-  understanding: "ユーザーの要求を理解した内容..."
-  phases:
-    - name: "概念設計"
-      milestone: "M1-Feature-Design"
-      tasks:
-        - id: "temp-001"
-          title: "タスクタイトル"
-          description: "詳細な説明"
-          acceptance_criteria:
-            - "達成条件1"
-            - "達成条件2"
-          dependencies: []
-          wbs_level: 1
-          estimated_effort: "small"
-    - name: "実装設計"
-      milestone: "M1-Feature-Design"
-      tasks:
-        - id: "temp-002"
-          title: "..."
-          description: "..."
-          acceptance_criteria: [...]
-          dependencies: ["temp-001"]
-          wbs_level: 2
-          estimated_effort: "medium"
-    - name: "実装"
-      milestone: "M2-Feature-Impl"
-      tasks:
-        - id: "temp-003"
-          title: "..."
-          description: "..."
-          acceptance_criteria: [...]
-          dependencies: ["temp-002"]
-          wbs_level: 3
-          estimated_effort: "large"
-  potential_conflicts:
-    - file: "src/example.ts"
-      tasks: ["temp-003"]
-      warning: "既存ファイルを変更する可能性があります"
+Output MUST be a JSON block with the following structure:
+{
+  "type": "decompose",
+  "version": 1,
+  "payload": {
+    "understanding": "ユーザーの要求を理解した内容...",
+    "phases": [
+      {
+        "name": "概念設計",
+        "milestone": "M1-Feature-Design",
+        "tasks": [
+          {
+            "id": "temp-001",
+            "title": "タスクタイトル",
+            "description": "詳細な説明",
+            "acceptance_criteria": [
+              "達成条件1",
+              "達成条件2"
+            ],
+            "dependencies": [],
+            "wbs_level": 1,
+            "estimated_effort": "small"
+          }
+        ]
+      },
+      {
+        "name": "実装設計",
+        "milestone": "M1-Feature-Design",
+        "tasks": [
+          {
+            "id": "temp-002",
+            "title": "...",
+            "description": "...",
+            "acceptance_criteria": [...],
+            "dependencies": ["temp-001"],
+            "wbs_level": 2,
+            "estimated_effort": "medium"
+          }
+        ]
+      },
+      {
+        "name": "実装",
+        "milestone": "M2-Feature-Impl",
+        "tasks": [
+          {
+            "id": "temp-003",
+            "title": "...",
+            "description": "...",
+            "acceptance_criteria": [...],
+            "dependencies": ["temp-002"],
+            "wbs_level": 3,
+            "estimated_effort": "large"
+          }
+        ]
+      }
+    ],
+    "potential_conflicts": [
+      {
+        "file": "src/example.ts",
+        "tasks": ["temp-003"],
+        "warning": "既存ファイルを変更する可能性があります"
+      }
+    ]
+  }
+}
 
 Guidelines:
 - WBS levels: 1=概念設計, 2=実装設計, 3=実装

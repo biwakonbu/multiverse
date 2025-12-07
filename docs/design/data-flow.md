@@ -187,7 +187,7 @@ task:
 runner:
   meta:
     kind: "openai-chat"
-    model: "gpt-5.1-codex-max-high"
+    model: "gpt-5.1"
     max_loops: 5
   worker:
     kind: "codex-cli"

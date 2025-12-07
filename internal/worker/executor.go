@@ -75,17 +75,18 @@ func (e *Executor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[
 	}
 
 	req := agenttools.Request{
-		Prompt:       call.Prompt,
-		Mode:         call.Mode,
-		Model:        call.Model,
-		Temperature:  call.Temperature,
-		MaxTokens:    call.MaxTokens,
-		Workdir:      call.Workdir,
-		Timeout:      0,
-		ExtraEnv:     reqEnv,
-		Flags:        call.Flags,
-		ToolSpecific: call.ToolSpecific,
-		UseStdin:     call.UseStdin,
+		Prompt:          call.Prompt,
+		Mode:            call.Mode,
+		Model:           call.Model,
+		Temperature:     call.Temperature,
+		MaxTokens:       call.MaxTokens,
+		ReasoningEffort: call.ReasoningEffort,
+		Workdir:         call.Workdir,
+		Timeout:         0,
+		ExtraEnv:        reqEnv,
+		Flags:           call.Flags,
+		ToolSpecific:    call.ToolSpecific,
+		UseStdin:        call.UseStdin,
 	}
 
 	// Determine base timeout from config; later overridden by plan.Timeout if set

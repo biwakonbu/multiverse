@@ -18,6 +18,7 @@ type Handler struct {
     SessionStore *ChatSessionStore       // セッション永続化
     WorkspaceID  string                  // ワークスペースID
     ProjectRoot  string                  // プロジェクトルートパス
+    metaTimeout  time.Duration           // Meta-agent 呼び出しタイムアウト
 }
 ```
 
@@ -25,6 +26,17 @@ type Handler struct {
 - `HandleMessage(ctx, sessionID, message)` - メッセージ処理とタスク生成
 - `CreateSession(ctx)` - 新規セッション作成
 - `GetHistory(ctx, sessionID)` - 履歴取得
+- `SetMetaTimeout(timeout)` - タイムアウト設定
+
+### タイムアウト設定
+
+```go
+// Meta-agent 呼び出しのデフォルトタイムアウト（15分）
+const DefaultChatMetaTimeout = 15 * time.Minute
+```
+
+LLM によるタスク分解は時間がかかるため、十分な時間を確保する。
+`SetMetaTimeout()` メソッドで個別に設定可能。
 
 ### ChatSessionStore (`session_store.go`)
 

@@ -10,7 +10,7 @@ task:
 runner:
   meta:
     kind: "mock"
-    model: "gpt-5.1-codex-max-high"
+    model: "gpt-5.1"
   worker:
     kind: "codex-cli"
     docker_image: "alpine" # Use alpine for quick test, though it won't have codex cli

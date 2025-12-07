@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/biwakonbu/agent-runner/internal/agenttools"
 	"github.com/biwakonbu/agent-runner/internal/logging"
 	"gopkg.in/yaml.v3"
 )
@@ -21,6 +22,10 @@ type CLIProvider interface {
 	CompletionAssessment(ctx context.Context, taskSummary *TaskSummary) (*CompletionAssessmentResponse, error)
 	TestConnection(ctx context.Context) error
 }
+
+// DefaultMetaAgentTimeout は Meta-agent 用のデフォルトタイムアウト（10分）
+// Codex CLI での LLM 処理は時間がかかるため、十分な時間を確保する
+const DefaultMetaAgentTimeout = 10 * time.Minute
 
 // CodexCLIProvider は Codex CLI を使用するプロバイダ
 type CodexCLIProvider struct {
@@ -67,39 +72,66 @@ func (p *CodexCLIProvider) TestConnection(ctx context.Context) error {
 	return nil
 }
 
-// callCodexChat は codex chat コマンドを実行し、YAML 応答を取得する
-func (p *CodexCLIProvider) callCodexChat(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+// callCodexExec は codex exec コマンドを実行し、YAML 応答を取得する
+// agenttools パッケージを使用して共通のフラグ構築ロジックを適用する。
+func (p *CodexCLIProvider) callCodexExec(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	logger := logging.WithTraceID(p.logger, ctx)
 	start := time.Now()
 
-	// codex chat コマンドを構築
-	// システムプロンプトとユーザープロンプトを結合して stdin で渡す（引数解釈を避ける）
+	// システムプロンプトとユーザープロンプトを結合
 	fullPrompt := systemPrompt + "\n\n" + userPrompt
 
-	// Use --stdin to avoid CLI parsing issues with long/structured prompts
-	// The codex CLI requires `--` before passthrough flags.
-	cmd := exec.CommandContext(ctx, "codex", "chat", "--", "--stdin")
-	cmd.Stdin = strings.NewReader(fullPrompt)
+	// agenttools を使用して ExecPlan を生成
+	model := p.model
+	if model == "" {
+		model = agenttools.DefaultMetaModel // Meta-agent 用デフォルト
+	}
+
+	req := agenttools.Request{
+		Prompt:          fullPrompt,
+		Model:           model,
+		ReasoningEffort: agenttools.DefaultReasoningEffort,
+		Timeout:         DefaultMetaAgentTimeout, // LLM 処理に十分な時間を確保
+		UseStdin:        true,                    // 長いプロンプトは stdin で渡す
+		ToolSpecific: map[string]interface{}{
+			"docker_mode": false, // ホスト上で直接実行
+			"json_output": false, // Meta-agent は YAML 出力を期待
+		},
+	}
+
+	provider := agenttools.NewCodexProvider(agenttools.ProviderConfig{
+		Kind:  "codex-cli",
+		Model: model,
+	})
+
+	plan, err := provider.Build(ctx, req)
+	if err != nil {
+		logger.Error("failed to build exec plan", slog.Any("error", err))
+		return "", fmt.Errorf("ExecPlan 構築失敗: %w", err)
+	}
 
 	logger.Info("calling codex CLI",
 		slog.Int("prompt_length", len(fullPrompt)),
+		slog.String("model", model),
 	)
-	logger.Debug("codex chat prompt",
-		slog.String("system_prompt", systemPrompt),
-		slog.String("user_prompt", userPrompt),
+	logger.Debug("codex exec plan",
+		slog.String("command", plan.Command),
+		slog.Any("args", plan.Args),
 	)
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
+	// agenttools.Execute を使用してコマンドを実行
+	result := agenttools.Execute(ctx, plan)
+	if result.Error != nil {
 		logger.Error("codex CLI call failed",
-			slog.String("output", string(output)),
-			slog.Any("error", err),
+			slog.String("output", result.Output),
+			slog.Int("exit_code", result.ExitCode),
+			slog.Any("error", result.Error),
 			logging.LogDuration(start),
 		)
-		return "", fmt.Errorf("codex CLI 呼び出し失敗: %w (出力: %s)", err, string(output))
+		return "", fmt.Errorf("codex CLI 呼び出し失敗: %w (出力: %s)", result.Error, result.Output)
 	}
 
-	response := strings.TrimSpace(string(output))
+	response := strings.TrimSpace(result.Output)
 	logger.Info("codex CLI call completed",
 		slog.Int("response_length", len(response)),
 		logging.LogDuration(start),
@@ -124,7 +156,7 @@ func (p *CodexCLIProvider) Decompose(ctx context.Context, req *DecomposeRequest)
 		slog.Int("existing_tasks", len(req.Context.ExistingTasks)),
 	)
 
-	resp, err := p.callCodexChat(ctx, systemPrompt, userPrompt)
+	resp, err := p.callCodexExec(ctx, systemPrompt, userPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("codex CLI call failed: %w", err)
 	}
@@ -175,7 +207,7 @@ payload:
 	}
 	userPrompt := fmt.Sprintf("PRD:\n%s\n\nGenerate the plan.", prdText)
 
-	resp, err := p.callCodexChat(ctx, systemPrompt, userPrompt)
+	resp, err := p.callCodexExec(ctx, systemPrompt, userPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +246,7 @@ Output MUST be a YAML block with type: next_action.
 
 	userPrompt := fmt.Sprintf("Context:\n%s\n\nDecide next action.", contextSummary)
 
-	resp, err := p.callCodexChat(ctx, systemPrompt, userPrompt)
+	resp, err := p.callCodexExec(ctx, systemPrompt, userPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +316,7 @@ Worker Execution Results:
 Evaluate whether all acceptance criteria are satisfied.`,
 		taskSummary.Title, taskSummary.State, acText, workerText)
 
-	resp, err := p.callCodexChat(ctx, systemPrompt, userPrompt)
+	resp, err := p.callCodexExec(ctx, systemPrompt, userPrompt)
 	if err != nil {
 		return nil, err
 	}

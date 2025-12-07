@@ -135,10 +135,45 @@ export function GetTaskGraph() {
 
 export function SendChatMessage(sessionId, message) {
     console.log("[Mock] SendChatMessage called", sessionId, message);
+    
+    // Golden Test: TODO App
+    if (message.includes("TODO アプリを作成して")) {
+         const newTask = {
+            id: "task-golden-todo",
+            title: "TODO アプリを作成して",
+            status: "PENDING",
+            poolId: "default",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+        // Update local storage so it appears in lists too
+        const tasks = JSON.parse(window.localStorage.getItem('mock_tasks') || '[]');
+        tasks.push(newTask);
+        window.localStorage.setItem('mock_tasks', JSON.stringify(tasks));
+
+        return Promise.resolve({
+            message: {
+                id: "msg-" + Date.now(),
+                role: "assistant",
+                content: "承知しました。TODOアプリの作成タスクを生成しました。",
+                timestamp: new Date().toISOString()
+            },
+            generatedTasks: [newTask],
+            understanding: "TODOアプリの作成要件を理解しました。",
+            conflicts: []
+        });
+    }
+
     return Promise.resolve({
-        role: "assistant",
-        content: "Mock response",
-        tasks: []
+        message: {
+             id: "msg-" + Date.now(),
+             role: "assistant",
+             content: "Mock response",
+             timestamp: new Date().toISOString()
+        },
+        generatedTasks: [],
+        understanding: "Mock understanding",
+        conflicts: []
     });
 }
 

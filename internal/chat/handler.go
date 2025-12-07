@@ -13,6 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// DefaultChatMetaTimeout は Meta-agent 呼び出しのデフォルトタイムアウト（15分）
+// LLM によるタスク分解は時間がかかるため、十分な時間を確保する
+const DefaultChatMetaTimeout = 15 * time.Minute
+
 // MetaClient は Meta-agent クライアントのインターフェース
 type MetaClient interface {
 	Decompose(ctx context.Context, req *meta.DecomposeRequest) (*meta.DecomposeResponse, error)
@@ -55,13 +59,18 @@ func NewHandler(
 		ProjectRoot:  projectRoot,
 		logger:       logging.WithComponent(slog.Default(), "chat-handler"),
 		events:       events,
-		metaTimeout:  30 * time.Second,
+		metaTimeout:  DefaultChatMetaTimeout,
 	}
 }
 
 // SetLogger はカスタムロガーを設定する
 func (h *Handler) SetLogger(logger *slog.Logger) {
 	h.logger = logging.WithComponent(logger, "chat-handler")
+}
+
+// SetMetaTimeout は Meta-agent 呼び出しのタイムアウトを設定する
+func (h *Handler) SetMetaTimeout(timeout time.Duration) {
+	h.metaTimeout = timeout
 }
 
 // HandleMessage はユーザーメッセージを処理し、タスクを生成する

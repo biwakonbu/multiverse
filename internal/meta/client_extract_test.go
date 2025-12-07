@@ -45,6 +45,40 @@ func TestExtractYAML(t *testing.T) {
 			input:    "```\nkey: value\n```",
 			expected: "key: value",
 		},
+		{
+			name: "Codex CLI output with header",
+			input: `OpenAI Codex v0.65.0 (research preview)
+--------
+workdir: /path/to/project
+model: gpt-5.1
+provider: openai
+--------
+user
+Some prompt text here
+codex
+type: decompose
+version: 1
+payload:
+  understanding: "test"`,
+			expected: `type: decompose
+version: 1
+payload:
+  understanding: "test"`,
+		},
+		{
+			name: "Codex CLI output with thinking section",
+			input: `OpenAI Codex v0.65.0
+--------
+thinking **Some thinking**
+type: plan_task
+version: 1
+payload:
+  task_id: "TASK-001"`,
+			expected: `type: plan_task
+version: 1
+payload:
+  task_id: "TASK-001"`,
+		},
 	}
 
 	for _, tt := range tests {

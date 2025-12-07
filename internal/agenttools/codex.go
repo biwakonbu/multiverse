@@ -6,7 +6,17 @@ import (
 	"strconv"
 )
 
+// DefaultCodexModel は Codex CLI のデフォルトモデル（Worker 用）
+const DefaultCodexModel = "gpt-5.1-codex"
+
+// DefaultMetaModel は Meta-agent 用のデフォルトモデル
+const DefaultMetaModel = "gpt-5.1"
+
+// DefaultReasoningEffort は思考の深さのデフォルト値
+const DefaultReasoningEffort = "medium"
+
 // CodexProvider builds ExecPlan for Codex CLI.
+// Codex CLI 0.65.0 対応。Docker コンテナ内での実行を前提とする。
 type CodexProvider struct {
 	cliPath string
 	model   string
@@ -31,66 +41,92 @@ func (p *CodexProvider) Kind() string {
 func (p *CodexProvider) Capabilities() Capability {
 	return Capability{
 		Kind:          p.Kind(),
-		DefaultModel:  p.model,
+		DefaultModel:  nonEmpty(p.model, DefaultCodexModel),
 		SupportsStdin: true,
-		Notes:         "Supports exec/chat; model/temperature/max-tokens flags are passed through.",
+		Notes:         "Codex CLI 0.65.0. Docker 内実行専用。exec モードのみサポート。",
 	}
 }
 
+// Build は Codex CLI の実行計画を生成する。
+// Codex CLI 0.65.0 の仕様に準拠:
+//   - サンドボックス・承認を無効化（Docker が外部サンドボックスとして機能）
+//   - 作業ディレクトリは -C フラグで指定
+//   - 設定オーバーライドは -c フラグで指定（TOML 形式）
+//   - stdin 入力は PROMPT に "-" を指定
+//
+// ToolSpecific オプション:
+//   - docker_mode: bool - true の場合、Docker 内実行用フラグを追加（デフォルト: true）
+//   - json_output: bool - true の場合、--json フラグを追加（デフォルト: true）
 func (p *CodexProvider) Build(_ context.Context, req Request) (ExecPlan, error) {
 	if err := ensurePrompt(req.Prompt); err != nil {
 		return ExecPlan{}, err
 	}
 
+	// exec モードのみサポート（chat サブコマンドは Codex CLI に存在しない）
 	mode := req.Mode
 	if mode == "" {
 		mode = "exec"
 	}
+	if mode != "exec" {
+		return ExecPlan{}, fmt.Errorf("%w: %s (only 'exec' is supported)", ErrUnsupportedMode, mode)
+	}
 
-	args := []string{}
+	// Docker モードかどうか（デフォルト: true = Worker 実行用）
+	dockerMode := true
+	if v, ok := req.ToolSpecific["docker_mode"].(bool); ok {
+		dockerMode = v
+	}
 
-	switch mode {
-	case "exec":
-		args = append(args, "exec")
+	// JSON 出力かどうか（デフォルト: true）
+	jsonOutput := true
+	if v, ok := req.ToolSpecific["json_output"].(bool); ok {
+		jsonOutput = v
+	}
 
-		// Sandbox scope (default: workspace-write)
-		sandbox := "workspace-write"
-		if v, ok := req.ToolSpecific["sandbox"].(string); ok && v != "" {
-			sandbox = v
-		}
-		args = append(args, "--sandbox", sandbox)
+	args := []string{"exec"}
 
-		// JSON output for machine readability
+	// Docker 内実行時のみ: サンドボックス・承認を無効化
+	// 参照: docs/design/sandbox-policy.md
+	if dockerMode {
+		args = append(args, "--dangerously-bypass-approvals-and-sandbox")
+	}
+
+	// 作業ディレクトリ（-C フラグ）
+	// Docker モード時はデフォルト /workspace/project、それ以外は指定がある場合のみ
+	if req.Workdir != "" {
+		args = append(args, "-C", req.Workdir)
+	} else if dockerMode {
+		args = append(args, "-C", "/workspace/project")
+	}
+
+	// JSON 出力（機械可読形式）
+	if jsonOutput {
 		args = append(args, "--json")
-
-		// Working directory inside container (fallback to /workspace/project)
-		cwd := req.Workdir
-		if cwd == "" {
-			cwd = "/workspace/project"
-		}
-		args = append(args, "--cwd", cwd)
-
-	case "chat":
-		args = append(args, "chat")
-
-	default:
-		return ExecPlan{}, fmt.Errorf("%w: %s", ErrUnsupportedMode, mode)
 	}
 
-	// Model selection (request overrides config)
-	if model := nonEmpty(req.Model, p.model); model != "" {
-		args = append(args, "--model", model)
-	}
+	// モデル指定（デフォルト: gpt-5.1-codex）
+	model := nonEmpty(req.Model, p.model, DefaultCodexModel)
+	args = append(args, "-m", model)
 
-	// Sampling controls
+	// 思考の深さ（デフォルト: medium）
+	// Request.ReasoningEffort または ToolSpecific から取得
+	reasoningEffort := DefaultReasoningEffort
+	if req.ReasoningEffort != "" {
+		reasoningEffort = req.ReasoningEffort
+	} else if v, ok := req.ToolSpecific["reasoning_effort"].(string); ok && v != "" {
+		reasoningEffort = v
+	}
+	args = append(args, "-c", fmt.Sprintf("reasoning_effort=%s", reasoningEffort))
+
+	// 追加の config オーバーライド（-c フラグで TOML 形式）
 	if req.Temperature != nil {
-		args = append(args, "--temperature", strconv.FormatFloat(*req.Temperature, 'f', 2, 64))
+		args = append(args, "-c", fmt.Sprintf("temperature=%s", strconv.FormatFloat(*req.Temperature, 'f', 2, 64)))
 	}
 	if req.MaxTokens != nil {
-		args = append(args, "--max-tokens", strconv.Itoa(*req.MaxTokens))
+		args = append(args, "-c", fmt.Sprintf("max_tokens=%d", *req.MaxTokens))
 	}
 
-	// Provider defaults first, then request flags
+	// 追加フラグ（Provider デフォルト → Request）
 	args = append(args, p.flags...)
 	args = append(args, req.Flags...)
 
@@ -102,8 +138,9 @@ func (p *CodexProvider) Build(_ context.Context, req Request) (ExecPlan, error) 
 		Timeout: req.Timeout,
 	}
 
+	// プロンプト（stdin 使用時は "-" を指定）
 	if req.UseStdin {
-		plan.Args = append(plan.Args, "--stdin")
+		plan.Args = append(plan.Args, "-")
 		plan.Stdin = req.Prompt
 	} else {
 		// Append prompt as positional argument

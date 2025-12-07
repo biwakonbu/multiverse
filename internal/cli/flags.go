@@ -28,7 +28,7 @@ func ParseFlags(args []string, output io.Writer) (*Flags, error) {
 // ResolveMetaModel determines the final model ID based on priority:
 // 1. CLI flag
 // 2. Task YAML configuration
-// 3. Default value (gpt-5.1-codex-max-high)
+// 3. Default value (gpt-5.1 for Meta-agent)
 func ResolveMetaModel(cliModel, yamlModel string) string {
 	if cliModel != "" {
 		return cliModel
@@ -36,5 +36,5 @@ func ResolveMetaModel(cliModel, yamlModel string) string {
 	if yamlModel != "" {
 		return yamlModel
 	}
-	return "gpt-5.1-codex-max-high"
+	return "gpt-5.1"
 }
