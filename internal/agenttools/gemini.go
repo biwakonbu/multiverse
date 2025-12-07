@@ -7,7 +7,13 @@ import (
 )
 
 // DefaultGeminiModel defines the default model for Gemini CLI.
-const DefaultGeminiModel = "gemini-1.5-pro"
+// 参照: https://ai.google.dev/gemini-api/docs/models
+// 利用可能なモデル:
+//   - gemini-3-pro-preview: 最新のマルチモーダル、1M入力/65k出力（デフォルト）
+//   - gemini-2.5-pro: 高度な推論、STEM分析、大規模ドキュメント処理（安定版）
+//   - gemini-2.5-flash: 価格・性能バランス重視（安定版）
+//   - gemini-2.5-flash-lite: 超高速・低コスト
+const DefaultGeminiModel = "gemini-3-pro-preview"
 
 // GeminiProvider builds ExecPlan for Gemini CLI.
 // Assumes the use of Google's open-source Gemini CLI or compatible interface.

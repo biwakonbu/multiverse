@@ -254,7 +254,7 @@ func TestGeminiProvider_Build(t *testing.T) {
 	}
 
 	args := strings.Join(plan.Args, " ")
-	if !strings.Contains(args, "--model gemini-1.5-pro") {
+	if !strings.Contains(args, "--model gemini-3-pro-preview") {
 		t.Errorf("Default model missing, got: %s", args)
 	}
 	if !strings.HasSuffix(args, "hello gemini") {
