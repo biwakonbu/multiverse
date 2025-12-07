@@ -102,7 +102,8 @@ func (s *Scheduler) allDependenciesSatisfied(task *Task) bool {
 	completedStatuses := map[TaskStatus]bool{
 		TaskStatusSucceeded: true,
 		TaskStatusCompleted: true,
-		TaskStatusCanceled:  true,
+		// TaskStatusCanceled is deliberately excluded.
+		// If a dependency is canceled, the dependent task should NOT proceed.
 	}
 
 	for _, depID := range task.Dependencies {

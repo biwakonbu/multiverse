@@ -23,16 +23,20 @@ const (
 // ExecutionOrchestrator manages the autonomous execution loop
 type ExecutionOrchestrator struct {
 	Scheduler    *Scheduler
-	Executor     *Executor
+	Executor     TaskExecutor
 	TaskStore    *TaskStore
 	Queue        *ipc.FilesystemQueue
 	EventEmitter EventEmitter
 	BacklogStore *BacklogStore
 	RetryPolicy  *RetryPolicy
-	PoolID       string
+	PoolIDs      []string
 
 	state   ExecutionState
 	stateMu sync.RWMutex
+
+	// Force Stop support
+	runningCancel context.CancelFunc
+	cancelMu      sync.Mutex
 
 	stopCh   chan struct{}
 	resumeCh chan struct{}
@@ -43,15 +47,15 @@ type ExecutionOrchestrator struct {
 // NewExecutionOrchestrator creates a new ExecutionOrchestrator
 func NewExecutionOrchestrator(
 	scheduler *Scheduler,
-	executor *Executor,
+	executor TaskExecutor,
 	taskStore *TaskStore,
 	queue *ipc.FilesystemQueue,
 	eventEmitter EventEmitter,
 	backlogStore *BacklogStore,
-	poolID string,
+	poolIDs []string,
 ) *ExecutionOrchestrator {
-	if poolID == "" {
-		poolID = "default"
+	if len(poolIDs) == 0 {
+		poolIDs = []string{"default"}
 	}
 	return &ExecutionOrchestrator{
 		Scheduler:    scheduler,
@@ -61,7 +65,7 @@ func NewExecutionOrchestrator(
 		EventEmitter: eventEmitter,
 		BacklogStore: backlogStore,
 		RetryPolicy:  DefaultRetryPolicy(),
-		PoolID:       poolID,
+		PoolIDs:      poolIDs,
 		state:        ExecutionStateIdle,
 		stopCh:       nil,
 		resumeCh:     make(chan struct{}),
@@ -140,6 +144,15 @@ func (e *ExecutionOrchestrator) Stop() error {
 	if stopCh != nil {
 		close(stopCh) // runLoop を確実に終了させる
 	}
+
+	// Cancel currently running task if any
+	e.cancelMu.Lock()
+	if e.runningCancel != nil {
+		e.logger.Info("canceling running task due to stop signal")
+		e.runningCancel()
+		e.runningCancel = nil
+	}
+	e.cancelMu.Unlock()
 
 	e.emitStateChange(oldState, ExecutionStateIdle)
 	e.logger.Info("execution orchestrator stopped")
@@ -221,20 +234,24 @@ func (e *ExecutionOrchestrator) runLoop(ctx context.Context, stopCh <-chan struc
 
 			// 1. Schedule Ready Tasks
 			// This moves tasks from PENDING/BLOCKED -> READY -> QUEUE
-			if _, err := e.Scheduler.ScheduleReadyTasks(); err != nil {
-				e.logger.Error("failed to schedule ready tasks", slog.Any("error", err))
+			if e.Scheduler != nil {
+				if _, err := e.Scheduler.ScheduleReadyTasks(); err != nil {
+					e.logger.Error("failed to schedule ready tasks", slog.Any("error", err))
+				}
 			}
 
 			// 2. Consume from Queue (Simulating Worker Pool resource availability)
-			// Process job for the configured pool
-			job, err := e.Queue.Dequeue(e.PoolID)
-			if err != nil {
-				e.logger.Error("failed to dequeue job", slog.Any("error", err))
-				continue
-			}
+			// Process job for each configured pool
+			for _, poolID := range e.PoolIDs {
+				job, err := e.Queue.Dequeue(poolID)
+				if err != nil {
+					e.logger.Error("failed to dequeue job", slog.String("pool_id", poolID), slog.Any("error", err))
+					continue
+				}
 
-			if job != nil {
-				e.processJob(ctx, job)
+				if job != nil {
+					e.processJob(ctx, job)
+				}
 			}
 		}
 	}
@@ -251,11 +268,33 @@ func (e *ExecutionOrchestrator) processJob(ctx context.Context, job *ipc.Job) {
 		return
 	}
 
-	// 試行回数はタスクから取得するのでインクリメントは不要
+	// Increment attempt count before execution
+	task.AttemptCount++
+	if err := e.TaskStore.SaveTask(task); err != nil {
+		e.logger.Error("failed to save task attempt count", slog.String("task_id", task.ID), slog.Any("error", err))
+		_ = e.Queue.Complete(job.ID, job.PoolID)
+		return
+	}
+
+	// Create cancellable context for this job
+	jobCtx, cancel := context.WithCancel(ctx)
+	e.cancelMu.Lock()
+	e.runningCancel = cancel
+	e.cancelMu.Unlock()
+
+	defer func() {
+		e.cancelMu.Lock()
+		if e.runningCancel != nil {
+			// Ensure cancel is called if not already
+			cancel()
+			e.runningCancel = nil
+		}
+		e.cancelMu.Unlock()
+	}()
 
 	// Execute Task
 	oldStatus := task.Status
-	attempt, execErr := e.Executor.ExecuteTask(ctx, task)
+	attempt, execErr := e.Executor.ExecuteTask(jobCtx, task)
 
 	// Fetch latest status
 	latestTask, loadErr := e.TaskStore.LoadTask(job.TaskID)
@@ -265,13 +304,16 @@ func (e *ExecutionOrchestrator) processJob(ctx context.Context, job *ipc.Job) {
 
 	if execErr != nil {
 		e.logger.Error("task execution failed", slog.String("task_id", task.ID), slog.Any("error", execErr))
+
+		// Check if it was canceled
+		if jobCtx.Err() == context.Canceled {
+			e.logger.Info("task execution canceled by user/system", slog.String("task_id", task.ID))
+			// Canceled handling -> likely no retry, just mark as CANCELED or FAILED
+			// For now, let HandleFailure decide or just log
+		}
+
 		// HandleFailure でリトライ/バックログ追加を判断
-		// 最新の試行回数を渡す（既にExecuteTask内で失敗Attemptが保存されている可能性があるが、ここではタスクのAttemptCountを使う）
-		// ただし、タスク実行前にAttemptCountをインクリメントしていないので、現在値+1を渡すべきか？
-		// RetryPolicyは "次の試行" が何回目かを判定するロジックではなく、"現在の失敗" が何回目の試行かを判定する
-		// ExecuteTaskが失敗した時点で1回カウントされるべき。
-		// ここでは task.AttemptCount + 1 を渡すのが適切
-		if handleErr := e.HandleFailure(task, execErr, task.AttemptCount+1); handleErr != nil {
+		if handleErr := e.HandleFailure(task, execErr, task.AttemptCount); handleErr != nil {
 			e.logger.Error("failed to handle task failure", slog.String("task_id", task.ID), slog.Any("error", handleErr))
 		}
 	} else {

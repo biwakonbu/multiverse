@@ -344,9 +344,30 @@ var DefaultPools = []Pool{
 
 // GetAvailablePools は利用可能な Pool 一覧を返す
 func (s *TaskStore) GetAvailablePools() []Pool {
-	// TODO: worker-pools.json から読み込む実装を追加
-	// 現時点ではデフォルト Pool を返す
-	return DefaultPools
+	path := filepath.Join(s.WorkspaceDir, "worker-pools.json")
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return DefaultPools
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Printf("failed to read worker-pools.json: %v\n", err)
+		return DefaultPools
+	}
+
+	var config struct {
+		Pools []Pool `json:"pools"`
+	}
+	if err := json.Unmarshal(data, &config); err != nil {
+		fmt.Printf("failed to parse worker-pools.json: %v\n", err)
+		return DefaultPools
+	}
+
+	if len(config.Pools) == 0 {
+		return DefaultPools
+	}
+
+	return config.Pools
 }
 
 // ListAllTasks は全タスクの最新状態を返す

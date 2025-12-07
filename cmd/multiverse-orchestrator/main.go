@@ -30,7 +30,7 @@ func main() {
 	// Initialize components
 	taskStore := orchestrator.NewTaskStore(*workspaceDir)
 	queue := ipc.NewFilesystemQueue(*workspaceDir)
-	executor := orchestrator.NewExecutor(*agentRunnerPath, taskStore)
+	executor := orchestrator.NewExecutor(*agentRunnerPath, *workspaceDir, taskStore)
 
 	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())

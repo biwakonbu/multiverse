@@ -113,7 +113,7 @@ func (a *App) SelectWorkspace() string {
 	if _, err := os.Stat("agent-runner"); err == nil {
 		agentRunnerPath, _ = filepath.Abs("agent-runner")
 	}
-	executor := orchestrator.NewExecutor(agentRunnerPath, a.taskStore)
+	executor := orchestrator.NewExecutor(agentRunnerPath, ws.ProjectRoot, a.taskStore)
 	eventEmitter := orchestrator.NewWailsEventEmitter(a.ctx)
 
 	a.scheduler = orchestrator.NewScheduler(a.taskStore, queue, eventEmitter)
@@ -128,7 +128,7 @@ func (a *App) SelectWorkspace() string {
 		queue,
 		eventEmitter,
 		a.backlogStore,
-		"default",
+		[]string{"default", "codegen", "test"},
 	)
 
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)
@@ -185,7 +185,7 @@ func (a *App) OpenWorkspaceByID(id string) string {
 	if _, err := os.Stat("agent-runner"); err == nil {
 		agentRunnerPath, _ = filepath.Abs("agent-runner")
 	}
-	executor := orchestrator.NewExecutor(agentRunnerPath, a.taskStore)
+	executor := orchestrator.NewExecutor(agentRunnerPath, ws.ProjectRoot, a.taskStore)
 	eventEmitter := orchestrator.NewWailsEventEmitter(a.ctx)
 
 	a.scheduler = orchestrator.NewScheduler(a.taskStore, queue, eventEmitter)
@@ -200,7 +200,7 @@ func (a *App) OpenWorkspaceByID(id string) string {
 		queue,
 		eventEmitter,
 		a.backlogStore,
-		"default",
+		[]string{"default", "codegen", "test"},
 	)
 
 	// Initialize ChatHandler with mock Meta client (TODO: configurable)

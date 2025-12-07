@@ -77,3 +77,35 @@ v0.1 ではファイルシステムベースの単純な IPC を採用してい�
 - **WebSocket**: リアルタイムなログストリーミングと状態通知のために導入予定。
 - **Database**: タスク履歴の検索性向上のため、SQLite などの埋め込み DB への移行を検討。
 - **Multi-Node**: リモートの強力なマシンで Worker を動かすための分散実行プロトコル。
+
+## 実装詳細 (v0.x Current)
+
+現在の `internal/orchestrator` 実装における詳細仕様です。
+
+### 1. Execution State Machine
+
+`ExecutionOrchestrator` は以下の状態を持ちます。
+
+- **IDLE**: 停止状態。タスク処理を行いません。
+- **RUNNING**: 稼働状態。キューをポーリングし、タスクを実行します。
+- **PAUSED**: 一時停止状態。実行中のタスクは継続しますが、新規タスクの開始を保留します。
+
+### 2. Reliability & Recovery
+
+タスク失敗時、`RetryPolicy` に基づき以下の判断を行います。
+
+- **Retry**: 一時的なエラーと判断した場合、Exponential Backoff を適用してタスクを `RETRY_WAIT` 状態にし、将来の再実行をスケジュールします。
+- **Backlog**: リトライ上限到達や致命的なエラーの場合、タスクをバックログ (`BacklogStore`) に移動し、人間の介入を待ちます。
+
+### 3. Force Stop
+
+`Stop()` メソッドにより、オーケストレーターを即座に停止できます。
+
+- 実行中のタスクがある場合、Context Cancellation により `agent-runner` プロセスを強制終了します。
+- Docker コンテナなどのリソースは `agent-runner` のクリーンアップ処理により停止されます。
+
+### 4. Executor の制約
+
+現在の `Executor` は簡易実装であり、以下の制限があります。
+
+- `agent-runner` への入力 YAML はコード内で生成されており、`max_loops: 5`, `worker.cli: "codex"` 等の値がハードコードされています。
