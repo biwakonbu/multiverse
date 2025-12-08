@@ -21,10 +21,7 @@ const meta = {
       options: ["graph", "wbs"],
       description: "表示モード（Graph / WBS）",
     },
-    showChat: {
-      control: "boolean",
-      description: "チャットウィンドウ表示",
-    },
+
   },
 } as Meta<typeof MainViewPreview>;
 
@@ -470,30 +467,7 @@ export const WithBacklogOpen: Story = {
   },
 };
 
-// === Story: 設定モーダル表示 ===
-export const WithSettingsOpen: Story = {
-  args: {
-    viewMode: "wbs",
-    taskList: developmentInProgressTasks,
-    poolSummaries: [
-      { poolId: "codegen", running: 2, queued: 2, failed: 0, total: 6, counts: {} },
-    ],
-    overallProgress: calcProgress(developmentInProgressTasks),
-    taskCountsByStatus: countByStatus(developmentInProgressTasks),
-    selectedTask: null,
-    showChat: true,
-    chatPosition: { x: 600, y: 300 },
-    showSettings: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "設定モーダルが表示された状態。LLMプロバイダの設定を確認・変更。",
-      },
-    },
-  },
-};
+
 
 // === Story: 全オーバーレイ表示 ===
 export const WithAllOverlays: Story = {

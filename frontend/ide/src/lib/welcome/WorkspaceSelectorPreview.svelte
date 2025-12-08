@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { WelcomeHeader, RecentWorkspaceList, OpenWorkspaceButton } from './index';
-  import type { WorkspaceSummary } from '../../schemas';
+  import {
+    WelcomeHeader,
+    RecentWorkspaceList,
+    OpenWorkspaceButton,
+  } from "./index";
+  import type { WorkspaceSummary } from "../../schemas";
 
   interface Props {
     recentWorkspaces?: WorkspaceSummary[];
@@ -20,12 +24,12 @@
     onSelectNew = () => {},
   }: Props = $props();
 
-  function handleOpen(e: CustomEvent<string>) {
-    onOpen(e.detail);
+  function handleOpen(id: string) {
+    onOpen(id);
   }
 
-  function handleRemove(e: CustomEvent<string>) {
-    onRemove(e.detail);
+  function handleRemove(id: string) {
+    onRemove(id);
   }
 </script>
 
@@ -38,16 +42,13 @@
     <RecentWorkspaceList
       workspaces={recentWorkspaces}
       loading={isLoadingRecent}
-      on:open={handleOpen}
-      on:remove={handleRemove}
+      onopen={handleOpen}
+      onremove={handleRemove}
     />
 
     <!-- アクション -->
     <div class="action-section">
-      <OpenWorkspaceButton
-        loading={isLoading}
-        on:click={onSelectNew}
-      />
+      <OpenWorkspaceButton loading={isLoading} onclick={onSelectNew} />
     </div>
 
     <!-- ヒント -->

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import {
     taskCountsByStatus,
     poolSummaries,
@@ -9,14 +8,7 @@
   import type { TaskStatus } from "../../types";
   import BrandText from "../components/brand/BrandText.svelte";
   import ProgressBar from "../wbs/ProgressBar.svelte";
-  import ExecutionControls from "./ExecutionControls.svelte";
-  import { Network, ListTree, Settings } from "lucide-svelte";
-
-  const dispatch = createEventDispatcher();
-
-  function openSettings() {
-    dispatch("showSettings");
-  }
+  import { Network, ListTree } from "lucide-svelte";
 
   // Badge status type (no longer directly used for badges, but conceptually for styling)
   type BadgeStatus =
@@ -135,11 +127,6 @@
 
   <!-- 右側：Command Capsule & View Switch -->
   <div class="toolbar-section right">
-    <!-- Command Capsule -->
-    <div class="command-capsule">
-      <ExecutionControls />
-    </div>
-
     <!-- Progress -->
     <div class="progress-module">
       <ProgressBar percentage={$overallProgress.percentage} size="mini" />
@@ -165,11 +152,6 @@
         <ListTree size="16" />
       </button>
     </div>
-
-    <!-- Settings Button -->
-    <button class="settings-btn" onclick={openSettings} title="LLM Settings">
-      <Settings size="18" />
-    </button>
   </div>
 </header>
 
@@ -309,16 +291,6 @@
     color: var(--mv-color-text-muted);
   }
 
-  /* Command Capsule */
-  .command-capsule {
-    display: flex;
-    align-items: center;
-    padding: var(--mv-spacing-xxxs);
-    background: var(--mv-glass-border);
-    border-radius: var(--mv-radius-lg);
-    border: var(--mv-border-width-thin) solid var(--mv-glass-active);
-  }
-
   /* Progress Module */
   .progress-module {
     display: flex;
@@ -371,24 +343,4 @@
   }
 
   /* Settings Button */
-  .settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: var(--mv-size-action-btn);
-    height: var(--mv-size-action-btn);
-    margin-left: var(--mv-spacing-sm);
-    border: none;
-    border-radius: var(--mv-radius-full);
-    background: var(--mv-glass-bg-darker);
-    color: var(--mv-color-text-muted);
-    cursor: pointer;
-    transition: all var(--mv-duration-normal) cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .settings-btn:hover {
-    color: var(--mv-color-text-primary);
-    background: var(--mv-glass-active);
-    transform: rotate(45deg);
-  }
 </style>

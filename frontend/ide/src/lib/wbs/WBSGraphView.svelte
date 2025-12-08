@@ -95,14 +95,12 @@
 
   let positionedNodes = $derived(calculateLayout($wbsTree));
   let edges = $derived(getEdges(positionedNodes));
-  let canvasWidth = $derived(Math.max(
-    800,
-    ...positionedNodes.map((n) => n.x + NODE_WIDTH + PADDING)
-  ));
-  let canvasHeight = $derived(Math.max(
-    400,
-    ...positionedNodes.map((n) => n.y + NODE_HEIGHT + PADDING)
-  ));
+  let canvasWidth = $derived(
+    Math.max(800, ...positionedNodes.map((n) => n.x + NODE_WIDTH + PADDING))
+  );
+  let canvasHeight = $derived(
+    Math.max(400, ...positionedNodes.map((n) => n.y + NODE_HEIGHT + PADDING))
+  );
 
   // --- Zoom & Pan Logic ---
   let container: HTMLDivElement | undefined = $state();
@@ -259,9 +257,9 @@
 
   <ZoomControls
     {scale}
-    on:zoomIn={onZoomIn}
-    on:zoomOut={onZoomOut}
-    on:reset={onReset}
+    onzoomin={onZoomIn}
+    onzoomout={onZoomOut}
+    onreset={onReset}
   />
 
   <!-- 操作ヒント -->

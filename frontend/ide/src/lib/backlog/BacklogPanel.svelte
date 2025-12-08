@@ -21,10 +21,10 @@
     resolvingItem = null;
   }
 
-  async function handleResolve(event: CustomEvent<{ text: string }>) {
+  async function handleResolve(event: { text: string }) {
     if (!resolvingItem) return;
     try {
-      await resolveItem(resolvingItem.id, event.detail.text);
+      await resolveItem(resolvingItem.id, event.text);
       closeResolveDialog();
     } catch {
       // エラーは store でログ出力済み
@@ -55,8 +55,8 @@
         {#each $backlogItems as item (item.id)}
           <BacklogItemComponent
             {item}
-            on:resolve={() => openResolveDialog(item)}
-            on:delete={() => handleDelete(item)}
+            onresolve={() => openResolveDialog(item)}
+            ondelete={() => handleDelete(item)}
           />
         {/each}
       </ul>
@@ -68,8 +68,8 @@
 {#if resolvingItem}
   <ResolveDialog
     item={resolvingItem}
-    on:close={closeResolveDialog}
-    on:confirm={handleResolve}
+    onclose={closeResolveDialog}
+    onconfirm={handleResolve}
   />
 {/if}
 

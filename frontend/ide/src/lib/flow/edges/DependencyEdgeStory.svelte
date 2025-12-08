@@ -67,9 +67,7 @@
   ]);
 </script>
 
-<div
-  style="width: 100%; height: 400px; background: var(--mv-color-surface-app); position: relative;"
->
+<div class="edge-story-container">
   <!-- Include Grid Background for context -->
   <div class="grid-background" style="position: absolute; inset: 0;">
     <svg class="grid-pattern" width="100%" height="100%">
@@ -93,7 +91,7 @@
   </div>
 
   <!-- Define Markers (Copied from UnifiedFlowCanvas) -->
-  <svg style="position: absolute; width: 0; height: 0;">
+  <svg class="markers-defs">
     <defs>
       <marker
         id="marker-source"
@@ -151,10 +149,26 @@
 </div>
 
 <style>
+  .edge-story-container {
+    width: 100%;
+    height: var(--mv-preview-chat-height);
+    background: var(--mv-color-surface-app);
+    position: relative;
+  }
+
+  .markers-defs {
+    position: absolute;
+    width: var(--mv-space-0);
+    height: var(--mv-space-0);
+  }
+
+  /* stylelint-disable selector-class-pattern -- Svelte Flow library classes */
   :global(.svelte-flow) {
     background: transparent !important;
   }
+
   :global(.svelte-flow__pane) {
     background: transparent !important;
   }
+  /* stylelint-enable selector-class-pattern */
 </style>

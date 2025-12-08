@@ -275,4 +275,9 @@
 
   /* モックレイアウト */
   --mv-mock-node-width: 120px;
+
+  /* Flow ノードサイズ */
+  --mv-node-width-small: 180px;
+  --mv-node-width-medium: 240px;
+  --mv-node-width-large: 320px;
 }

@@ -118,10 +118,10 @@
   :global(.flow-handle) {
     background: transparent !important;
     border: none !important;
-    width: 1px !important;
-    height: 1px !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
+    width: var(--mv-space-px) !important;
+    height: var(--mv-space-px) !important;
+    min-width: var(--mv-space-0) !important;
+    min-height: var(--mv-space-0) !important;
   }
 
   /* TaskNodePreview.svelte と同一の Crystal HUD スタイル */
@@ -129,7 +129,7 @@
     position: relative;
     width: var(--mv-grid-cell-width);
     height: auto;
-    min-height: 80px;
+    min-height: var(--mv-space-20);
     border-radius: var(--mv-radius-lg);
     cursor: pointer;
     transition:
@@ -160,15 +160,15 @@
 
   /* 3段階ノードサイズ */
   .node.size-small {
-    width: 180px;
+    width: var(--mv-node-width-small);
   }
 
   .node.size-medium {
-    width: 240px;
+    width: var(--mv-node-width-medium);
   }
 
   .node.size-large {
-    width: 320px;
+    width: var(--mv-node-width-large);
   }
 
   .node:hover {

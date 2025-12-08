@@ -1,25 +1,21 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { Button } from "../../design-system";
 
   interface Props {
     scale?: number;
+    onzoomin?: () => void;
+    onzoomout?: () => void;
+    onreset?: () => void;
   }
 
-  let { scale = 1.0 }: Props = $props();
-
-  const dispatch = createEventDispatcher<{
-    zoomIn: void;
-    zoomOut: void;
-    reset: void;
-  }>();
+  let { scale = 1.0, onzoomin, onzoomout, onreset }: Props = $props();
 </script>
 
 <div class="zoom-controls">
   <Button
     variant="secondary"
     size="small"
-    onclick={() => dispatch("zoomOut")}
+    onclick={() => onzoomout?.()}
     label="-"
     title="ズームアウト"
   />
@@ -27,14 +23,14 @@
   <Button
     variant="secondary"
     size="small"
-    onclick={() => dispatch("zoomIn")}
+    onclick={() => onzoomin?.()}
     label="+"
     title="ズームイン"
   />
   <Button
     variant="ghost"
     size="small"
-    onclick={() => dispatch("reset")}
+    onclick={() => onreset?.()}
     label="Reset"
     title="リセット"
   />

@@ -1,24 +1,17 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import type { TaskStatus, PoolSummary } from "../../types";
   import BrandText from "../components/brand/BrandText.svelte";
   import ProgressBar from "../wbs/ProgressBar.svelte";
-  import ExecutionControls from "./ExecutionControls.svelte";
   import Button from "../../design-system/components/Button.svelte";
-  import Badge from "../../design-system/components/Badge.svelte";
-  import { Network, ListTree } from "lucide-svelte";
+  import { Network, ListTree, Settings } from "lucide-svelte";
 
-  const dispatch = createEventDispatcher<{
-    viewModeChange: "graph" | "wbs";
-  }>();
-
-  
   interface Props {
     // Props (matching Stores in Toolbar.svelte)
     poolSummaries?: PoolSummary[];
     overallProgress?: any;
     viewMode?: "graph" | "wbs";
     taskCountsByStatus?: Record<TaskStatus, number>;
+    onviewmodechange?: (mode: "graph" | "wbs") => void;
   }
 
   let {
@@ -26,16 +19,17 @@
     overallProgress = { percentage: 0, completed: 0, total: 0 },
     viewMode = "graph",
     taskCountsByStatus = {
-    PENDING: 0,
-    READY: 0,
-    RUNNING: 0,
-    SUCCEEDED: 0,
-    COMPLETED: 0,
-    FAILED: 0,
-    CANCELED: 0,
-    BLOCKED: 0,
-    RETRY_WAIT: 0,
-  }
+      PENDING: 0,
+      READY: 0,
+      RUNNING: 0,
+      SUCCEEDED: 0,
+      COMPLETED: 0,
+      FAILED: 0,
+      CANCELED: 0,
+      BLOCKED: 0,
+      RETRY_WAIT: 0,
+    },
+    onviewmodechange,
   }: Props = $props();
 
   // ステータスサマリの表示設定（フォールバック用）
@@ -66,11 +60,11 @@
   ];
 
   function setGraphMode() {
-    dispatch("viewModeChange", "graph");
+    onviewmodechange?.("graph");
   }
 
   function setWBSMode() {
-    dispatch("viewModeChange", "wbs");
+    onviewmodechange?.("wbs");
   }
 
   // Pool別サマリがある場合はそれを表示、なければステータス別サマリを表示
@@ -144,8 +138,7 @@
   <div class="toolbar-section right">
     <!-- Command Capsule -->
     <div class="command-capsule">
-      <!-- Note: ExecutionControls usually relies on stores. In preview, it might not work fully without a store mock. -->
-      <ExecutionControls />
+      <!-- Removed ExecutionControls -->
     </div>
 
     <!-- Progress -->

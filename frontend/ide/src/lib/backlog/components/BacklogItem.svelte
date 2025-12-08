@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-
   // Wails models (type: string) と Storybook プレビュー互換の型定義
   type BacklogItemType = "FAILURE" | "QUESTION" | "BLOCKER";
   interface BacklogItemProps {
@@ -17,14 +15,11 @@
 
   interface Props {
     item: BacklogItemProps;
+    onresolve?: () => void;
+    ondelete?: () => void;
   }
 
-  let { item }: Props = $props();
-
-  const dispatch = createEventDispatcher<{
-    resolve: void;
-    delete: void;
-  }>();
+  let { item, onresolve, ondelete }: Props = $props();
 
   function getTypeLabel(type: BacklogItemType | string): string {
     switch (type) {
@@ -48,7 +43,8 @@
   }
 
   function formatDate(dateValue: string | Date): string {
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+    const date =
+      typeof dateValue === "string" ? new Date(dateValue) : dateValue;
     return date.toLocaleString("ja-JP", {
       month: "short",
       day: "numeric",
@@ -69,12 +65,8 @@
   <h4 class="item-title">{item.title}</h4>
   <p class="item-description">{item.description}</p>
   <div class="item-actions">
-    <button class="btn-resolve" onclick={() => dispatch("resolve")}>
-      解決
-    </button>
-    <button class="btn-delete" onclick={() => dispatch("delete")}>
-      削除
-    </button>
+    <button class="btn-resolve" onclick={() => onresolve?.()}> 解決 </button>
+    <button class="btn-delete" onclick={() => ondelete?.()}> 削除 </button>
   </div>
 </li>
 

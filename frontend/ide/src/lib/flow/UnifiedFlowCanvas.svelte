@@ -174,7 +174,7 @@
     pointer-events: none;
   }
 
-  /* Svelte Flow pane should be above grid */
+  /* stylelint-disable selector-class-pattern -- Svelte Flow library classes */
   :global(.svelte-flow) {
     position: relative;
     z-index: 1;
@@ -189,10 +189,8 @@
     background: transparent !important;
   }
 
-  /* Override Svelte Flow default styles to match theme */
   :global(.svelte-flow__node) {
     border-radius: var(--mv-radius-md);
-    /* Remove default node background/border - let TaskNode handle it */
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -205,14 +203,14 @@
 
   :global(.svelte-flow__controls) {
     box-shadow: var(--mv-shadow-card);
-    border: 1px solid var(--mv-color-border-subtle);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
     border-radius: var(--mv-radius-sm);
     background: var(--mv-color-surface-primary);
   }
 
   :global(.svelte-flow__controls-button) {
     background: var(--mv-color-surface-primary);
-    border-bottom: 1px solid var(--mv-color-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
     fill: var(--mv-color-text-secondary);
   }
 
@@ -227,38 +225,8 @@
 
   :global(.svelte-flow__minimap) {
     background: var(--mv-color-surface-primary);
-    border: 1px solid var(--mv-color-border-subtle);
+    border: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
     border-radius: var(--mv-radius-md);
   }
-
-  /* Zoom Indicator - Glassmorphism Style (from GridCanvas) */
-  .zoom-indicator {
-    position: absolute;
-    bottom: var(--mv-spacing-md);
-    right: var(--mv-spacing-md);
-    z-index: 10;
-
-    /* Glass background */
-    background: var(--mv-glass-bg-chat);
-    backdrop-filter: blur(16px);
-
-    /* Refined border */
-    border: var(--mv-border-width-thin) solid var(--mv-glass-border-strong);
-    border-radius: var(--mv-radius-md);
-
-    /* Styling */
-    color: var(--mv-primitive-frost-1);
-    padding: var(--mv-spacing-xs) var(--mv-spacing-sm);
-    font-size: var(--mv-font-size-xs);
-    font-family: var(--mv-font-display);
-    font-weight: var(--mv-font-weight-semibold);
-    letter-spacing: var(--mv-letter-spacing-wide);
-
-    /* Shadow and glow */
-    box-shadow: var(--mv-shadow-zoom-glow);
-    text-shadow: var(--mv-text-shadow-zoom);
-
-    pointer-events: none;
-    transition: all var(--mv-duration-fast);
-  }
+  /* stylelint-enable selector-class-pattern */
 </style>

@@ -24,6 +24,7 @@ const meta = {
       control: "object",
       description: "ステータス別タスク数",
     },
+    onviewmodechange: { action: "viewModeChange" },
   },
   parameters: {
     layout: "fullscreen",

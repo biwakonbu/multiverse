@@ -1,13 +1,24 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount } from 'svelte';
-  import { WelcomeHeader, RecentWorkspaceList, OpenWorkspaceButton } from './welcome';
-  import type { WorkspaceSummary } from '../schemas';
+  import { onMount } from "svelte";
+  import {
+    WelcomeHeader,
+    RecentWorkspaceList,
+    OpenWorkspaceButton,
+  } from "./welcome";
+  import type { WorkspaceSummary } from "../schemas";
   // @ts-ignore - Wails自動生成ファイル
-  import { SelectWorkspace, ListRecentWorkspaces, OpenWorkspaceByID, RemoveWorkspace } from '../../wailsjs/go/main/App';
+  import {
+    SelectWorkspace,
+    ListRecentWorkspaces,
+    OpenWorkspaceByID,
+    RemoveWorkspace,
+  } from "../../wailsjs/go/main/App";
 
-  const dispatch = createEventDispatcher<{
-    selected: string;
-  }>();
+  interface Props {
+    onselected?: (id: string) => void;
+  }
+
+  let { onselected }: Props = $props();
 
   let recentWorkspaces: WorkspaceSummary[] = $state([]);
   let isLoading = $state(false);
@@ -24,7 +35,7 @@
       const workspaces = await ListRecentWorkspaces();
       recentWorkspaces = workspaces || [];
     } catch (e) {
-      console.error('最近のワークスペース読み込みエラー:', e);
+      console.error("最近のワークスペース読み込みエラー:", e);
       recentWorkspaces = [];
     } finally {
       isLoadingRecent = false;
@@ -32,26 +43,24 @@
   }
 
   // 最近使ったワークスペースを開く
-  async function handleOpenRecent(e: CustomEvent<string>) {
-    const id = e.detail;
+  async function handleOpenRecent(id: string) {
     try {
       const resultId = await OpenWorkspaceByID(id);
       if (resultId) {
-        dispatch('selected', resultId);
+        onselected?.(resultId);
       }
     } catch (e) {
-      console.error('ワークスペースを開くエラー:', e);
+      console.error("ワークスペースを開くエラー:", e);
     }
   }
 
   // ワークスペースを履歴から削除
-  async function handleRemoveWorkspace(e: CustomEvent<string>) {
-    const id = e.detail;
+  async function handleRemoveWorkspace(id: string) {
     try {
       await RemoveWorkspace(id);
       await loadRecentWorkspaces();
     } catch (e) {
-      console.error('ワークスペース削除エラー:', e);
+      console.error("ワークスペース削除エラー:", e);
     }
   }
 
@@ -63,10 +72,10 @@
     try {
       const id = await SelectWorkspace();
       if (id) {
-        dispatch('selected', id);
+        onselected?.(id);
       }
     } catch (e) {
-      console.error('Workspace選択エラー:', e);
+      console.error("Workspace選択エラー:", e);
     } finally {
       isLoading = false;
     }
@@ -82,16 +91,13 @@
     <RecentWorkspaceList
       workspaces={recentWorkspaces}
       loading={isLoadingRecent}
-      on:open={handleOpenRecent}
-      on:remove={handleRemoveWorkspace}
+      onopen={handleOpenRecent}
+      onremove={handleRemoveWorkspace}
     />
 
     <!-- アクション -->
     <div class="action-section">
-      <OpenWorkspaceButton
-        loading={isLoading}
-        on:click={selectNew}
-      />
+      <OpenWorkspaceButton loading={isLoading} onclick={selectNew} />
     </div>
 
     <!-- ヒント -->

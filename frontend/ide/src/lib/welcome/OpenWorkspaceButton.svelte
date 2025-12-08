@@ -1,23 +1,19 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
-
-  
   interface Props {
     /**
-   * ワークスペースを開くボタン
-   * VSCode/Cursor 風のクリーンでミニマルなデザイン
-   */
+     * ワークスペースを開くボタン
+     * VSCode/Cursor 風のクリーンでミニマルなデザイン
+     */
     loading?: boolean;
     disabled?: boolean;
+    onclick?: () => void;
   }
 
-  let { loading = false, disabled = false }: Props = $props();
-
-  const dispatch = createEventDispatcher();
+  let { loading = false, disabled = false, onclick }: Props = $props();
 
   function handleClick() {
     if (!loading && !disabled) {
-      dispatch("click");
+      onclick?.();
     }
   }
 

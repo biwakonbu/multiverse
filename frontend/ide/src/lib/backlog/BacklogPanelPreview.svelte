@@ -17,7 +17,6 @@
 </script>
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import BacklogItemComponent from "./components/BacklogItem.svelte";
   import ResolveDialog from "./components/ResolveDialog.svelte";
   import EmptyBacklog from "./components/EmptyBacklog.svelte";
@@ -26,14 +25,11 @@
   interface Props {
     // Props
     items?: BacklogItem[];
+    onresolve?: (data: { id: string; resolution: string }) => void;
+    ondelete?: (data: { id: string }) => void;
   }
 
-  let { items = [] }: Props = $props();
-
-  const dispatch = createEventDispatcher<{
-    resolve: { id: string; resolution: string };
-    delete: { id: string };
-  }>();
+  let { items = [], onresolve, ondelete }: Props = $props();
 
   // 未解決アイテム数
   let unresolvedCount = $derived(items.filter((item) => !item.resolvedAt).length);
@@ -49,17 +45,17 @@
     resolvingItem = null;
   }
 
-  function handleResolve(event: CustomEvent<{ text: string }>) {
+  function handleResolve(event: { text: string }) {
     if (!resolvingItem) return;
-    dispatch("resolve", {
+    onresolve?.({
       id: resolvingItem.id,
-      resolution: event.detail.text || "Resolved",
+      resolution: event.text || "Resolved",
     });
     closeResolveDialog();
   }
 
   function handleDelete(item: BacklogItem) {
-    dispatch("delete", { id: item.id });
+    ondelete?.({ id: item.id });
   }
 </script>
 
@@ -76,8 +72,8 @@
         {#each items as item (item.id)}
           <BacklogItemComponent
             {item}
-            on:resolve={() => openResolveDialog(item)}
-            on:delete={() => handleDelete(item)}
+            onresolve={() => openResolveDialog(item)}
+            ondelete={() => handleDelete(item)}
           />
         {/each}
       </ul>
@@ -89,8 +85,8 @@
 {#if resolvingItem}
   <ResolveDialog
     item={resolvingItem}
-    on:close={closeResolveDialog}
-    on:confirm={handleResolve}
+    onclose={closeResolveDialog}
+    onconfirm={(e) => handleResolve(e)}
   />
 {/if}
 

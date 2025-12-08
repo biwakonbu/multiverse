@@ -1,0 +1,11 @@
+# Agent Behavior Guidelines
+
+## Language / 言語
+**ALWAYS Respond in Japanese / 常に日本語で応答してください**
+
+Unless explicitly requested by the user to interpret or generate English text for a specific purpose (like translation or English copywriting), ALL conversation, explanations, and reasoning must be in Japanese.
+ユーザーから明示的に英語での出力を求められない限り、全ての会話、説明、思考プロセスは日本語で行ってください。
+
+## Code / コード
+- Code comments: Japanese / コード内のコメントは日本語
+- Variable/Function names: English / 変数名・関数名は英語
