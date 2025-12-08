@@ -1,26 +1,22 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import WorkspaceCard from './WorkspaceCard.svelte';
-  import type { WorkspaceSummary } from '../../schemas';
+  import WorkspaceCard from "./WorkspaceCard.svelte";
+  import type { WorkspaceSummary } from "../../schemas";
 
   interface Props {
     workspaces?: WorkspaceSummary[];
     loading?: boolean;
+    onopen?: (id: string) => void;
+    onremove?: (id: string) => void;
   }
 
-  let { workspaces = [], loading = false }: Props = $props();
+  let { workspaces = [], loading = false, onopen, onremove }: Props = $props();
 
-  const dispatch = createEventDispatcher<{
-    open: string;
-    remove: string;
-  }>();
-
-  function handleOpen(e: CustomEvent<string>) {
-    dispatch('open', e.detail);
+  function handleOpen(id: string) {
+    onopen?.(id);
   }
 
-  function handleRemove(e: CustomEvent<string>) {
-    dispatch('remove', e.detail);
+  function handleRemove(id: string) {
+    onremove?.(id);
   }
 </script>
 
@@ -34,19 +30,29 @@
     </div>
   {:else if workspaces.length === 0}
     <div class="empty-state">
-      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+      <svg
+        class="empty-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+        />
       </svg>
       <p class="empty-text">まだワークスペースがありません</p>
-      <p class="empty-hint">「フォルダを開く」からプロジェクトを選択してください</p>
+      <p class="empty-hint">
+        「フォルダを開く」からプロジェクトを選択してください
+      </p>
     </div>
   {:else}
     <div class="workspace-list">
       {#each workspaces as workspace (workspace.id)}
         <WorkspaceCard
           {workspace}
-          on:open={handleOpen}
-          on:remove={handleRemove}
+          onopen={handleOpen}
+          onremove={handleRemove}
         />
       {/each}
     </div>

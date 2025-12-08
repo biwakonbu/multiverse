@@ -1,28 +1,24 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import type { WorkspaceSummary } from '../../schemas';
+  import type { WorkspaceSummary } from "../../schemas";
 
   interface Props {
     workspace: WorkspaceSummary;
+    onopen: (id: string) => void;
+    onremove: (id: string) => void;
   }
 
-  let { workspace }: Props = $props();
-
-  const dispatch = createEventDispatcher<{
-    open: string;
-    remove: string;
-  }>();
+  let { workspace, onopen, onremove }: Props = $props();
 
   // 日付フォーマット
   function formatDate(dateStr: string): string {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
+      return date.toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateStr;
@@ -31,28 +27,28 @@
 
   // パスからプロジェクト名を取得
   function getProjectName(path: string): string {
-    return path.split('/').filter(Boolean).pop() || path;
+    return path.split("/").filter(Boolean).pop() || path;
   }
 
   // パスを短縮表示（ホームディレクトリを ~ に置換）
   function shortenPath(path: string): string {
     // 簡易的な処理（実際は環境変数から取得すべき）
-    return path.replace(/^\/Users\/[^/]+/, '~');
+    return path.replace(/^\/Users\/[^/]+/, "~");
   }
 
   function handleClick() {
-    dispatch('open', workspace.id);
+    onopen(workspace.id);
   }
 
   function handleRemove(e: MouseEvent) {
     e.stopPropagation();
-    dispatch('remove', workspace.id);
+    onremove(workspace.id);
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      dispatch('open', workspace.id);
+      onopen(workspace.id);
     }
   }
 </script>
@@ -66,7 +62,9 @@
 >
   <div class="card-icon">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      <path
+        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+      />
     </svg>
   </div>
 
