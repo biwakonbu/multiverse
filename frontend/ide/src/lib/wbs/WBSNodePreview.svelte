@@ -1,12 +1,11 @@
 <script lang="ts">
-  import WBSNode from './WBSNode.svelte';
-  import type { WBSNode as WBSNodeType } from '../../stores/wbsStore';
-  import type { Task, TaskStatus, PhaseName } from '../../types';
+  import WBSNode from "./WBSNode.svelte";
+  import type { WBSNode as WBSNodeType } from "../../stores/wbsStore";
+  import type { Task, TaskStatus, PhaseName } from "../../types";
 
-  
   interface Props {
     // Props
-    type?: 'phase' | 'task';
+    type?: "phase" | "task";
     label?: string;
     phaseName?: PhaseName;
     status?: TaskStatus;
@@ -15,38 +14,43 @@
     total?: number;
     expanded?: boolean;
     hasChildren?: boolean;
+    hasImpl?: boolean; // New prop for testing
   }
 
   let {
-    type = 'task',
-    label = 'タスク名',
-    phaseName = '実装',
-    status = 'PENDING',
+    type = "task",
+    label = "タスク名",
+    phaseName = "実装",
+    status = "PENDING",
     level = 0,
     completed = 0,
     total = 1,
     expanded = true,
-    hasChildren = false
+    hasChildren = false,
+    hasImpl = false,
   }: Props = $props();
 
   // WBSNodeを構築
   function buildNode(): WBSNodeType {
-    const task: Task | undefined = type === 'task' ? {
-      id: 'preview-task',
-      title: label,
-      status,
-      poolId: 'default',
-      phaseName,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      dependencies: [],
-    } : undefined;
+    const task: Task | undefined =
+      type === "task"
+        ? {
+            id: "preview-task",
+            title: label,
+            status,
+            poolId: "default",
+            phaseName,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            dependencies: [],
+          }
+        : undefined;
 
     const childTask: Task = {
-      id: 'child-task-1',
-      title: '子タスク',
-      status: 'PENDING',
-      poolId: 'default',
+      id: "child-task-1",
+      title: "子タスク",
+      status: "PENDING",
+      poolId: "default",
       phaseName,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -54,13 +58,25 @@
     };
 
     return {
-      id: type === 'phase' ? `phase-${phaseName}` : 'task-preview',
+      id: type === "phase" ? `phase-${phaseName}` : "task-preview",
       type,
       label,
       task,
-      phaseName: type === 'phase' ? phaseName : undefined,
+      phaseName: type === "phase" ? phaseName : undefined,
       level,
-      children: hasChildren ? [{ id: 'child-1', type: 'task', label: '子タスク', task: childTask, level: level + 1, children: [], progress: { completed: 0, total: 0, percentage: 0 } }] : [],
+      children: hasChildren
+        ? [
+            {
+              id: "child-1",
+              type: "task",
+              label: "子タスク",
+              task: childTask,
+              level: level + 1,
+              children: [],
+              progress: { completed: 0, total: 0, percentage: 0 },
+            },
+          ]
+        : [],
       progress: {
         completed,
         total,

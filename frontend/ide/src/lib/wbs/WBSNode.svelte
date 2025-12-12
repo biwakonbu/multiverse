@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
+  import { run } from "svelte/legacy";
 
   import type { WBSNode } from "../../stores/wbsStore";
   import { expandedNodes } from "../../stores/wbsStore";
@@ -11,7 +11,6 @@
   import { onDestroy } from "svelte";
   import { stripMarkdown } from "../utils/markdown";
 
-  
   interface Props {
     // Props
     node: WBSNode;
@@ -34,7 +33,9 @@
   // Indentation with fixed width unit
   const INDENT_WIDTH = 20;
   const INDENT_BASE = 12;
-  let indentStyle = $derived(`padding-left: ${node.level * INDENT_WIDTH + INDENT_BASE}px`);
+  let indentStyle = $derived(
+    `padding-left: ${node.level * INDENT_WIDTH + INDENT_BASE}px`
+  );
 
   // Calculate guides for levels 0 to node.level - 1
   let indentGuides = $derived(Array(Math.max(0, node.level)).fill(0));
@@ -178,6 +179,9 @@
       <span class="retry-info">
         Try {attemptCount} • {timeRemaining}
       </span>
+    {/if}
+    {#if node.task.suggestedImpl}
+      <span class="impl-hint" title="Implementation Plan Available">IP</span>
     {/if}
   {/if}
 
@@ -396,5 +400,16 @@
     font-family: var(--mv-font-mono);
     opacity: 0.9;
     white-space: nowrap;
+  }
+
+  .impl-hint {
+    font-size: var(--mv-font-size-xs);
+    font-family: var(--mv-font-mono);
+    color: var(--mv-primitive-aurora-purple);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-primitive-aurora-purple);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-sm);
+    margin-left: var(--mv-spacing-xs);
   }
 </style>

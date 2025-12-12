@@ -56,6 +56,16 @@ flowchart TD
 - **保存データ**:
   - `tasks/<task-id>.jsonl`: タスクのメタデータ履歴
   - `attempts/<attempt-id>.json`: 実行試行の詳細
+  - `snapshots/<snapshot-id>/`: ワークスペース状態のスナップショット (v2.0+)
+
+### 3. Snapshot Repository (`internal/orchestrator/persistence/snapshot.go`)
+
+ワークスペースの `state/` ディレクトリのバックアップとリストアを提供します。
+
+- **機能**:
+  - `CreateSnapshot(id)`: 現在の状態を保存。
+  - `RestoreSnapshot(snapshot_id)`: 指定した時点の状態へ復元（復元前に安全のため自動バックアップを取得）。
+  - `ListSnapshots()`: 利用可能なスナップショット一覧を取得。
 
 ## IPC (Inter-Process Communication)
 

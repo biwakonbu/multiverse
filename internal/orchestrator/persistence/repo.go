@@ -38,15 +38,18 @@ type WorkspaceRepository interface {
 	Design() DesignRepository
 	State() StateRepository
 	History() HistoryRepository
+	Snapshot() SnapshotRepository
+	BaseDir() string
 }
 
 // --- Implementations ---
 
 type workspaceRepoImpl struct {
-	baseDir string
-	design  *designRepoImpl
-	state   *stateRepoImpl
-	history *historyRepoImpl
+	baseDir  string
+	design   *designRepoImpl
+	state    *stateRepoImpl
+	history  *historyRepoImpl
+	snapshot *snapshotRepoImpl
 }
 
 func NewWorkspaceRepository(baseDir string) WorkspaceRepository {
@@ -55,6 +58,10 @@ func NewWorkspaceRepository(baseDir string) WorkspaceRepository {
 		design:  &designRepoImpl{baseDir: filepath.Join(baseDir, "design")},
 		state:   &stateRepoImpl{baseDir: filepath.Join(baseDir, "state")},
 		history: &historyRepoImpl{baseDir: filepath.Join(baseDir, "history")},
+		snapshot: &snapshotRepoImpl{
+			baseDir:  filepath.Join(baseDir, "snapshots"),
+			stateDir: filepath.Join(baseDir, "state"),
+		},
 	}
 }
 
@@ -74,9 +81,11 @@ func (r *workspaceRepoImpl) Init() error {
 	return nil
 }
 
-func (r *workspaceRepoImpl) Design() DesignRepository   { return r.design }
-func (r *workspaceRepoImpl) State() StateRepository     { return r.state }
-func (r *workspaceRepoImpl) History() HistoryRepository { return r.history }
+func (r *workspaceRepoImpl) Design() DesignRepository     { return r.design }
+func (r *workspaceRepoImpl) State() StateRepository       { return r.state }
+func (r *workspaceRepoImpl) History() HistoryRepository   { return r.history }
+func (r *workspaceRepoImpl) Snapshot() SnapshotRepository { return r.snapshot }
+func (r *workspaceRepoImpl) BaseDir() string              { return r.baseDir }
 
 // --- Design Repo ---
 
@@ -201,20 +210,22 @@ func (r *historyRepoImpl) AppendAction(action *Action) error {
 
 func (r *historyRepoImpl) ListActions(from, to time.Time) ([]Action, error) {
 	var actions []Action
-	// Naive implementation: iterate days.
-	// Production code might need range optimization.
-	current := from
-	for !current.After(to) {
-		filename := fmt.Sprintf("actions-%s.jsonl", current.Format("20060102"))
-		path := filepath.Join(r.baseDir, filename)
+
+	// Find all action files
+	pattern := filepath.Join(r.baseDir, "actions-*.jsonl")
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, path := range files {
+		// Optimization: Parse date from filename and check range before opening?
+		// Filename format: actions-20060102.jsonl
+		// ... Skip for now, simpler to just read valid JSONL files.
 
 		f, err := os.Open(path)
 		if err != nil {
-			if os.IsNotExist(err) {
-				current = current.AddDate(0, 0, 1)
-				continue
-			}
-			return nil, err
+			continue // Skip unreadable
 		}
 
 		dec := json.NewDecoder(f)
@@ -224,15 +235,15 @@ func (r *historyRepoImpl) ListActions(from, to time.Time) ([]Action, error) {
 				if err == io.EOF {
 					break
 				}
-				_ = f.Close()
-				return nil, err
+				// Skip malformed lines? Or fail?
+				// Continuing is safer for history reading.
+				continue
 			}
 			if (a.At.Equal(from) || a.At.After(from)) && (a.At.Equal(to) || a.At.Before(to)) {
 				actions = append(actions, a)
 			}
 		}
 		_ = f.Close()
-		current = current.AddDate(0, 0, 1)
 	}
 
 	// Sort by time

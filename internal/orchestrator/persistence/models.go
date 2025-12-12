@@ -47,6 +47,8 @@ type SuggestedImpl struct {
 	Language    string   `json:"language"`
 	Framework   string   `json:"framework"`
 	ModulePaths []string `json:"module_paths"`
+	FilePaths   []string `json:"file_paths"`  // Added for compatibility
+	Constraints []string `json:"constraints"` // Added for compatibility
 }
 
 // --- State Models ---

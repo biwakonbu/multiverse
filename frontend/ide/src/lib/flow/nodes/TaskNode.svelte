@@ -109,6 +109,9 @@
       {#if hasDependencies}
         <span class="deps">↳ {task.dependencies?.length || 0}</span>
       {/if}
+      {#if task.suggestedImpl}
+        <span class="impl-hint" title="Implementation Plan Available">IP</span>
+      {/if}
     </div>
   {/if}
 </div>
@@ -384,5 +387,15 @@
     font-size: var(--mv-font-size-xs);
     font-family: var(--mv-font-mono);
     color: var(--mv-color-text-muted);
+  }
+
+  .impl-hint {
+    font-size: var(--mv-font-size-xs);
+    font-family: var(--mv-font-mono);
+    color: var(--mv-primitive-aurora-purple);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-primitive-aurora-purple);
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-sm);
   }
 </style>

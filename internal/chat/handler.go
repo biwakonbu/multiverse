@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -284,6 +286,17 @@ func (h *Handler) persistTasks(ctx context.Context, sessionID string, resp *meta
 				AcceptanceCriteria: decomposedTask.AcceptanceCriteria,
 			}
 
+			if decomposedTask.SuggestedImpl != nil {
+				// Validate file paths
+				validatedPaths := h.validateFilePaths(decomposedTask.SuggestedImpl.FilePaths)
+
+				task.SuggestedImpl = &orchestrator.SuggestedImpl{
+					Language:    decomposedTask.SuggestedImpl.Language,
+					FilePaths:   validatedPaths,
+					Constraints: decomposedTask.SuggestedImpl.Constraints,
+				}
+			}
+
 			tasksToSave = append(tasksToSave, task)
 		}
 	}
@@ -392,4 +405,23 @@ func countTotalTasks(resp *meta.DecomposeResponse) int {
 		count += len(p.Tasks)
 	}
 	return count
+}
+
+// validateFilePaths checks if files exist and annotates them if they are new.
+func (h *Handler) validateFilePaths(paths []string) []string {
+	validated := make([]string, len(paths))
+	for i, path := range paths {
+		// Resolve path to absolute for checking
+		checkPath := path
+		if !filepath.IsAbs(path) {
+			checkPath = filepath.Join(h.ProjectRoot, path)
+		}
+
+		if _, err := os.Stat(checkPath); os.IsNotExist(err) {
+			validated[i] = fmt.Sprintf("%s (New File)", path)
+		} else {
+			validated[i] = path
+		}
+	}
+	return validated
 }

@@ -44,6 +44,19 @@ Multiverse プロジェクトでは、システム全体の信頼性を確保し
 go test -v ./test/e2e/...
 ```
 
+### 1-2. Backend V2 (Chat to Task)
+
+**配置場所**: `internal/chat/handler_test.go` (Unit/Integration)
+
+v2.0 のチャット駆動タスク生成フローは、LLM (Meta-agent) の出力に依存するため、安定した E2E テストが困難です。
+したがって、以下の戦略を採用します。
+
+- **モックベース統合テスト**: `ChatHandler` に対し、モック化された Meta-agent から固定の `DecomposeResponse` を返し、適切に `Task` が生成・保存されるかを検証します。
+- **カバレッジ**:
+  - `decompose` プロトコルによるタスク生成
+  - 依存関係（Dependency）の解決
+  - `SuggestedImpl` などの V2 フィールドの保存
+
 ---
 
 ## 2. Frontend UI E2E

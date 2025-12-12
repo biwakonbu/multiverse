@@ -53,6 +53,17 @@ task:
   title: "ユーザ登録 API の実装" # 任意
   repo: "." # 任意。作業対象リポジトリのパス
 
+  # v2.0 拡張フィールド
+  description: "詳細な説明..."
+  dependencies: ["TASK-001"] # 依存タスクID
+  wbs_level: 2 # 1=概念, 2=設計, 3=実装
+  phase_name: "実装"
+
+  suggested_impl:
+    language: "typescript"
+    file_paths: ["src/components/Form.svelte"]
+    constraints: ["Use Zod for validation"]
+
   prd:
     path: "./docs/TASK-123.md" # PRD をファイルから読む場合
     # text: |                       # または PRD 本文を直接埋め込む場合
@@ -90,6 +101,8 @@ runner:
 | `task.title`                     | `task.id` と同じ                  |
 | `task.repo`                      | `"."` (カレントディレクトリ)      |
 | `task.test`                      | 未設定（テスト自動実行なし）      |
+| `task.wbs_level`                 | 0 (未定義)                        |
+| `task.dependencies`              | [] (なし)                         |
 | `runner.meta.kind`               | `"openai-chat"`                   |
 | `runner.meta.model`              | `gpt-5.1` (プロバイダのモデル ID) |
 | `runner.meta.max_loops`          | `5`                               |
@@ -113,7 +126,7 @@ runner:
 
 ### 3.1 構造
 
-TaskContext は実行中のタスク状態を保持します。
+TaskContext は実行中のタスク状態を保持します。v2.0 で拡張されました。
 
 ```go
 type TaskContext struct {
@@ -121,6 +134,14 @@ type TaskContext struct {
     Title     string        // task.title
     RepoPath  string        // task.repo の絶対パス
     State     TaskState     // FSM の現状態
+
+    // v2.0 Extensions
+    Description   string
+    Dependencies  []string
+    WBSLevel      int
+    PhaseName     string
+    SuggestedImpl *SuggestedImpl
+    Artifacts     *Artifacts    // v2.1 Extension
 
     PRDText   string        // PRD 本文
 
@@ -133,6 +154,17 @@ type TaskContext struct {
 
     StartedAt  time.Time
     FinishedAt time.Time
+}
+
+type SuggestedImpl struct {
+    Language    string
+    FilePaths   []string
+    Constraints []string
+}
+
+type Artifacts struct {
+    Files []string
+    Logs  []string
 }
 ```
 

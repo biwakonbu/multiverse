@@ -25,6 +25,7 @@
   import WBSListView from "../wbs/WBSListView.svelte";
   import { wbsTree, expandedNodes } from "../../stores/wbsStore";
   import { layoutDirection } from "./layout/layoutStore";
+  import TaskPropPanel from "../components/ui/TaskPropPanel.svelte";
 
   // Custom Node/Edge Types
   const nodeTypes = {
@@ -173,6 +174,9 @@
       <WBSListView />
     </Panel>
   </SvelteFlow>
+
+  <!-- Property Panel (Right Side) -->
+  <TaskPropPanel />
 </div>
 
 <style>

@@ -250,6 +250,20 @@ export namespace meta {
 
 export namespace orchestrator {
 	
+	export class Artifacts {
+	    files?: string[];
+	    logs?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Artifacts(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.files = source["files"];
+	        this.logs = source["logs"];
+	    }
+	}
 	export class Attempt {
 	    id: string;
 	    taskId: string;
@@ -380,6 +394,22 @@ export namespace orchestrator {
 	        this.counts = source["counts"];
 	    }
 	}
+	export class SuggestedImpl {
+	    language?: string;
+	    filePaths?: string[];
+	    constraints?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new SuggestedImpl(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.language = source["language"];
+	        this.filePaths = source["filePaths"];
+	        this.constraints = source["constraints"];
+	    }
+	}
 	export class Task {
 	    id: string;
 	    title: string;
@@ -404,6 +434,8 @@ export namespace orchestrator {
 	    attemptCount?: number;
 	    // Go type: time
 	    nextRetryAt?: any;
+	    suggestedImpl?: SuggestedImpl;
+	    artifacts?: Artifacts;
 	
 	    static createFrom(source: any = {}) {
 	        return new Task(source);
@@ -429,6 +461,8 @@ export namespace orchestrator {
 	        this.acceptanceCriteria = source["acceptanceCriteria"];
 	        this.attemptCount = source["attemptCount"];
 	        this.nextRetryAt = this.convertValues(source["nextRetryAt"], null);
+	        this.suggestedImpl = this.convertValues(source["suggestedImpl"], SuggestedImpl);
+	        this.artifacts = this.convertValues(source["artifacts"], Artifacts);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

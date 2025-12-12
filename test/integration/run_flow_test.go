@@ -345,17 +345,19 @@ func TestRunFlow_CompletionAssessmentFailed(t *testing.T) {
 		t.Errorf("Expected 2 ACs, got %d", len(result.AcceptanceCriteria))
 	}
 
-	// AC-2 が失敗（Passed=false）と記録されているか
+	// ACの記述内容が正しいか確認
+	// Note: Passed状態は TaskContext には永続化されなくなったため、ここでは検証できない
 	var ac2Found bool
 	for _, ac := range result.AcceptanceCriteria {
-		if ac.ID == "AC-2" {
+		if ac == "Tests passing" {
 			ac2Found = true
-			if ac.Passed {
-				t.Error("AC-2 should be marked as not Passed (Passed=false)")
-			}
+		} else if ac == "Feature implemented" {
+			// Found AC-1
+		} else {
+			t.Errorf("Unexpected AC: %s", ac)
 		}
 	}
 	if !ac2Found {
-		t.Error("AC-2 not found in result")
+		t.Error("AC-2 description 'Tests passing' not found in result")
 	}
 }

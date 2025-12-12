@@ -25,24 +25,24 @@ type TaskContext struct {
 	RepoPath string
 	State    TaskState
 
+	// v2.0 Extensions
+	Description   string
+	Dependencies  []string
+	WBSLevel      int
+	PhaseName     string
+	SuggestedImpl *config.SuggestedImpl
+
 	PRDText string
 
-	AcceptanceCriteria []AcceptanceCriterion
-	MetaCalls          []MetaCallLog
-	WorkerRuns         []WorkerRunResult
+	AcceptanceCriteria []string          // Meta plan_task の結果 (Simple string list for v2)
+	MetaCalls          []MetaCallLog     // Meta 呼び出し履歴
+	WorkerRuns         []WorkerRunResult // Worker 実行履歴
 
 	TestConfig *config.TestDetails
 	TestResult *TestResult
 
 	StartedAt  time.Time
 	FinishedAt time.Time
-}
-
-// AcceptanceCriterion represents a single acceptance criterion from Meta
-type AcceptanceCriterion struct {
-	ID          string `yaml:"id"`
-	Description string `yaml:"description"`
-	Passed      bool
 }
 
 // MetaCallLog records a request/response pair with Meta

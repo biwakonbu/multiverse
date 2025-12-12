@@ -127,13 +127,21 @@ type DecomposedPhase struct {
 
 // DecomposedTask は分解された個別タスク
 type DecomposedTask struct {
-	ID                 string   `yaml:"id" json:"id"`                                   // 一時ID（保存時に正式IDに置換）
-	Title              string   `yaml:"title" json:"title"`                             // タスクタイトル
-	Description        string   `yaml:"description" json:"description"`                 // 詳細説明
-	AcceptanceCriteria []string `yaml:"acceptance_criteria" json:"acceptance_criteria"` // 達成条件
-	Dependencies       []string `yaml:"dependencies" json:"dependencies"`               // 依存タスクID（同バッチ内の一時ID参照可）
-	WBSLevel           int      `yaml:"wbs_level" json:"wbs_level"`                     // WBS階層レベル
-	EstimatedEffort    string   `yaml:"estimated_effort" json:"estimated_effort"`       // 推定工数（small/medium/large）
+	ID                 string         `yaml:"id" json:"id"`                                             // 一時ID（保存時に正式IDに置換）
+	Title              string         `yaml:"title" json:"title"`                                       // タスクタイトル
+	Description        string         `yaml:"description" json:"description"`                           // 詳細説明
+	AcceptanceCriteria []string       `yaml:"acceptance_criteria" json:"acceptance_criteria"`           // 達成条件
+	Dependencies       []string       `yaml:"dependencies" json:"dependencies"`                         // 依存タスクID（同バッチ内の一時ID参照可）
+	WBSLevel           int            `yaml:"wbs_level" json:"wbs_level"`                               // WBS階層レベル
+	EstimatedEffort    string         `yaml:"estimated_effort" json:"estimated_effort"`                 // 推定工数（small/medium/large）
+	SuggestedImpl      *SuggestedImpl `yaml:"suggested_impl,omitempty" json:"suggested_impl,omitempty"` // 実装のヒント
+}
+
+// SuggestedImpl is the suggested implementation details
+type SuggestedImpl struct {
+	Language    string   `yaml:"language,omitempty" json:"language,omitempty"`
+	FilePaths   []string `yaml:"file_paths,omitempty" json:"file_paths,omitempty"`
+	Constraints []string `yaml:"constraints,omitempty" json:"constraints,omitempty"`
 }
 
 // PotentialConflict はファイルコンフリクトの可能性

@@ -70,6 +70,18 @@ export const TaskSchema = z.object({
   // リトライ管理用 (v2.0 Extension)
   attemptCount: z.number().int().nonnegative().optional(),
   nextRetryAt: z.string().datetime({ offset: true }).or(z.string()).optional().nullable(),
+
+  // Phase 1: Data Model Enhancements
+  suggestedImpl: z.object({
+    language: z.string().optional(),
+    filePaths: z.array(z.string()).optional(),
+    constraints: z.array(z.string()).optional(),
+  }).optional(),
+
+  artifacts: z.object({
+    files: z.array(z.string()).optional(),
+    logs: z.array(z.string()).optional(),
+  }).optional(),
 });
 
 export type Task = z.infer<typeof TaskSchema>;

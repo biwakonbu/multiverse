@@ -25,17 +25,15 @@ type TaskExecutor interface {
 type Executor struct {
 	AgentRunnerPath string // Path to agent-runner binary
 	ProjectRoot     string // Root directory of the project
-	TaskStore       *TaskStore
 	logger          *slog.Logger
 	events          EventEmitter // Event emitter for streaming logs
 }
 
 // NewExecutor creates a new Executor.
-func NewExecutor(agentRunnerPath string, projectRoot string, ts *TaskStore) *Executor {
+func NewExecutor(agentRunnerPath string, projectRoot string) *Executor {
 	return &Executor{
 		AgentRunnerPath: agentRunnerPath,
 		ProjectRoot:     projectRoot,
-		TaskStore:       ts,
 		logger:          logging.WithComponent(slog.Default(), "orchestrator-executor"),
 		events:          nil, // Set via SetEventEmitter if needed
 	}
@@ -70,20 +68,10 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 		slog.String("attempt_id", attempt.ID),
 	)
 
-	// Save attempt
-	if err := e.TaskStore.SaveAttempt(attempt); err != nil {
-		logger.Error("failed to save attempt", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to save attempt: %w", err)
-	}
-
-	// Update task status to RUNNING
+	// Update task status to RUNNING (in-memory only, caller handles persistence)
 	task.Status = TaskStatusRunning
 	now := time.Now()
 	task.StartedAt = &now
-	if err := e.TaskStore.SaveTask(task); err != nil {
-		logger.Error("failed to update task status", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to update task status: %w", err)
-	}
 	logger.Info("task status updated to RUNNING")
 
 	// Generate task YAML for agent-runner
@@ -203,15 +191,15 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 		logger.Debug("agent-runner output", slog.String("output", string(output)))
 	}
 
-	// Save updated attempt and task
-	if err := e.TaskStore.SaveAttempt(attempt); err != nil {
-		logger.Error("failed to update attempt", slog.Any("error", err))
-		return attempt, fmt.Errorf("failed to update attempt: %w", err)
-	}
-	if err := e.TaskStore.SaveTask(task); err != nil {
-		logger.Error("failed to update task", slog.Any("error", err))
-		return attempt, fmt.Errorf("failed to update task: %w", err)
-	}
+	// Save updated attempt and task -> REMOVED (Caller responsibility)
+	// if err := e.TaskStore.SaveAttempt(attempt); err != nil {
+	// 	logger.Error("failed to update attempt", slog.Any("error", err))
+	// 	return attempt, fmt.Errorf("failed to update attempt: %w", err)
+	// }
+	// if err := e.TaskStore.SaveTask(task); err != nil {
+	// 	logger.Error("failed to update task", slog.Any("error", err))
+	// 	return attempt, fmt.Errorf("failed to update task: %w", err)
+	// }
 
 	logger.Info("task execution completed",
 		slog.String("final_status", string(attempt.Status)),
@@ -229,14 +217,14 @@ func (e *Executor) handleExecutionError(attempt *Attempt, task *Task, err error)
 	task.Status = TaskStatusFailed
 	task.DoneAt = &now
 
-	_ = e.TaskStore.SaveAttempt(attempt)
-	_ = e.TaskStore.SaveTask(task)
+	// _ = e.TaskStore.SaveAttempt(attempt)
+	// _ = e.TaskStore.SaveTask(task)
 
 	return attempt, err
 }
 
 func (e *Executor) generateTaskYAML(task *Task) string {
-	// Construct the prompt text with Description and AcceptanceCriteria
+	// Construct the prompt text with Description, AcceptanceCriteria, and SuggestedImpl
 	promptText := fmt.Sprintf("Execute task: %s", task.Title)
 	if task.Description != "" {
 		promptText += fmt.Sprintf("\n\nDescription:\n%s", task.Description)
@@ -247,27 +235,76 @@ func (e *Executor) generateTaskYAML(task *Task) string {
 			promptText += fmt.Sprintf("\n- %s", ac)
 		}
 	}
+	if task.SuggestedImpl != nil {
+		promptText += "\n\nSuggested Implementation:"
+		if task.SuggestedImpl.Language != "" {
+			promptText += fmt.Sprintf("\nLanguage: %s", task.SuggestedImpl.Language)
+		}
+		if len(task.SuggestedImpl.FilePaths) > 0 {
+			promptText += "\nTarget Files:"
+			for _, f := range task.SuggestedImpl.FilePaths {
+				promptText += fmt.Sprintf("\n- %s", f)
+			}
+		}
+		if len(task.SuggestedImpl.Constraints) > 0 {
+			promptText += "\nConstraints:"
+			for _, c := range task.SuggestedImpl.Constraints {
+				promptText += fmt.Sprintf("\n- %s", c)
+			}
+		}
+	}
 
 	// Simple task YAML for agent-runner
-	// Using literal style Block Scalar (|) for prd.text to handle multi-line strings safely
-	// Indentation must be correct (4 spaces for the text content)
+	// Using literal style Block Scalar (|) for prd.text to handle multi-line strings safely.
+	// We also populate V2 fields in the YAML.
+
 	promptTextIndented := ""
 	for _, line := range strings.Split(promptText, "\n") {
 		promptTextIndented += fmt.Sprintf("      %s\n", line)
 	}
 
+	// Marshaling SuggestedImpl to YAML manually or via helper would be cleaner,
+	// but sticking to string formatting for dependency simplicity as per current pattern.
+	suggestedImplYAML := ""
+	if task.SuggestedImpl != nil {
+		suggestedImplYAML = fmt.Sprintf(`  suggested_impl:
+    language: %q
+    file_paths: [%s]
+    constraints: [%s]`,
+			task.SuggestedImpl.Language,
+			quoteList(task.SuggestedImpl.FilePaths),
+			quoteList(task.SuggestedImpl.Constraints),
+		)
+	}
+
+	// Dependencies
+	dependenciesYAML := fmt.Sprintf("dependencies: [%s]", quoteList(task.Dependencies))
+
 	return fmt.Sprintf(`version: "1"
 task:
   id: %s
-  title: %s
+  title: %q
   repo: "."
+  description: %q
+  wbs_level: %d
+  phase_name: %q
+  %s
+%s
   prd:
     text: |
 %srunner:
   max_loops: 5
   worker:
     cli: "codex"
-`, task.ID, task.Title, promptTextIndented)
+`, task.ID, task.Title, task.Description, task.WBSLevel, task.PhaseName, dependenciesYAML, suggestedImplYAML, promptTextIndented)
+}
+
+func quoteList(items []string) string {
+	quoted := make([]string, len(items))
+	for i, item := range items {
+		quoted[i] = fmt.Sprintf("%q", item)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 func (e *Executor) handleStructuredLog(taskID string, entry map[string]interface{}) {

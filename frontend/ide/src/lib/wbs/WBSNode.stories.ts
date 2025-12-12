@@ -210,6 +210,24 @@ export const TaskBlocked: Story = {
   },
 };
 
+export const TaskWithImpl: Story = {
+  args: {
+    type: 'task',
+    label: '実装ヒントあり',
+    phaseName: '実装',
+    status: 'READY',
+    level: 1,
+    hasImpl: true,
+  },
+  parameters: {
+      docs: {
+        description: {
+          story: '実装ヒントがあるタスク（IPインジケータ表示）。',
+        },
+      },
+    },
+};
+
 // インデントレベル
 export const NestedLevel2: Story = {
   args: {

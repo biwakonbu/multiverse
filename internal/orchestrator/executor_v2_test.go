@@ -35,7 +35,13 @@ func TestExecutorV2_Execute_Integration(t *testing.T) {
 	tasks := persistence.TasksState{
 		Tasks: []persistence.TaskState{task},
 	}
-	_ = repo.State().SaveTasks(&tasks)
+	err = repo.State().SaveTasks(&tasks)
+	assert.NoError(t, err)
+
+	// Verify pre-seed
+	preTasks, err := repo.State().LoadTasks()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(preTasks.Tasks))
 
 	// 2. Setup Executor with "echo" as agent
 	// We use "sh" to emulate agent-runner
@@ -65,8 +71,11 @@ exit 0
 	assert.NoError(t, err)
 
 	// 4. Verify State Update
-	updatedTasks, _ := repo.State().LoadTasks()
-	assert.Equal(t, "succeeded", updatedTasks.Tasks[0].Status)
+	updatedTasks, err := repo.State().LoadTasks()
+	assert.NoError(t, err)
+	if assert.NotEmpty(t, updatedTasks.Tasks) {
+		assert.Equal(t, "succeeded", updatedTasks.Tasks[0].Status)
+	}
 
 	// 5. Verify History
 	actions, _ := repo.History().ListActions(time.Time{}, time.Now())

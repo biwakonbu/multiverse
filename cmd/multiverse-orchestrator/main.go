@@ -3,16 +3,15 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/orchestrator"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator/ipc"
+	"github.com/biwakonbu/agent-runner/internal/orchestrator/persistence"
 )
 
 func main() {
@@ -28,9 +27,33 @@ func main() {
 	}
 
 	// Initialize components
-	taskStore := orchestrator.NewTaskStore(*workspaceDir)
+	repo := persistence.NewWorkspaceRepository(*workspaceDir)
+	if err := repo.Init(); err != nil {
+		log.Fatalf("Failed to initialize repository: %v", err)
+	}
+
 	queue := ipc.NewFilesystemQueue(*workspaceDir)
-	executor := orchestrator.NewExecutor(*agentRunnerPath, *workspaceDir, taskStore)
+
+	// Scheduler (Optional for pure worker, but Orchestrator usually bundles both roles in this binary?)
+	// If this binary acts as the Orchestrator Daemon, it should process schedule + execution.
+	scheduler := orchestrator.NewScheduler(repo, queue, nil)
+
+	// Executor (Stateless)
+	executor := orchestrator.NewExecutor(*agentRunnerPath, *workspaceDir)
+
+	// RetryPolicy and Backlog configurable? Using defaults for now.
+	backlogStore := orchestrator.NewBacklogStore(*workspaceDir)
+
+	// Create ExecutionOrchestrator
+	orch := orchestrator.NewExecutionOrchestrator(
+		scheduler,
+		executor,
+		repo,
+		queue,
+		nil, // EventEmitter (can be added if needed for logging/UI)
+		backlogStore,
+		[]string{*poolID},
+	)
 
 	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -39,66 +62,21 @@ func main() {
 	// Handle signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		log.Println("Shutting down...")
-		cancel()
-	}()
 
+	// Start Orchestrator
 	log.Printf("Orchestrator started. Workspace: %s, Pool: %s", *workspaceDir, *poolID)
-
-	// Polling loop
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			// Attempt to dequeue a job
-			job, err := queue.Dequeue(*poolID)
-			if err != nil {
-				log.Printf("Error checking queue: %v", err)
-				continue
-			}
-
-			if job == nil {
-				// No jobs
-				continue
-			}
-
-			// Process job
-			if err := processJob(ctx, executor, queue, job); err != nil {
-				log.Printf("Failed to process job %s: %v", job.ID, err)
-			}
-		}
-	}
-}
-
-func processJob(ctx context.Context, executor *orchestrator.Executor, queue *ipc.FilesystemQueue, job *ipc.Job) error {
-	log.Printf("Processing job: %s (Task: %s)", job.ID, job.TaskID)
-
-	// Load Task
-	task, err := executor.TaskStore.LoadTask(job.TaskID)
-	if err != nil {
-		return fmt.Errorf("failed to load task %s: %w", job.TaskID, err)
+	if err := orch.Start(ctx); err != nil {
+		log.Fatalf("Failed to start orchestrator: %v", err)
 	}
 
-	// Execute
-	attempt, err := executor.ExecuteTask(ctx, task)
-	if err != nil {
-		log.Printf("Task execution failed: %v", err)
-	}
+	// Wait for signal
+	<-sigChan
+	log.Println("Shutting down...")
 
-	if attempt != nil {
-		log.Printf("Task finished. Status: %s, ID: %s", attempt.Status, attempt.ID)
+	// Stop gracefully
+	if err := orch.Stop(); err != nil {
+		log.Printf("Error stopping orchestrator: %v", err)
 	}
-
-	// Complete job (remove from processing)
-	if err := queue.Complete(job.ID, job.PoolID); err != nil {
-		return fmt.Errorf("failed to complete job: %w", err)
-	}
-
-	return nil
+	orch.Wait()
+	log.Println("Orchestrator stopped.")
 }

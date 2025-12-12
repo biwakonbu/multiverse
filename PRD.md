@@ -1,62 +1,99 @@
-# 製品要件定義書 (PRD): Multiverse IDE Core 永続化とスケジューラ
+# 製品要件定義書 (PRD): Multiverse IDE Agent Workflow & Architecture
 
 ## 1. はじめに
 
-本 PRD は、Multiverse IDE の Core 永続化およびスケジューリングアーキテクチャの要件を定義します。目標は、「設計（Design）」（WBS + ノード）を唯一の信頼できる情報源（Single Source of Truth）とし、「状態（State）」を「アクション（Actions）」の派生結果とすることで、堅牢で再現可能、かつ検証可能な開発環境を確立することです。
+本 PRD は、AI ネイティブな開発環境「Multiverse IDE」の中核となる、エージェントワークフローと永続化アーキテクチャを定義します。
+従来の「静的な設計書」と「動的な実行状態」の厳密な分離（v2 理想像）から、**「IDE がワークスペースの状態を統合管理し、エージェントが自律的にタスクを消化する」** 実用的かつ堅牢なアーキテクチャ（Pragmatic MVP）への移行を定めます。
 
 ## 2. ゴールと目的
 
-- **再現性**: アクションのリプレイや状態の再構築により、同じ設計（WBS + ノード）から一貫して同じ実装を生成できることを保証する。
-- **可観測性**: すべてのアクション（設計変更、タスク実行、状態更新）の完全な履歴を追記型（Append-only）ログとして保持する。
-- **スケーラビリティ**: 階層的な WBS や依存関係を持つタスクなど、複雑なプロジェクト構造をサポートする。
-- **関心の分離**: 「設計（何を作るか）」、「状態（現在の状況）」、「履歴（何が起きたか）」、「成果物（コードベース）」を明確に分離する。
+- **IDE 主導のワークフロー**: ユーザーは IDE のチャットや GUI を通じて指示を出し、IDE がそれをタスクグラフに変換して管理する。
+- **自律的な実行**: バックエンドの Orchestrator が依存関係を解決しながら、複数のエージェント（Worker）を並列に稼働させる。
+- **完全な可観測性**: タスクの生成、実行、結果、チャット履歴がすべて永続化され、IDE 上でリアルタイムに可視化される。
+- **実用的な永続化**: 複雑さを排除した「統合タスクストア」により、データの整合性と開発速度を両立する。
 
-## 3. スコープ
+## 3. システムアーキテクチャ
 
-- **永続化層**: 設計、状態、履歴のためのファイルベースリポジトリの実装。
-- **スケジューラ**: 一元化された状態に基づいて動作する、依存関係を考慮したタスクスケジューラ。
-- **アクションロギング**: すべての状態変更をアクションとして記録するメカニズム。
-- **データモデル**: WBS、ノード、タスク、エージェント、アクションの JSON 構造の定義。
+### 3.1 全体構成
+
+```mermaid
+graph TD
+    User[Developer] -->|Chat/GUI| IDE[Multiverse IDE (Frontend)]
+    IDE -->|Wails Events| BE[Orchestrator (Backend)]
+
+    subgraph Backend
+        Chat[Chat Handler]
+        Graph[Task Graph Manager]
+        Store[Task Store (JSONL)]
+        Sched[Scheduler]
+        Exec[Executor]
+    end
+
+    subgraph Workers
+        Agent1[Code Agent]
+        Agent2[Analysis Agent]
+    end
+
+    Chat -->|Task Generation| Store
+    Store -->|Events| IDE
+    Graph -->|Ready Tasks| Sched
+    Sched -->|Job| Exec
+    Exec -->|Run| Workers
+    Workers -->|Result| Exec
+    Exec -->|Update| Store
+```
+
+### 3.2 データモデル (Unified Task Model)
+
+設計情報（WBS）と実行状態（State）を単一の **Task** エンティティとして管理し、`JSONL` で永続化します。
+
+- **Task**: 作業の最小単位。
+
+  - `ID`: 一意な識別子 (UUID)。
+  - `Title`, `Description`: タスクの内容。
+  - `Status`: `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED` 等。
+  - `Dependencies`: 依存するタスク ID のリスト (DAG 構築用)。
+  - `PhaseName`: WBS フェーズ（概念設計, 実装, 検証 等）。
+  - `SuggestedImpl`: **[実装済]** エージェントへの具体的な実装指示（言語、変更ファイルパス、制約事項）。
+  - `Artifacts`: **[実装済]** 生成された成果物（ファイルパス、ログファイル等）。
+
+- **Work Breakdown Structure (WBS)**:
+  - 固定的な `wbs.json` ファイルは持たず、IDE がフラットなタスクリストから動的にツリー構造（マイルストーン > フェーズ > タスク）を導出する。
 
 ## 4. 機能要件
 
-### 4.1. 永続化アーキテクチャ
+### 4.1 エージェントワークフロー
 
-- **ワークスペース構造**: データは `~/.multiverse/workspaces/<id>/` 以下の特定のサブディレクトリ（`design/`, `state/`, `history/`, `snapshots/`）に保存されなければならない。
-- **設計リポジトリ (Design Repository)**:
-  - WBS ルートを `design/wbs.json` に保存。
-  - ノード定義を `design/nodes/<node-id>.json` に保存。
-- **状態リポジトリ (State Repository)**:
-  - ノードの実行時状態を `state/nodes-runtime.json` に保存。
-  - スケジューラ状態（タスク）を `state/tasks.json` に保存。
-  - エージェント状態を `state/agents.json` に保存。
-- **履歴リポジトリ (History Repository)**:
-  - すべてのアクションを `history/actions-YYYYMMDD.jsonl` に保存（追記のみ）。
-- **原子的更新**: すべての状態/設計ファイルの更新は原子的でなければならない（一時ファイル書き込み後にリネーム）。
+1. **チャットからのタスク生成**:
+   - ユーザーのチャット入力を Meta-agent (LLM) が分析。
+   - 依存関係を含む一連のタスク (`Task` オブジェクト) を生成。
+   - `SuggestedImpl` フィールドに、変更すべきファイルや技術スタックの制約を含める（`Meta` プロトコル v1.1）。
+2. **タスクグラフ管理**:
+   - バックエンドはタスクの `Dependencies` を解析し、実行可能なタスク (`Ready`) を特定。
+   - 循環参照を検出し、エラーとして報告。
+3. **実行とスケジューリング**:
+   - 利用可能な Worker プール（Codex, Test 等）に対してタスクをディスパッチ。
+   - 実行結果（成功/失敗、生成ファイル）を `Artifacts` としてタスクに記録。
 
-### 4.2. スケジューラロジック
+### 4.2 永続化と履歴
 
-- **依存関係解決**: 依存関係が満たされている場合（例：親ノードが計画済み、依存タスクが成功）にのみタスクをスケジュールする。
-- **優先順位管理**: タスクの優先度と依存関係に基づいて実行順序を決定する。
-- **エージェントディスパッチ**: 能力（Capabilities）と負荷に基づいて、タスクを利用可能なエージェントに割り当てる（`state/agents.json`）。
-- **状態更新**: タスクイベント（開始、成功、失敗）発生時に `state/tasks.json` と `state/nodes-runtime.json` を自動的に更新する。
+- **Unified Task Store**:
+  - `~/.multiverse/workspaces/<id>/tasks/<task-id>.jsonl`
+  - 各行がタスクの状態スナップショットを表す（追記のみ）。最後の行が最新状態。
+- **Chat Session Store**:
+  - チャット履歴を `sessions/<session-id>.jsonl` に保存。タスク生成の文脈を保持。
 
-### 4.3. アクションロギング
+### 4.3 IDE インテグレーション
 
-- **イベントソーシングスタイル**: 設計や状態へのあらゆる変更は、履歴へのアクションレコード記録が先行しなければならない。
-- **アクションタイプ**: `workspace.created`, `node.created`, `task.created`, `task.started`, `task.succeeded` 等。
+- **リアルタイム同期**:
+  - バックエンドの状態変化は Wails イベントを通じて即座にフロントエンドに通知。
+- **可視化**:
+  - **Graph View**: 依存関係と実行状況をノードグラフ (`TaskNode`) として表示。「IP」インジケーターにより実装ヒントの有無を可視化。
+  - **WBS View**: タスクをフェーズごとにグループ化して進捗バーと共に表示 (`WBSNode`)。
+  - **Property Panel**: 選択したタスクの詳細（`SuggestedImpl`、`Artifacts` 含む）を表示。
 
-## 5. 非機能要件
+## 5. 次期開発フェーズ (Next Steps)
 
-- **パフォーマンス**: スケジューラは 100 以上の、アクティブなタスクを効率的に処理できること。
-- **耐久性**: クラッシュ時のデータ損失ゼロ（追記型履歴 + スナップショットに依存）。
-- **言語**: Go 言語での実装（`internal/orchestrator`）。
-
-## 6. データモデル
-
-（詳細な JSON スキーマは `docs/multiverse-ide-core-persistence-and-scheduler.md` で定義）
-
-## 7. 移行戦略
-
-- 現在の `tasks/*.jsonl` ベースの実装は新しいアーキテクチャに置換される。
-- 既存データの自動移行はこのフェーズでは予定されていない（内部保存フォーマットの破壊的変更）。
+1. **Snapshot 機能**: 特定時点のワークスペース状態を保存・復元する機能（「プラン A 失敗時の巻き戻し」用）。
+2. **IPC / WebSocket 強化**: 大量のログやターミナル出力をリアルタイムに IDE にストリーミングする。
+3. **Multi-Agent Orchestration**: Code Agent と Review Agent の協調動作フローの実装。

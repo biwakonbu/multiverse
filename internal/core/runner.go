@@ -68,6 +68,10 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 		StartedAt: time.Now(),
 	}
 
+	if r.Config.Task.SuggestedImpl != nil {
+		taskCtx.SuggestedImpl = r.Config.Task.SuggestedImpl
+	}
+
 	// Create logger with trace ID and task context
 	logger := logging.WithTraceID(r.Logger, ctx)
 	logger = logging.WithComponent(logger, "runner")
@@ -138,13 +142,10 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 		ResponseYAML: planResponseYAML,
 	})
 
-	// Map meta.AcceptanceCriterion to core.AcceptanceCriterion
+	// Map meta.AcceptanceCriterion to core.AcceptanceCriterion (stored as strings)
 	for _, ac := range plan.AcceptanceCriteria {
-		taskCtx.AcceptanceCriteria = append(taskCtx.AcceptanceCriteria, AcceptanceCriterion{
-			ID:          ac.ID,
-			Description: ac.Description,
-			Passed:      false,
-		})
+		// Just store the description for v2 alignment
+		taskCtx.AcceptanceCriteria = append(taskCtx.AcceptanceCriteria, ac.Description)
 	}
 
 	// 3. Start Container for the task
@@ -181,11 +182,11 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 		logger.Info("execution loop iteration", slog.Int("loop", i+1), slog.Int("max", maxLoops))
 		// Prepare summary
 		var metaACs []meta.AcceptanceCriterion
-		for _, ac := range taskCtx.AcceptanceCriteria {
+		for idx, desc := range taskCtx.AcceptanceCriteria {
 			metaACs = append(metaACs, meta.AcceptanceCriterion{
-				ID:          ac.ID,
-				Description: ac.Description,
-				Passed:      ac.Passed,
+				ID:          fmt.Sprintf("AC-%d", idx+1),
+				Description: desc,
+				Passed:      false, // V2 uses validaiton phase for result, simplifying state here
 			})
 		}
 		summary := &meta.TaskSummary{
@@ -277,14 +278,8 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 				ResponseYAML: assessmentRespYAML,
 			})
 
-			// Update AC Passed flags based on assessment results
-			for i := range taskCtx.AcceptanceCriteria {
-				for _, result := range assessment.ByCriterion {
-					if taskCtx.AcceptanceCriteria[i].ID == result.ID {
-						taskCtx.AcceptanceCriteria[i].Passed = (result.Status == "passed")
-					}
-				}
-			}
+			// NOTE: We don't update persistent Passed state for []string based ACs
+			// V2 relies on AllCriteriaSatisfied for final decision
 
 			// Determine final state based on assessment
 			if assessment.AllCriteriaSatisfied {

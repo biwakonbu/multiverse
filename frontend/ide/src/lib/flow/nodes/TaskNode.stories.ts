@@ -36,6 +36,10 @@ const meta = {
     dependencies: {
       control: 'object',
       description: '依存タスクID配列'
+    },
+    suggestedImpl: {
+      control: 'object',
+      description: '実装ヒント'
     }
   },
   parameters: {
@@ -249,6 +253,27 @@ export const WithDependencies: Story = {
       }
     }
   }
+};
+
+export const WithSuggestedImpl: Story = {
+  args: {
+    ...Pending.args,
+    title: '実装ヒント付きタスク',
+    status: 'READY',
+    suggestedImpl: {
+      language: 'typescript',
+      filePaths: ['src/lib/component.svelte'],
+      constraints: ['Use TS features']
+    }
+  },
+  decorators: Pending.decorators,
+  parameters: {
+      docs: {
+        description: {
+          story: '実装ヒントがある場合、"IP" (Implementation Plan) インジケーターが表示されます。'
+        }
+      }
+    }
 };
 
 // 長いタイトル

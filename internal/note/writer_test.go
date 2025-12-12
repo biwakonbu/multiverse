@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/core"
+	"github.com/biwakonbu/agent-runner/pkg/config"
 )
 
 func TestWriter_Write_CreatesDotAgentRunnerDir(t *testing.T) {
@@ -187,17 +188,9 @@ func TestWriter_Write_WithAcceptanceCriteria(t *testing.T) {
 		RepoPath: tmpDir,
 		State:    core.StateComplete,
 		PRDText:  "Sample PRD",
-		AcceptanceCriteria: []core.AcceptanceCriterion{
-			{
-				ID:          "AC-1",
-				Description: "First criterion",
-				Passed:      true,
-			},
-			{
-				ID:          "AC-2",
-				Description: "Second criterion",
-				Passed:      false,
-			},
+		AcceptanceCriteria: []string{
+			"First criterion",
+			"Second criterion",
 		},
 		StartedAt:  time.Now(),
 		FinishedAt: time.Now(),
@@ -215,14 +208,11 @@ func TestWriter_Write_WithAcceptanceCriteria(t *testing.T) {
 	}
 
 	contentStr := string(content)
-	if !strings.Contains(contentStr, "AC-1") {
-		t.Errorf("File does not contain criterion ID 'AC-1'")
-	}
 	if !strings.Contains(contentStr, "First criterion") {
 		t.Errorf("File does not contain criterion description 'First criterion'")
 	}
-	if !strings.Contains(contentStr, "AC-2") {
-		t.Errorf("File does not contain criterion ID 'AC-2'")
+	if !strings.Contains(contentStr, "Second criterion") {
+		t.Errorf("File does not contain criterion description 'Second criterion'")
 	}
 }
 
@@ -372,12 +362,8 @@ func TestWriter_Write_TemplateCorrectness(t *testing.T) {
 		RepoPath: tmpDir,
 		State:    core.StateComplete,
 		PRDText:  "PRD Content",
-		AcceptanceCriteria: []core.AcceptanceCriterion{
-			{
-				ID:          "AC-1",
-				Description: "Test AC",
-				Passed:      true,
-			},
+		AcceptanceCriteria: []string{
+			"Test AC",
 		},
 		StartedAt:  time.Now(),
 		FinishedAt: time.Now(),
@@ -407,6 +393,47 @@ func TestWriter_Write_TemplateCorrectness(t *testing.T) {
 	for _, section := range sections {
 		if !strings.Contains(contentStr, section) {
 			t.Errorf("File does not contain section '%s'", section)
+		}
+	}
+}
+
+func TestWriter_Write_WithSuggestedImpl(t *testing.T) {
+	tmpDir := t.TempDir()
+	taskCtx := &core.TaskContext{
+		ID:       "task-suggested",
+		Title:    "Suggested Task",
+		RepoPath: tmpDir,
+		State:    core.StateComplete,
+		SuggestedImpl: &config.SuggestedImpl{
+			Language:    "go",
+			FilePaths:   []string{"pkg/main.go", "pkg/utils.go"},
+			Constraints: []string{"no external deps", "use stdlib"},
+		},
+	}
+
+	w := NewWriter()
+	err := w.Write(taskCtx)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(tmpDir, ".agent-runner", "task-task-suggested.md"))
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
+	s := string(content)
+
+	expectedStrings := []string{
+		"## 1.5 Suggested Implementation",
+		"Language: go",
+		"- pkg/main.go",
+		"- pkg/utils.go",
+		"- no external deps",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(s, expected) {
+			t.Errorf("Expected note to contain %q, but it didn't", expected)
 		}
 	}
 }

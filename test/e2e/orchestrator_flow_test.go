@@ -11,6 +11,7 @@ import (
 	"github.com/biwakonbu/agent-runner/internal/ide"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator/ipc"
+	"github.com/biwakonbu/agent-runner/internal/orchestrator/persistence"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,28 +54,59 @@ func TestOrchestratorFlow(t *testing.T) {
 
 	wsID := wsStore.GetWorkspaceID(projectRoot)
 	wsDir := wsStore.GetWorkspaceDir(wsID)
-	taskStore := orchestrator.NewTaskStore(wsDir)
+
+	// Use Persistence Repo
+	repo := persistence.NewWorkspaceRepository(wsDir)
+	require.NoError(t, repo.Init())
+
 	queue := ipc.NewFilesystemQueue(wsDir)
-	scheduler := orchestrator.NewScheduler(taskStore, queue, nil)
+	scheduler := orchestrator.NewScheduler(repo, queue, nil)
 
 	// 4. Create Task (Simulating IDE creates task)
-	task := &orchestrator.Task{
-		ID:     "e2e-task-1",
-		Title:  "E2E Test Task",
-		Status: orchestrator.TaskStatusPending,
-		PoolID: "default",
+	// In V2, we create TaskState + NodeDesign
+	taskID := "e2e-task-1"
+	nodeID := "node-1"
+
+	tasksState := &persistence.TasksState{
+		Tasks: []persistence.TaskState{
+			{
+				TaskID:    taskID,
+				NodeID:    nodeID,
+				Status:    string(orchestrator.TaskStatusPending),
+				CreatedAt: time.Now(),
+				Inputs: map[string]interface{}{
+					"pool_id": "default",
+				},
+			},
+		},
 	}
-	err = taskStore.SaveTask(task)
+	err = repo.State().SaveTasks(tasksState)
+	require.NoError(t, err)
+
+	err = repo.Design().SaveNode(&persistence.NodeDesign{
+		NodeID: nodeID,
+		Name:   "E2E Test Task",
+	})
 	require.NoError(t, err)
 
 	// 5. Schedule Task (Simulating IDE schedules task)
-	err = scheduler.ScheduleTask(task.ID)
+	err = scheduler.ScheduleTask(taskID)
 	require.NoError(t, err)
 
-	// Verify task is READY
-	loadedTask, err := taskStore.LoadTask(task.ID)
+	// Verify task is READY (TaskState updated + Queued)
+	// Note: ScheduleTask updates Status to READY and enqueues it.
+	loadedState, err := repo.State().LoadTasks()
 	require.NoError(t, err)
-	assert.Equal(t, orchestrator.TaskStatusReady, loadedTask.Status)
+
+	var loadedTask *persistence.TaskState
+	for _, t := range loadedState.Tasks {
+		if t.TaskID == taskID {
+			loadedTask = &t
+			break
+		}
+	}
+	require.NotNil(t, loadedTask)
+	assert.Equal(t, string(orchestrator.TaskStatusReady), loadedTask.Status)
 
 	// 6. Start Orchestrator Process
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -100,15 +132,20 @@ func TestOrchestratorFlow(t *testing.T) {
 			case <-ctx.Done():
 				return
 			case <-time.After(500 * time.Millisecond):
-				t, err := taskStore.LoadTask(task.ID)
+				state, err := repo.State().LoadTasks()
 				if err == nil {
-					if t.Status == orchestrator.TaskStatusSucceeded {
-						done <- true
-						return
-					}
-					if t.Status == orchestrator.TaskStatusFailed {
-						// Fail fast
-						return
+					// Find task
+					for _, t := range state.Tasks {
+						if t.TaskID == taskID {
+							if t.Status == string(orchestrator.TaskStatusSucceeded) {
+								done <- true
+								return
+							}
+							if t.Status == string(orchestrator.TaskStatusFailed) {
+								// Fail fast
+								return
+							}
+						}
 					}
 				}
 			}

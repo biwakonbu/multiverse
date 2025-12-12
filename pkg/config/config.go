@@ -14,6 +14,20 @@ type TaskDetails struct {
 	Repo  string      `yaml:"repo"`
 	PRD   PRDDetails  `yaml:"prd"`
 	Test  TestDetails `yaml:"test"`
+
+	// v2.0 Extensions
+	Description   string         `yaml:"description"`
+	Dependencies  []string       `yaml:"dependencies"`
+	WBSLevel      int            `yaml:"wbs_level"`
+	PhaseName     string         `yaml:"phase_name"`
+	SuggestedImpl *SuggestedImpl `yaml:"suggested_impl"`
+}
+
+// SuggestedImpl holds implementation suggestions
+type SuggestedImpl struct {
+	Language    string   `yaml:"language"`
+	FilePaths   []string `yaml:"file_paths"`
+	Constraints []string `yaml:"constraints"`
 }
 
 // PRDDetails holds PRD location or content

@@ -132,9 +132,15 @@ EventsOn("task:stateChange", (event) => {
 frontend/ide/src/
 ├── lib/
 │   ├── flow/          # Svelte Flow 関連 (Nodes, Edges, Layout)
-│   ├── components/    # 共有 UI コンポーネント (Window, Button)
+│   ├── components/    # 共有 UI コンポーネント (Window, Button, PropertyPanel)
 │   └── wbs/           # WBS リストビュー
 ├── stores/            # Svelte Stores
 ├── design-system/     # CSS 変数・トークン
 └── App.svelte         # ルートコンポーネント
 ```
+
+### 主要コンポーネント
+
+- **`UnifiedFlowCanvas.svelte`**: メインのグラフキャンバス。
+- **`TaskNode.svelte`**: タスクノード。`SuggestedImpl` の有無を示すインジケータ (IP) を持つ。
+- **`TaskPropPanel.svelte`**: 選択中のタスク詳細を表示するパネル。`SuggestedImpl` や `Artifacts` を表示。

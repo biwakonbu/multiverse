@@ -262,11 +262,11 @@ Meta 呼び出しのタイムアウト設定は、使用するプロバイダに
 
 LLM の処理は時間がかかるため、より長いタイムアウトを設定しています。
 
-| 層 | デフォルト値 | 説明 |
-|----|------------|------|
-| ChatHandler | 15 分 | `chat/handler.go` の `metaTimeout` |
-| Meta-agent | 10 分 | `meta/cli_provider.go` の `DefaultMetaAgentTimeout` |
-| agenttools | 10 分 | `ExecPlan.Timeout` で指定 |
+| 層          | デフォルト値 | 説明                                                |
+| ----------- | ------------ | --------------------------------------------------- |
+| ChatHandler | 15 分        | `chat/handler.go` の `metaTimeout`                  |
+| Meta-agent  | 10 分        | `meta/cli_provider.go` の `DefaultMetaAgentTimeout` |
+| agenttools  | 10 分        | `ExecPlan.Timeout` で指定                           |
 
 **タイムアウト階層**:
 
@@ -330,3 +330,121 @@ runner:
 
 - v1 では OpenAI Chat API のみサポート
 - プロトコルバージョニングは未実装（将来拡張予定）
+
+## 9. decompose プロトコル (v2.0)
+
+### 9.1 目的
+
+チャットインターフェースからの自然言語入力（ユーザーの要望）に基づき、タスクをフェーズに分解し、具体的な実行タスク（Acceptance Criteria 含む）を生成します。
+
+### 9.2 入力
+
+Core は以下の情報を Meta に渡します：
+
+- ユーザーの入力メッセージ
+- 既存タスクの要約（依存関係解決のため）
+- 会話履歴（コンテキスト維持のため）
+
+### 9.3 出力 YAML
+
+```yaml
+type: decompose
+understanding: |
+  ユーザーは「商品一覧ページ」の実装を希望しています。
+  既存の API 定義に基づき、フロントエンドの実装が必要です。
+phases:
+  - name: "実装設計"
+    milestone: "design"
+    tasks:
+      - id: "temp-task-1"
+        title: "コンポーネント設計"
+        description: "商品カードコンポーネントの Props と State を設計する"
+        wbs_level: 2
+        estimated_effort: "small"
+        acceptance_criteria:
+          - "Figma デザインと一致する Props が定義されていること"
+        suggested_impl:
+          language: "typescript"
+          file_paths: ["src/components/ProductCard.svelte"]
+
+  - name: "実装"
+    milestone: "implementation"
+    tasks:
+      - id: "temp-task-2"
+        title: "コンポーネント実装"
+        description: "設計に基づきコードを実装する"
+        dependencies: ["temp-task-1"]
+        wbs_level: 3
+        estimated_effort: "medium"
+potential_conflicts:
+  - file: "src/routes/products/+page.svelte"
+    tasks: ["TASK-001"]
+    warning: "他のタスクで変更中の可能性があります"
+```
+
+### 9.4 フィールド定義
+
+| フィールド            | 型     | 必須 | 説明                     |
+| :-------------------- | :----- | :--- | :----------------------- |
+| `type`                | string | ✅   | 固定値: `"decompose"`    |
+| `understanding`       | string | ✅   | ユーザー意図の理解・要約 |
+| `phases`              | array  | ✅   | フェーズ別タスクリスト   |
+| `potential_conflicts` | array  | 任意 | 潜在的なコンフリクト情報 |
+
+#### 9.4.1 Phase & Task 構造
+
+**Phase**:
+
+| フィールド  | 型     | 必須 | 説明                                 |
+| :---------- | :----- | :--- | :----------------------------------- |
+| `name`      | string | ✅   | フェーズ名（例: "概念設計", "実装"） |
+| `milestone` | string | ✅   | マイルストーン ID                    |
+| `tasks`     | array  | ✅   | タスクリスト                         |
+
+**DecomposedTask**:
+
+| フィールド            | 型     | 必須 | 説明                              |
+| :-------------------- | :----- | :--- | :-------------------------------- |
+| `id`                  | string | ✅   | 一時 ID（依存関係定義用）         |
+| `title`               | string | ✅   | タスクタイトル                    |
+| `description`         | string | ✅   | 詳細説明                          |
+| `acceptance_criteria` | array  | ✅   | 達成条件リスト (string)           |
+| `dependencies`        | array  | 任意 | 依存するタスク ID（一時 ID 可）   |
+| `wbs_level`           | int    | ✅   | WBS 階層 (1=概念, 2=設計, 3=実装) |
+| `estimated_effort`    | string | ✅   | 推定工数 (small/medium/large)     |
+| `suggested_impl`      | object | 任意 | 実装ヒント                        |
+
+**SuggestedImpl**:
+
+| フィールド    | 型     | 必須 | 説明             |
+| :------------ | :----- | :--- | :--------------- |
+| `language`    | string | 任意 | 推奨言語         |
+| `file_paths`  | array  | 任意 | 関連ファイルパス |
+| `constraints` | array  | 任意 | 実装上の制約     |
+
+### 9.5 実装例
+
+```go
+type DecomposeResponse struct {
+    Understanding      string              `yaml:"understanding"`
+    Phases             []DecomposedPhase   `yaml:"phases"`
+    PotentialConflicts []PotentialConflict `yaml:"potential_conflicts"`
+}
+
+type DecomposedPhase struct {
+    Name      string           `yaml:"name"`
+    Milestone string           `yaml:"milestone"`
+    Tasks     []DecomposedTask `yaml:"tasks"`
+}
+
+type DecomposedTask struct {
+    ID                 string         `yaml:"id"`
+    Title              string         `yaml:"title"`
+    Description        string         `yaml:"description"`
+    AcceptanceCriteria []string       `yaml:"acceptance_criteria"`
+    Dependencies       []string       `yaml:"dependencies"`
+    WBSLevel           int            `yaml:"wbs_level"`
+    EstimatedEffort    string         `yaml:"estimated_effort"`
+    SuggestedImpl      *SuggestedImpl `yaml:"suggested_impl,omitempty"`
+}
+```

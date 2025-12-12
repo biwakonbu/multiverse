@@ -493,3 +493,58 @@ func containsStringHelper(s, substr string) bool {
 	}
 	return false
 }
+
+func TestHandler_HandleMessage_WithSuggestedImpl(t *testing.T) {
+	tmpDir := t.TempDir()
+	taskStore := orchestrator.NewTaskStore(tmpDir)
+	sessionStore := NewChatSessionStore(tmpDir)
+
+	mockMeta := &MockMetaClient{
+		DecomposeFunc: func(ctx context.Context, req *meta.DecomposeRequest) (*meta.DecomposeResponse, error) {
+			return &meta.DecomposeResponse{
+				Understanding: "AI understands impl request",
+				Phases: []meta.DecomposedPhase{
+					{
+						Name: "実装",
+						Tasks: []meta.DecomposedTask{
+							{
+								ID:          "temp-1",
+								Title:       "Impl Task",
+								Description: "Do code",
+								SuggestedImpl: &meta.SuggestedImpl{
+									Language:    "go",
+									FilePaths:   []string{"app/main.go"},
+									Constraints: []string{"use context"},
+								},
+							},
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	handler := NewHandler(mockMeta, taskStore, sessionStore, "workspace-1", "/project", nil)
+	ctx := context.Background()
+	session, _ := handler.CreateSession(ctx)
+
+	resp, err := handler.HandleMessage(ctx, session.ID, "implement this")
+	if err != nil {
+		t.Fatalf("HandleMessage failed: %v", err)
+	}
+
+	if len(resp.GeneratedTasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(resp.GeneratedTasks))
+	}
+
+	task := resp.GeneratedTasks[0]
+	if task.SuggestedImpl == nil {
+		t.Fatal("expected SuggestedImpl to be mapped")
+	}
+	if task.SuggestedImpl.Language != "go" {
+		t.Errorf("expected go, got %s", task.SuggestedImpl.Language)
+	}
+	if len(task.SuggestedImpl.FilePaths) != 1 || task.SuggestedImpl.FilePaths[0] != "app/main.go (New File)" {
+		t.Errorf("unexpected file paths: %v", task.SuggestedImpl.FilePaths)
+	}
+}

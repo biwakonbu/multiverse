@@ -81,7 +81,7 @@ func TestTaskBuilder_Golden(t *testing.T) {
 	err = os.WriteFile(captureScriptPath, []byte(scriptContent), 0755)
 	require.NoError(t, err)
 
-	executor := orchestrator.NewExecutor(captureScriptPath, projectRoot, taskStore)
+	executor := orchestrator.NewExecutor(captureScriptPath, projectRoot)
 
 	// 4. Run Chat Flow
 	ctx := context.Background()

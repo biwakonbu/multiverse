@@ -687,7 +687,12 @@ Output MUST be a JSON block with the following structure:
             ],
             "dependencies": ["temp-002"],
             "wbs_level": 3,
-            "estimated_effort": "large"
+            "estimated_effort": "large",
+            "suggested_impl": {
+              "language": "go",
+              "file_paths": ["internal/feature/new.go"],
+              "constraints": ["Keep backward compatibility"]
+            }
           }
         ]
       }
@@ -710,6 +715,7 @@ Guidelines:
 - Be specific about acceptance criteria - they should be verifiable
 - Consider existing tasks to avoid duplication
 - NEVER use [...] or ellipsis in your output - always provide complete, valid JSON
+- For implementation tasks, ALWAYS provide 'suggested_impl' to guide the worker.
 `
 
 // buildDecomposeUserPrompt はユーザープロンプトを構築する

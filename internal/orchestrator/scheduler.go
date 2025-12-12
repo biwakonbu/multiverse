@@ -7,112 +7,112 @@ import (
 
 	"github.com/biwakonbu/agent-runner/internal/logging"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator/ipc"
+	"github.com/biwakonbu/agent-runner/internal/orchestrator/persistence"
 )
 
 // Scheduler manages task execution.
 type Scheduler struct {
-	TaskStore    *TaskStore
-	GraphManager *TaskGraphManager
-	Queue        *ipc.FilesystemQueue
-	logger       *slog.Logger
-	events       EventEmitter
+	Repo   persistence.WorkspaceRepository
+	Queue  *ipc.FilesystemQueue
+	logger *slog.Logger
+	events EventEmitter
 }
 
 // NewScheduler creates a new Scheduler.
-func NewScheduler(ts *TaskStore, q *ipc.FilesystemQueue, events EventEmitter) *Scheduler {
+func NewScheduler(repo persistence.WorkspaceRepository, q *ipc.FilesystemQueue, events EventEmitter) *Scheduler {
 	return &Scheduler{
-		TaskStore:    ts,
-		GraphManager: NewTaskGraphManager(ts),
-		Queue:        q,
-		logger:       logging.WithComponent(slog.Default(), "scheduler"),
-		events:       events,
+		Repo:   repo,
+		Queue:  q,
+		logger: logging.WithComponent(slog.Default(), "scheduler"),
+		events: events,
 	}
 }
 
 // ScheduleTask schedules a task for execution.
-// 依存関係がある場合、全ての依存タスクが完了していなければ BLOCKED 状態に設定される
 func (s *Scheduler) ScheduleTask(taskID string) error {
-	task, err := s.TaskStore.LoadTask(taskID)
+	tasksState, err := s.Repo.State().LoadTasks()
 	if err != nil {
-		return fmt.Errorf("failed to load task: %w", err)
+		return fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	if task.Status != TaskStatusPending && task.Status != TaskStatusFailed && task.Status != TaskStatusBlocked {
-		return fmt.Errorf("task is not in a schedulable state: %s", task.Status)
+	var task *persistence.TaskState
+	// taskIndex is not needed if we iterate again or save whole state
+	for i := range tasksState.Tasks {
+		if tasksState.Tasks[i].TaskID == taskID {
+			task = &tasksState.Tasks[i]
+			break
+		}
+	}
+	if task == nil {
+		return fmt.Errorf("task not found: %s", taskID)
 	}
 
 	// 依存関係をチェック
 	if !s.allDependenciesSatisfied(task) {
-		// 依存が満たされていない場合は BLOCKED 状態に設定
-		if task.Status != TaskStatusBlocked {
-			oldStatus := task.Status
-			task.Status = TaskStatusBlocked
-			if err := s.TaskStore.SaveTask(task); err != nil {
-				return fmt.Errorf("failed to update task status to BLOCKED: %w", err)
+		if TaskStatus(task.Status) != TaskStatusBlocked {
+			oldStatus := TaskStatus(task.Status)
+			task.Status = string(TaskStatusBlocked)
+			if err := s.Repo.State().SaveTasks(tasksState); err != nil {
+				return fmt.Errorf("failed to update task status: %w", err)
 			}
-			s.emitStateChange(task.ID, oldStatus, TaskStatusBlocked)
-			s.logger.Info("task blocked due to unsatisfied dependencies",
-				slog.String("task_id", task.ID),
-				slog.Any("dependencies", task.Dependencies),
-			)
+			s.emitStateChange(task.TaskID, oldStatus, TaskStatusBlocked)
 		}
-		return fmt.Errorf("task has unsatisfied dependencies: %s", task.ID)
+		return fmt.Errorf("task has unsatisfied dependencies")
 	}
 
-	// Update task status to READY
-	// Update task status to READY
-	oldStatus := task.Status
-	task.Status = TaskStatusReady
-	if err := s.TaskStore.SaveTask(task); err != nil {
+	// Update to READY
+	oldStatus := TaskStatus(task.Status)
+	task.Status = string(TaskStatusReady)
+	if err := s.Repo.State().SaveTasks(tasksState); err != nil {
 		return fmt.Errorf("failed to update task status: %w", err)
 	}
-	s.emitStateChange(task.ID, oldStatus, TaskStatusReady)
+	s.emitStateChange(task.TaskID, oldStatus, TaskStatusReady)
 
 	// Create a job for the queue
 	job := &ipc.Job{
-		ID:      fmt.Sprintf("job-%s-%d", task.ID, task.UpdatedAt.UnixNano()),
-		TaskID:  task.ID,
-		PoolID:  task.PoolID,
+		ID:      fmt.Sprintf("job-%s-%d", task.TaskID, time.Now().UnixNano()),
+		TaskID:  task.TaskID,
+		PoolID:  "default", // taskState.PoolID missing? Assuming default.
 		Payload: map[string]string{"action": "run_task"},
 	}
 
 	if err := s.Queue.Enqueue(job); err != nil {
-		s.logger.Error("failed to enqueue job",
-			slog.String("job_id", job.ID),
-			slog.String("task_id", task.ID),
-			slog.Any("error", err),
-		)
 		return fmt.Errorf("failed to enqueue job: %w", err)
 	}
-
-	s.logger.Info("task scheduled",
-		slog.String("task_id", task.ID),
-		slog.String("job_id", job.ID),
-		slog.String("pool_id", task.PoolID),
-	)
+	s.logger.Info("task scheduled", slog.String("task_id", task.TaskID))
 	return nil
 }
 
-// allDependenciesSatisfied は全ての依存タスクが完了しているかをチェックする
-func (s *Scheduler) allDependenciesSatisfied(task *Task) bool {
-	if len(task.Dependencies) == 0 {
+// allDependenciesSatisfied checks if all dependencies (Node-level) are satisfied.
+func (s *Scheduler) allDependenciesSatisfied(task *persistence.TaskState) bool {
+	// 1. Get NodeDesign for dependencies
+	node, err := s.Repo.Design().GetNode(task.NodeID)
+	if err != nil {
+		// If node design missing, assume no dependencies (safe fallback?) or block (safer).
+		// For now, log warning and block.
+		s.logger.Warn("failed to load node design for dependency check", slog.String("node_id", task.NodeID))
+		return false
+	}
+
+	if len(node.Dependencies) == 0 {
 		return true
 	}
 
-	completedStatuses := map[TaskStatus]bool{
-		TaskStatusSucceeded: true,
-		TaskStatusCompleted: true,
-		// TaskStatusCanceled is deliberately excluded.
-		// If a dependency is canceled, the dependent task should NOT proceed.
+	// 2. Check NodesRuntime for status of dependency nodes
+	nodesRuntime, err := s.Repo.State().LoadNodesRuntime()
+	if err != nil {
+		return false
 	}
 
-	for _, depID := range task.Dependencies {
-		depTask, err := s.TaskStore.LoadTask(depID)
-		if err != nil {
-			// 依存タスクが見つからない場合は満たされていないとみなす
-			return false
+	completedNodes := make(map[string]bool)
+	for _, nr := range nodesRuntime.Nodes {
+		if nr.Status == "implemented" || nr.Status == "verified" {
+			completedNodes[nr.NodeID] = true
 		}
-		if !completedStatuses[depTask.Status] {
+	}
+
+	for _, depNodeID := range node.Dependencies {
+		if !completedNodes[depNodeID] {
 			return false
 		}
 	}
@@ -120,30 +120,23 @@ func (s *Scheduler) allDependenciesSatisfied(task *Task) bool {
 	return true
 }
 
-// ScheduleReadyTasks は実行可能なタスク（依存が満たされている PENDING タスク）を全てスケジュールする
+// ScheduleReadyTasks schedules all pending tasks that have satisfied dependencies.
 func (s *Scheduler) ScheduleReadyTasks() ([]string, error) {
-	readyTasks, err := s.GraphManager.GetReadyTasks()
+	tasksState, err := s.Repo.State().LoadTasks()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ready tasks: %w", err)
+		return nil, fmt.Errorf("failed to load tasks state: %w", err)
 	}
 
 	scheduled := []string{}
-	for _, taskID := range readyTasks {
-		if err := s.ScheduleTask(taskID); err != nil {
-			s.logger.Warn("failed to schedule ready task",
-				slog.String("task_id", taskID),
-				slog.Any("error", err),
-			)
-			continue
+	for i := range tasksState.Tasks {
+		task := &tasksState.Tasks[i]
+		if TaskStatus(task.Status) == TaskStatusPending {
+			if s.allDependenciesSatisfied(task) {
+				if err := s.ScheduleTask(task.TaskID); err == nil {
+					scheduled = append(scheduled, task.TaskID)
+				}
+			}
 		}
-		scheduled = append(scheduled, taskID)
-	}
-
-	if len(scheduled) > 0 {
-		s.logger.Info("scheduled ready tasks",
-			slog.Int("count", len(scheduled)),
-			slog.Any("task_ids", scheduled),
-		)
 	}
 
 	return scheduled, nil
@@ -151,29 +144,31 @@ func (s *Scheduler) ScheduleReadyTasks() ([]string, error) {
 
 // UpdateBlockedTasks は BLOCKED 状態のタスクで依存が満たされたものを PENDING に戻す
 func (s *Scheduler) UpdateBlockedTasks() ([]string, error) {
-	blockedTasks, err := s.TaskStore.ListTasksByStatus(TaskStatusBlocked)
+	tasksState, err := s.Repo.State().LoadTasks()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list blocked tasks: %w", err)
+		return nil, fmt.Errorf("failed to load tasks state: %w", err)
 	}
 
 	unblocked := []string{}
-	for i := range blockedTasks {
-		task := &blockedTasks[i]
-		if s.allDependenciesSatisfied(task) {
-			oldStatus := task.Status
-			task.Status = TaskStatusPending
-			if err := s.TaskStore.SaveTask(task); err != nil {
-				s.logger.Warn("failed to unblock task",
-					slog.String("task_id", task.ID),
-					slog.Any("error", err),
+	for i := range tasksState.Tasks {
+		task := &tasksState.Tasks[i]
+		if TaskStatus(task.Status) == TaskStatusBlocked {
+			if s.allDependenciesSatisfied(task) {
+				oldStatus := TaskStatus(task.Status)
+				task.Status = string(TaskStatusPending)
+				if err := s.Repo.State().SaveTasks(tasksState); err != nil {
+					s.logger.Warn("failed to unblock task",
+						slog.String("task_id", task.TaskID),
+						slog.Any("error", err),
+					)
+					continue
+				}
+				s.emitStateChange(task.TaskID, oldStatus, TaskStatusPending)
+				unblocked = append(unblocked, task.TaskID)
+				s.logger.Info("task unblocked",
+					slog.String("task_id", task.TaskID),
 				)
-				continue
 			}
-			s.emitStateChange(task.ID, oldStatus, TaskStatusPending)
-			unblocked = append(unblocked, task.ID)
-			s.logger.Info("task unblocked",
-				slog.String("task_id", task.ID),
-			)
 		}
 	}
 
@@ -182,30 +177,31 @@ func (s *Scheduler) UpdateBlockedTasks() ([]string, error) {
 
 // SetBlockedStatusForPendingWithUnsatisfiedDeps は依存が満たされていない PENDING タスクを BLOCKED に設定する
 func (s *Scheduler) SetBlockedStatusForPendingWithUnsatisfiedDeps() ([]string, error) {
-	pendingTasks, err := s.TaskStore.ListTasksByStatus(TaskStatusPending)
+	tasksState, err := s.Repo.State().LoadTasks()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list pending tasks: %w", err)
+		return nil, fmt.Errorf("failed to load tasks state: %w", err)
 	}
 
 	blocked := []string{}
-	for i := range pendingTasks {
-		task := &pendingTasks[i]
-		if len(task.Dependencies) > 0 && !s.allDependenciesSatisfied(task) {
-			oldStatus := task.Status
-			task.Status = TaskStatusBlocked
-			if err := s.TaskStore.SaveTask(task); err != nil {
-				s.logger.Warn("failed to set task to blocked",
-					slog.String("task_id", task.ID),
-					slog.Any("error", err),
+	for i := range tasksState.Tasks {
+		task := &tasksState.Tasks[i]
+		if TaskStatus(task.Status) == TaskStatusPending {
+			if !s.allDependenciesSatisfied(task) {
+				oldStatus := TaskStatus(task.Status)
+				task.Status = string(TaskStatusBlocked)
+				if err := s.Repo.State().SaveTasks(tasksState); err != nil {
+					s.logger.Warn("failed to set task to blocked",
+						slog.String("task_id", task.TaskID),
+						slog.Any("error", err),
+					)
+					continue
+				}
+				s.emitStateChange(task.TaskID, oldStatus, TaskStatusBlocked)
+				blocked = append(blocked, task.TaskID)
+				s.logger.Info("task set to blocked",
+					slog.String("task_id", task.TaskID),
 				)
-				continue
 			}
-			s.emitStateChange(task.ID, oldStatus, TaskStatusBlocked)
-			blocked = append(blocked, task.ID)
-			s.logger.Info("task set to blocked",
-				slog.String("task_id", task.ID),
-				slog.Any("dependencies", task.Dependencies),
-			)
 		}
 	}
 
@@ -215,33 +211,47 @@ func (s *Scheduler) SetBlockedStatusForPendingWithUnsatisfiedDeps() ([]string, e
 // ResetRetryTasks checks for tasks in RETRY_WAIT status that are ready to be retried
 // (NextRetryAt <= now) and resets them to PENDING.
 func (s *Scheduler) ResetRetryTasks() ([]string, error) {
-	tasks, err := s.TaskStore.ListTasksByStatus(TaskStatusRetryWait)
+	tasksState, err := s.Repo.State().LoadTasks()
 	if err != nil {
-		return nil, fmt.Errorf("failed to list retry-wait tasks: %w", err)
+		return nil, fmt.Errorf("failed to load tasks state: %w", err)
 	}
 
 	now := time.Now()
 	reset := []string{}
 
-	for i := range tasks {
-		task := &tasks[i]
-		if task.NextRetryAt != nil && !now.Before(*task.NextRetryAt) {
-			// Time to retry
-			oldStatus := task.Status
-			task.Status = TaskStatusPending
-			task.NextRetryAt = nil // Clear retry time
-			if err := s.TaskStore.SaveTask(task); err != nil {
-				s.logger.Warn("failed to reset retry task",
-					slog.String("task_id", task.ID),
-					slog.Any("error", err),
-				)
-				continue
+	for i := range tasksState.Tasks {
+		task := &tasksState.Tasks[i]
+		if TaskStatus(task.Status) == TaskStatusRetryWait {
+			// Check retry time from Inputs (Workaround as models.go lacks NextRetryAt)
+			// Or just assume if it's in RETRY_WAIT for a while?
+			// For now, let's look for "next_retry_at" in Inputs if exists.
+			var nextRetryAt time.Time
+			if val, ok := task.Inputs["next_retry_at"].(string); ok {
+				if t, err := time.Parse(time.RFC3339, val); err == nil {
+					nextRetryAt = t
+				}
 			}
-			s.emitStateChange(task.ID, oldStatus, TaskStatusPending)
-			reset = append(reset, task.ID)
-			s.logger.Info("task reset for retry (wait time elapsed)",
-				slog.String("task_id", task.ID),
-			)
+
+			// If nextRetryAt is zero (not set) or before now, reset it.
+			if nextRetryAt.IsZero() || !now.Before(nextRetryAt) {
+				oldStatus := TaskStatus(task.Status)
+				task.Status = string(TaskStatusPending)
+				// Clear next_retry_at
+				delete(task.Inputs, "next_retry_at")
+
+				if err := s.Repo.State().SaveTasks(tasksState); err != nil {
+					s.logger.Warn("failed to reset retry task",
+						slog.String("task_id", task.TaskID),
+						slog.Any("error", err),
+					)
+					continue
+				}
+				s.emitStateChange(task.TaskID, oldStatus, TaskStatusPending)
+				reset = append(reset, task.TaskID)
+				s.logger.Info("task reset for retry (wait time elapsed)",
+					slog.String("task_id", task.TaskID),
+				)
+			}
 		}
 	}
 

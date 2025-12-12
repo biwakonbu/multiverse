@@ -559,3 +559,56 @@ func TestTaskStore_PathTraversalIsRejected(t *testing.T) {
 		t.Fatalf("expected error for loading invalid attempt id, got nil")
 	}
 }
+
+func TestTaskStore_SuggestedImpl(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewTaskStore(tmpDir)
+
+	task := &Task{
+		ID:        "task-with-impl",
+		Title:     "Impl Task",
+		Status:    TaskStatusPending,
+		CreatedAt: time.Now(),
+		SuggestedImpl: &SuggestedImpl{
+			Language:    "go",
+			FilePaths:   []string{"main.go"},
+			Constraints: []string{"no panic"},
+		},
+		Artifacts: &Artifacts{
+			Files: []string{"output.txt"},
+			Logs:  []string{"run.log"},
+		},
+	}
+
+	if err := store.SaveTask(task); err != nil {
+		t.Fatalf("SaveTask failed: %v", err)
+	}
+
+	loaded, err := store.LoadTask("task-with-impl")
+	if err != nil {
+		t.Fatalf("LoadTask failed: %v", err)
+	}
+
+	if loaded.SuggestedImpl == nil {
+		t.Fatal("expected SuggestedImpl to be not nil")
+	}
+	if loaded.SuggestedImpl.Language != "go" {
+		t.Errorf("expected Language 'go', got %s", loaded.SuggestedImpl.Language)
+	}
+	if len(loaded.SuggestedImpl.FilePaths) != 1 || loaded.SuggestedImpl.FilePaths[0] != "main.go" {
+		t.Errorf("unexpected file paths: %v", loaded.SuggestedImpl.FilePaths)
+	}
+	if len(loaded.SuggestedImpl.Constraints) != 1 || loaded.SuggestedImpl.Constraints[0] != "no panic" {
+		t.Errorf("unexpected constraints: %v", loaded.SuggestedImpl.Constraints)
+	}
+
+	if loaded.Artifacts == nil {
+		t.Fatal("expected Artifacts to be not nil")
+	}
+	if len(loaded.Artifacts.Files) != 1 || loaded.Artifacts.Files[0] != "output.txt" {
+		t.Errorf("unexpected artifact files: %v", loaded.Artifacts.Files)
+	}
+	if len(loaded.Artifacts.Logs) != 1 || loaded.Artifacts.Logs[0] != "run.log" {
+		t.Errorf("unexpected artifact logs: %v", loaded.Artifacts.Logs)
+	}
+}

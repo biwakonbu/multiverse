@@ -57,10 +57,28 @@ func (w *Writer) Write(taskCtx *core.TaskContext) error {
 
 ---
 
+## 1.5 Suggested Implementation
+
+{{ if .SuggestedImpl }}
+- Language: {{ .SuggestedImpl.Language }}
+- Constraints:
+{{ range .SuggestedImpl.Constraints }}
+  - {{ . }}
+{{ end }}
+- Files:
+{{ range .SuggestedImpl.FilePaths }}
+  - {{ . }}
+{{ end }}
+{{ else }}
+N/A
+{{ end }}
+
+---
+
 ## 2. Acceptance Criteria
 
 {{ range .AcceptanceCriteria }}
-- [{{ if .Passed }}x{{ else }} {{ end }}] {{ .ID }}: {{ .Description }}
+- [ ] {{ . }}
 {{ end }}
 
 ---
