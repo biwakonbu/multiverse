@@ -1,14 +1,13 @@
 <script lang="ts">
-  import {
-    SvelteFlow,
-    Controls,
-    MiniMap,
-    type Node,
-    type Edge,
-    Panel,
-    Background,
-    BackgroundVariant,
-  } from "@xyflow/svelte";
+	  import {
+	    SvelteFlow,
+	    Controls,
+	    MiniMap,
+	    type Node,
+	    type Edge,
+	    Background,
+	    BackgroundVariant,
+	  } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
   import { tasks } from "../../stores/taskStore";
   import { viewMode } from "../../stores/wbsStore"; // Import viewMode
@@ -45,47 +44,72 @@
   let { taskList = undefined }: Props = $props();
 
   // State
-  let nodes = $state<Node[]>([]);
-  let edges = $state<Edge[]>([]);
+	  let nodes = $state<Node[]>([]);
+	  let edges = $state<Edge[]>([]);
 
-  // Update flow data when tasks/mode/expansion change
-  $effect(() => {
-    // If we are in WBS mode, render WBS Tree
-    if ($viewMode === "wbs") {
-      const { nodes: initialNodes, edges: initialEdges } = convertWBSToFlowData(
-        $wbsTree,
-        $expandedNodes
-      );
-      // Use LR direction for WBS by default or from store
-      const { nodes: layoutedNodes, edges: layoutedEdges } =
-        getLayoutedElements(initialNodes, initialEdges, $layoutDirection);
-      nodes = layoutedNodes;
-      edges = layoutedEdges;
-      return;
-    }
+	  // Update flow data when tasks/mode/expansion change.
+	  // 連続更新時はタイマーでバッチ化し、レイアウト計算を1フレームにまとめる（4.1）。
+	  let layoutTimer: ReturnType<typeof setTimeout> | null = null;
+	  $effect(() => {
+	    const mode = $viewMode;
+	    const targetTasks = taskList ?? $tasks;
+	    const wbsTreeSnapshot = $wbsTree;
+	    const expandedSnapshot = $expandedNodes;
+	    const direction = $layoutDirection;
 
-    // Default: Task Graph Mode
-    const targetTasks = taskList ?? $tasks;
-    if (targetTasks.length > 0) {
-      const { nodes: initialNodes, edges: initialEdges } =
-        convertTasksToFlowData(targetTasks);
-      const { nodes: layoutedNodes, edges: layoutedEdges } =
-        getLayoutedElements(initialNodes, initialEdges, "TB"); // Default TB for tasks
-      nodes = layoutedNodes;
-      edges = layoutedEdges;
-    } else {
-      nodes = [];
-      edges = [];
-    }
-  });
+	    if (layoutTimer) {
+	      clearTimeout(layoutTimer);
+	    }
+	    layoutTimer = setTimeout(() => {
+	      layoutTimer = null;
+
+	      // If we are in WBS mode, render WBS Tree
+	      if (mode === "wbs") {
+	        const { nodes: initialNodes, edges: initialEdges } =
+	          convertWBSToFlowData(wbsTreeSnapshot, expandedSnapshot);
+	        const { nodes: layoutedNodes, edges: layoutedEdges } =
+	          getLayoutedElements(initialNodes, initialEdges, direction);
+	        nodes = layoutedNodes;
+	        edges = layoutedEdges;
+	        return;
+	      }
+
+	      // Default: Task Graph Mode
+	      if (targetTasks.length > 0) {
+	        const { nodes: initialNodes, edges: initialEdges } =
+	          convertTasksToFlowData(targetTasks);
+	        const { nodes: layoutedNodes, edges: layoutedEdges } =
+	          getLayoutedElements(initialNodes, initialEdges, "TB"); // Default TB for tasks
+	        nodes = layoutedNodes;
+	        edges = layoutedEdges;
+	      } else {
+	        nodes = [];
+	        edges = [];
+	      }
+	    }, 0);
+
+	    return () => {
+	      if (layoutTimer) {
+	        clearTimeout(layoutTimer);
+	        layoutTimer = null;
+	      }
+	    };
+	  });
 
   let isWBSMode = $derived($viewMode === "wbs");
 </script>
 
-<div class="flow-container" class:wbs-mode={isWBSMode}>
-  <!-- SVG Markers for edges (must be in DOM for marker-end references) -->
-  <svg class="markers-defs" width="0" height="0">
-    <defs>
+	<div class="flow-container" class:wbs-mode={isWBSMode}>
+	  {#if isWBSMode}
+	    <div class="wbs-sidebar" aria-label="WBS ツリー">
+	      <WBSListView />
+	    </div>
+	  {/if}
+
+	  <div class="flow-canvas">
+	  <!-- SVG Markers for edges (must be in DOM for marker-end references) -->
+	  <svg class="markers-defs" width="0" height="0">
+	    <defs>
       <!-- Source Port (Hollow Circle) -->
       <marker
         id="marker-source"
@@ -148,16 +172,18 @@
     {edges}
     {nodeTypes}
     {edgeTypes}
-    fitView
+    fitView={true}
     minZoom={0.1}
     maxZoom={4}
     defaultEdgeOptions={{ type: "dependency" }}
     nodesDraggable={!isWBSMode}
-    nodesConnectable={!isWBSMode}
+    nodesConnectable={false}
     elementsSelectable={!isWBSMode}
     panOnDrag={true}
+    panOnScroll={true}
     zoomOnScroll={true}
     zoomOnPinch={true}
+    zoomOnDoubleClick={false}
   >
     <Background
       variant={BackgroundVariant.Dots}
@@ -166,27 +192,42 @@
       patternColor="var(--mv-primitive-aurora-yellow)"
       class="gold-grid"
     />
-    <Controls showZoom={true} />
-    <MiniMap />
+	    <Controls showZoom={true} />
+	    <MiniMap />
+	  </SvelteFlow>
+	  </div>
 
-    <Panel position="top-left" class="wbs-panel">
-      <!-- WBSListView is always mounted but hidden via CSS when not in WBS mode -->
-      <WBSListView />
-    </Panel>
-  </SvelteFlow>
-
-  <!-- Property Panel (Right Side) -->
-  <TaskPropPanel />
-</div>
+	  <!-- Property Panel (Right Side) -->
+	  <TaskPropPanel />
+	</div>
 
 <style>
-  .flow-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background: var(--mv-color-surface-app);
-    overflow: hidden;
-  }
+	  .flow-container {
+	    position: relative;
+	    width: 100%;
+	    height: 100%;
+	    background: var(--mv-color-surface-app);
+	    overflow: hidden;
+	    display: flex;
+	  }
+
+	  .flow-canvas {
+	    position: relative;
+	    flex: 1;
+	    height: 100%;
+	    min-width: 0;
+	  }
+
+	  .wbs-sidebar {
+	    width: var(--mv-wbs-sidebar-width, 320px);
+	    height: 100%;
+	    background: var(--mv-color-surface-primary);
+	    border-right: var(--mv-border-width-thin) solid var(--mv-color-border-subtle);
+	    box-shadow: var(--mv-shadow-card);
+	    z-index: 2;
+	    display: flex;
+	    flex-direction: column;
+	  }
 
   .markers-defs {
     position: absolute;
@@ -271,31 +312,4 @@
     opacity: 0.15;
   }
 
-  /* WBS Panel Control */
-  :global(.svelte-flow__panel.wbs-panel) {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Default container pass-through */
-    transition: all 0.3s ease;
-    z-index: 1000;
-  }
-
-  /* When WBS is NOT active, hide/fade it */
-  .flow-container:not(.wbs-mode) :global(.svelte-flow__panel.wbs-panel) {
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(0.98);
-  }
-
-  /* When WBS IS active */
-  .flow-container.wbs-mode :global(.svelte-flow__panel.wbs-panel) {
-    opacity: 1;
-    transform: scale(1);
-  }
-
-  /* Ensure WBS content is interactive when active */
-  .flow-container.wbs-mode :global(.wbs-panel > *) {
-    pointer-events: auto;
-  }
-</style>
+	</style>

@@ -113,6 +113,20 @@ const chatStore = {
 
     // メッセージ送信
     sendMessage: async (content: string): Promise<ChatResponse | null> => {
+        const optimisticId = 'temp-' + Date.now();
+        const optimisticMessage: ChatMessage = {
+            id: optimisticId,
+            role: 'user',
+            content: content,
+            timestamp: new Date().toISOString()
+        };
+
+        // Optimistic UI: 即座に追加
+        chatMessages.addMessage(optimisticMessage);
+
+        // 進捗ログはリクエスト単位でリセットして、古いログが残らないようにする
+        chatLog.clear();
+        
         isChatLoading.set(true);
         chatError.set(null);
         let sessionId: string | null = get(currentSessionId);
@@ -135,6 +149,7 @@ const chatStore = {
             if (response.error) {
                 console.error('Chat error:', response.error);
                 chatError.set(response.error);
+                // エラー時はロールバック推奨だが、現状はエラー表示のみ
             } else {
                  const history = await GetChatHistory(sessionId!) as unknown as ChatMessage[];
                  chatMessages.setMessages(history);
@@ -146,6 +161,12 @@ const chatStore = {
         } catch (e) {
             console.error('Failed to send message:', e);
             chatError.set(e instanceof Error ? e.message : 'Failed to send message');
+            // 失敗した場合、Optimistic Message をどうするか？
+            // ここでは再取得で整合性を取るのが安全
+            try {
+                const history = await GetChatHistory(sessionId!) as unknown as ChatMessage[];
+                chatMessages.setMessages(history);
+            } catch (ignore) {}
             return null;
         } finally {
             isChatLoading.set(false);
@@ -164,12 +185,5 @@ export function initChatEvents() {
             message: event.message,
             timestamp: event.timestamp
         });
-
-        // ローディング状態の制御
-        if (event.step === 'Completed' || event.step === 'Failed') {
-            isChatLoading.set(false);
-        } else {
-            isChatLoading.set(true);
-        }
     });
 }

@@ -106,9 +106,9 @@
 - 完了条件:
   - 設定変更が破壊的変更なしに反映される。
 
-## 4. IDE の性能チューニング（必要なら）
+## 4. IDE UX/性能の改善（優先）
 
-### 4.1 グラフ再レイアウトのバッチ化
+### 4.1 グラフ再レイアウトのバッチ化（DONE）
 
 【目的】大量タスク生成・状態変化時のカクつきを抑える。
 
@@ -120,11 +120,105 @@
 - 完了条件:
   - タスク大量生成時に明確な UI の遅延が出ない。
 
+※ `UnifiedFlowCanvas.svelte` の `$effect` 内でタイマーによるバッチ化を実装し、連続更新時のレイアウト計算回数を抑制済み。
+
+### 4.2 タスクノード表示の可読性改善（DONE）
+
+【目的】ノードが Task ID だけを表示して「何のタスクか分からない」問題を解消する。
+
+- 対象ファイル（候補）:
+  - `frontend/ide/src/lib/flow/UnifiedFlowCanvas.svelte`
+  - `frontend/ide/src/stores/*`（タスク/ノード表示用 Store）
+- 実装タスク:
+  1. ノードの主表示を `Task.Title` / `NodeDesign.Name` 優先に変更し、ID は補助情報（ツールチップ/コピー用）へ退避。
+  2. `implementation:` などの prefix 表示を簡素化し、Phase/Status との視認性を両立する。
+  3. 依存関係の解釈ができるよう、ノード内に簡易サマリ（例: 1 行 description 先頭）を任意表示。
+- 完了条件:
+  - ノード一覧/グラフだけで「何をするタスクか」判断できる。
+
+※ タイトルの視認性（フォント/コントラスト）改善と、タイトル供給経路（`App.ListTasks` で `Inputs.title`/`NodeDesign.Name` を優先）まで完了。  
+　prefix 整理や description 先頭のサマリ表示は将来的な改善候補。
+
+### 4.3 グラフの拡大縮小/パン操作の復旧（DONE）
+
+【目的】画面サイズを大きくしないと見れない/ズームが効かない問題を解消する。
+
+- 対象ファイル（候補）:
+  - `frontend/ide/src/lib/flow/UnifiedFlowCanvas.svelte`
+  - `frontend/ide/src/lib/flow/*`（Flow/Canvas 操作）
+- 実装タスク:
+  1. ホイール/トラックパッドでのズーム、ドラッグでのパンのイベントハンドリングを調査し修正。
+  2. ズームレベルの上限/下限と初期 fit-to-view を調整し、タスク生成直後でも全体が見えるようにする。
+  3. 画面右下のミニマップ/ビューリセットの導線を追加/修正（ある場合は動作保証）。
+- 完了条件:
+  - 標準的な画面サイズでズーム/パンが一貫して動作し、全体把握が可能。
+
+### 4.4 チャット送信の即時反映（Optimistic UI/DONE）
+
+【目的】自分の入力メッセージがチャット UI に反映されるまでの遅延を無くす。
+
+- 対象ファイル（候補）:
+  - `frontend/ide/src/stores/*`（Chat/Session Store）
+  - `frontend/ide/src/components/*`（Chat UI）
+- 実装タスク:
+  1. 送信ボタン押下時点でローカルに user message を append し、UI に即時表示。
+  2. バックエンド保存/Meta 処理が失敗した場合のロールバック/エラー表示を追加。
+  3. 送信中の入力欄のロック/解除とフォーカス維持を最適化。
+- 完了条件:
+  - 入力 → 送信後、100ms 程度以内にユーザーメッセージが表示される。
+
+### 4.5 チャット進捗イベントのシームレス表示（DONE）
+
+【目的】decompose/永続化/スケジュール等の待ち時間が長い時に、進捗が途切れず分かるようにする。
+
+- 対象ファイル（候補）:
+  - `internal/chat/handler.go`（`EventChatProgress` の発火）
+  - `frontend/ide/src/stores/*` / `frontend/ide/src/components/*`（Progress 表示）
+- 実装タスク:
+  1. `EventChatProgress` をフロントで購読し、チャット内の system/progress メッセージとして逐次表示。
+  2. 「Processing/Persisting/Completed/Failed」など段階表示を UI で整理（スピナー/タイムライン）。
+  3. 初回ロード時の ChatHistory 読み込み中もプレースホルダを即時表示し、体感待ちを減らす。
+- 完了条件:
+  - Meta 処理に数十秒かかっても、ユーザーが「止まっている」と感じない。
+
+※ `internal/chat/handler.go` が `chat:progress` を段階発火し、フロントは `chat.ts` で購読。Generalタブでは最新progressを system メッセージとして表示、Logタブは詳細ログを保持。
+
+### 4.6 WBS オーバーレイ表示の再設計（DONE）
+
+【目的】WBS をオーバーレイした結果見にくい問題を解消する。
+
+- 対象ファイル（候補）:
+  - `frontend/ide/src/components/*`（WBS/Graph UI）
+  - `frontend/ide/src/lib/flow/UnifiedFlowCanvas.svelte`
+- 実装タスク:
+  1. オーバーレイを廃止し、サイドパネル/ツリー表示など「独立領域」に切り替える。
+  2. Graph と WBS の同期（選択/ハイライト/スクロール連動）を最小限で実装。
+  3. WBS の表示密度（階層折りたたみ、文字サイズ、余白）を調整。
+- 完了条件:
+  - WBS と Graph の両方が同時に読み取れる。
+
+※ WBSListView を Graph から分離した左サイドパネルとして表示するよう変更し、オーバーレイによる視認性問題を解消。同期は既存の選択/展開状態ストアに委譲。
+
+### 4.7 潜在コンフリクト表示の信頼性改善（DONE）
+
+【目的】Meta decompose が返す `potential_conflicts` の虚偽/過剰検出によりユーザーが混乱する問題を減らす。
+
+- 対象ファイル（候補）:
+  - `internal/chat/handler.go`
+  - `internal/meta/client.go`
+  - `docs/specifications/meta-protocol.md`
+- 実装タスク:
+  1. ChatHandler 側で `potential_conflicts` の `file` が実在するか検証し、存在しない場合は非表示 or 「新規想定」ラベルで弱く表示。
+  2. 将来的に、Workspace の実在ファイル一覧を Meta decompose の Context に渡して精度を上げる。
+  3. 仕様として「`potential_conflicts` はヒューリスティックで false positive を含む」旨を明記。
+- 完了条件:
+  - 実在しないファイルのコンフリクトが強い警告として出ない。
+
 ## 5. ゴールデンパス検証
 
 ### 5.1 自動ゴールデンパス（DONE）
 
-【目的】IDE の入力をモックし、バックエンドの「Chat→計画生成→依存解決→実行→同期」までを自動で検証する。
+【目的】IDE の入力をモックし、バックエンドの「Chat→ 計画生成 → 依存解決 → 実行 → 同期」までを自動で検証する。
 
 - 実装:
   - `test/e2e/golden_pass_test.go`
@@ -143,7 +237,7 @@
   - `design/`・`state/`・`tasks/` の 3 層が整合する。
   - 依存順に実行される。
 
-### 5.3 テスト追加（既存パターンに沿う）
+### 5.3 テスト追加（既存パターンに沿う/DONE）
 
 - 対象ファイル:
   - `internal/chat/handler_test.go`
@@ -151,6 +245,8 @@
 - 追加タスク:
   1. `decompose → design/state 保存` の単体テスト。
   2. `processJob` が `NodesRuntime` を更新するテスト。
+
+※ `internal/chat/handler_test.go` に design/state 永続化の単体テスト、`internal/orchestrator/execution_orchestrator_test.go` に成功時Runtime更新テストを追加済み。
 
 ## 6. 将来拡張
 
@@ -235,3 +331,71 @@
   2. 既存データとの後方互換を確保する。
 - 完了条件:
   - Task Note の保存容量が有意に削減される。
+
+## 7. 仕上げ（自己レビュー起点の軽量改善）
+
+### 7.1 チャットローディング状態の単一責務化（DONE）
+
+【目的】`isChatLoading` の二重制御による状態揺れ/レースを避け、保守性を上げる。
+
+- 対象ファイル:
+  - `frontend/ide/src/stores/chat.ts`
+- 実装タスク:
+  1. `chat:progress` 側での `isChatLoading` 変更をやめ、`sendMessage` に責務を集約。
+  2. progress 表示は `chatLog` の更新のみで行う。
+- 完了条件:
+  - 送信→完了まで loading 状態が一貫し、フリッカーや競合が起きない。
+
+### 7.2 テストの冗長読み込み整理（DONE）
+
+【目的】テストの可読性と速度を維持しつつ、無駄な state 読み込みを削る。
+
+- 対象ファイル:
+  - `internal/chat/handler_test.go`
+- 実装タスク:
+  1. `TestHandler_HandleMessage_PersistsDesignAndState` で `LoadNodesRuntime`/`LoadTasks` をループ外に出して検証を簡潔化。
+- 完了条件:
+  - テストの意図が明確で、無駄な I/O がない。
+
+### 7.3 小さな冗長コメント削除（DONE）
+
+【目的】軽微な冗長を減らし、読みやすさを上げる。
+
+- 対象ファイル:
+  - `app.go`
+- 実装タスク:
+  1. `ListTasks` の重複コメントを削除。
+- 完了条件:
+  - 同一コメントの重複がない。
+
+### 7.4 LLM デフォルト更新と Codex CLI の一時廃止整理（DONE）
+
+【目的】IDE 経由の計画/分解が Codex CLI 非依存で安定して動く状態にする。
+
+- 対象ファイル:
+  - `internal/ide/llm_config.go`
+  - `app.go`
+  - `internal/meta/client.go`
+  - `docs/design/architecture.md`
+  - `docs/cli-agents/codex/CLAUDE.md`
+  - `docs/CURRENT_STATUS.md`
+- 実装タスク:
+  1. Meta-agent のデフォルト Kind を `openai-chat` に切り替え、`codex-cli` 指定時はフォールバック。
+  2. Meta のデフォルトモデルを `gpt-5.2` に更新し、Worker（Codex CLI）のデフォルトは `gpt-5.1-codex` に据え置き（必要に応じて上書き可能）。
+  3. 仕様/ガイドへ「Meta での codex-cli は当面無効化」旨を追記。
+- 完了条件:
+  - IDE のチャットからの計画/分解が Codex CLI 無しで実行できる。
+
+### 7.5 デバッグ/冗長コメントの整理（DONE）
+
+【目的】読み手のノイズとなる試行錯誤コメントを除去し、コードの意図を明確にする。
+
+- 対象ファイル:
+  - `app.go`
+  - `internal/meta/client.go`
+  - `internal/ide/llm_config.go`
+- 実装タスク:
+  1. 途中経過のメモ・仮説コメントを削除し、必要な説明のみ残す。
+  2. gofmt 相当のインデント整形で可読性を維持する。
+- 完了条件:
+  - 主要エントリポイント/設定周りが簡潔に読める。

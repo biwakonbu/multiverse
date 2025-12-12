@@ -150,7 +150,8 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
   - Codex CLI 0.65.0 対応。exec モードのみサポート（chat サブコマンドは存在しない）。
   - Docker 内実行: `--dangerously-bypass-approvals-and-sandbox` でサンドボックス・承認を無効化。
   - フラグ体系: `-C`（作業ディレクトリ）、`--json`（JSONL 出力）、`-m`（モデル）、`-c`（設定オーバーライド）。
-  - デフォルト値: モデル `gpt-5.1-codex`（Worker 用）/ `gpt-5.1`（Meta 用）、思考の深さ `medium`。
+  - デフォルト値: モデル `gpt-5.1-codex`（Worker 用）/ `gpt-5.2`（Meta 用）、思考の深さ `medium`。
+  - **注意**: Meta-agent の `codex-cli` 利用は当面無効化しており、IDE 経由の計画/分解は `openai-chat` がデフォルト。
   - stdin 対応: PROMPT に `-` を指定して stdin から読み取り。
   - **ToolSpecific オプション**: `docker_mode`（Docker 内実行フラグ制御）、`json_output`（JSON 出力制御）
 - **Execute ヘルパー** (`internal/agenttools/exec.go`):
@@ -171,7 +172,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 | 用途                     | モデル ID       | 設定箇所                       |
 | ------------------------ | --------------- | ------------------------------ |
-| Meta-agent（計画・思考） | `gpt-5.1`       | `internal/meta/client.go`      |
+| Meta-agent（計画・思考） | `gpt-5.2`       | `internal/meta/client.go`      |
 | Worker タスク実行        | `gpt-5.1-codex` | `internal/agenttools/codex.go` |
 
 ### 思考の深さ（reasoning effort）

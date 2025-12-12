@@ -27,7 +27,7 @@ Meta 用 LLM モデル ID は以下の優先順位で決定されます：
 
 1. **CLI オプション**: `--meta-model` で指定された値
 2. **Task YAML**: `runner.meta.model` で指定された値
-3. **ビルトインデフォルト**: `gpt-5.1`
+3. **ビルトインデフォルト**: `gpt-5.2`
 
 **認証について (v3.0 以降)**:
 AgentRunner Core は、各プロバイダ（OpenAI, Anthropic 等）の **CLI ツールが保持する認証セッション** を利用することを推奨します。
@@ -78,7 +78,7 @@ runner:
 
   meta:
     kind: "openai-chat" # v1 は固定想定
-    model: "gpt-5.1" # 任意。プロバイダのモデルIDを直接指定
+    model: "gpt-5.2" # 任意。プロバイダのモデルIDを直接指定
     # system_prompt: |              # 任意。Meta 用 system prompt を上書き
 
   worker:
@@ -99,13 +99,13 @@ runner:
 | フィールド                       | デフォルト値                      |
 | -------------------------------- | --------------------------------- |
 | `task.id`                        | UUID 自動生成                     |
-| `task.title`                     | `task.id` と同じ                  |
+| `task.title`                     | 未設定（空文字）。上位システムが補完する場合あり |
 | `task.repo`                      | `"."` (カレントディレクトリ)      |
 | `task.test`                      | 未設定（テスト自動実行なし）      |
 | `task.wbs_level`                 | 0 (未定義)                        |
 | `task.dependencies`              | [] (なし)                         |
 | `runner.meta.kind`               | `"openai-chat"`                   |
-| `runner.meta.model`              | `gpt-5.1` (プロバイダのモデル ID) |
+| `runner.meta.model`              | `gpt-5.2` (プロバイダのモデル ID) |
 | `runner.max_loops`              | `10`                              |
 | `runner.worker.kind`             | `"codex-cli"`                     |
 | `runner.worker.docker_image`     | デフォルトイメージ                |

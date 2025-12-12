@@ -62,7 +62,7 @@ Codex CLI 用の ExecPlan を生成する。
 - `--dangerously-bypass-approvals-and-sandbox`: Docker 内実行時に使用
 - `-C <workdir>`: 作業ディレクトリ指定
 - `-m <model>`: モデル指定
-- `-c reasoning_effort=<level>`: 思考の深さ
+- `-c reasoning_effort=<level>`: 思考の深さ（`none|low|medium|high`）。不正値（例: `xhigh`）は内部で `high` / `medium` に丸める。
 
 **stdin 使用時:**
 ```go
@@ -105,7 +105,7 @@ plan, err := Build(ctx, "codex-cli", cfg, req)
 ```go
 req := agenttools.Request{
     Prompt:          fullPrompt,
-    Model:           "gpt-5.1",
+    Model:           "gpt-5.2",
     Timeout:         10 * time.Minute,  // 親コンテキストから独立
     UseStdin:        true,
     ToolSpecific: map[string]interface{}{

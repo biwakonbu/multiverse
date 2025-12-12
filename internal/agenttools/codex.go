@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // DefaultCodexModel は Codex CLI のデフォルトモデル（Worker 用）
+// NOTE: モデル ID は OpenAI/Codex CLI の仕様に依存するため、必要に応じて LLMConfig で上書き可能。
 const DefaultCodexModel = "gpt-5.1-codex"
 
 // DefaultMetaModel は Meta-agent 用のデフォルトモデル
-const DefaultMetaModel = "gpt-5.1"
+const DefaultMetaModel = "gpt-5.2"
 
 // DefaultReasoningEffort は思考の深さのデフォルト値
 const DefaultReasoningEffort = "medium"
@@ -116,6 +118,20 @@ func (p *CodexProvider) Build(_ context.Context, req Request) (ExecPlan, error) 
 	} else if v, ok := req.ToolSpecific["reasoning_effort"].(string); ok && v != "" {
 		reasoningEffort = v
 	}
+
+	// Codex CLI / OpenAI API が受け付けない値が来た場合に安全側へ丸める。
+	// 例: "xhigh" など未サポート値は "high" にフォールバックする。
+	normalizedEffort := strings.ToLower(strings.TrimSpace(reasoningEffort))
+	switch normalizedEffort {
+	case "xhigh", "extra_high", "very_high":
+		normalizedEffort = "high"
+	case "":
+		normalizedEffort = DefaultReasoningEffort
+	}
+	if normalizedEffort != "none" && normalizedEffort != "low" && normalizedEffort != "medium" && normalizedEffort != "high" {
+		normalizedEffort = DefaultReasoningEffort
+	}
+	reasoningEffort = normalizedEffort
 	args = append(args, "-c", fmt.Sprintf("reasoning_effort=%s", reasoningEffort))
 
 	// 追加の config オーバーライド（-c フラグで TOML 形式）

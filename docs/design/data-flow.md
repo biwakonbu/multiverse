@@ -184,13 +184,13 @@ task:
   repo: "."
   prd:
     path: "./docs/prd.md"
-runner:
-  meta:
-    kind: "openai-chat"
-    model: "gpt-5.1"
-    max_loops: 5
-  worker:
-    kind: "codex-cli"
+  runner:
+    meta:
+      kind: "openai-chat"
+      model: "gpt-5.2"
+      max_loops: 5
+    worker:
+      kind: "codex-cli"
 ```
 
 ### 中間データ

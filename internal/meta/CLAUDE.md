@@ -373,7 +373,7 @@ Codex CLI の出力にはヘッダー情報が含まれるため、`extractYAML`
 OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 --------
 user

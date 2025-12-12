@@ -3,11 +3,14 @@ package chat
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/meta"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator"
+	"github.com/biwakonbu/agent-runner/internal/orchestrator/persistence"
 )
 
 // MockMetaClient は MetaClient のモック実装
@@ -193,6 +196,138 @@ func TestHandler_HandleMessage_Success(t *testing.T) {
 	}
 }
 
+func TestHandler_HandleMessage_PersistsDesignAndState(t *testing.T) {
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	if err := os.MkdirAll(projectRoot, 0o755); err != nil {
+		t.Fatalf("failed to create project root: %v", err)
+	}
+
+	taskStore := orchestrator.NewTaskStore(tmpDir)
+	sessionStore := NewChatSessionStore(tmpDir)
+	repo := persistence.NewWorkspaceRepository(tmpDir)
+	if err := repo.Init(); err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	mockMeta := &MockMetaClient{
+		DecomposeFunc: func(ctx context.Context, req *meta.DecomposeRequest) (*meta.DecomposeResponse, error) {
+			return &meta.DecomposeResponse{
+				Understanding: "理解しました",
+				Phases: []meta.DecomposedPhase{
+					{
+						Name:      "概念設計",
+						Milestone: "M1",
+						Tasks: []meta.DecomposedTask{
+							{
+								ID:           "temp-task-1",
+								Title:        "設計タスク",
+								Description:  "設計の説明",
+								Dependencies: []string{},
+								WBSLevel:     1,
+							},
+						},
+					},
+					{
+						Name:      "実装",
+						Milestone: "M2",
+						Tasks: []meta.DecomposedTask{
+							{
+								ID:           "temp-task-2",
+								Title:        "実装タスク",
+								Description:  "実装の説明",
+								Dependencies: []string{"temp-task-1"},
+								WBSLevel:     2,
+							},
+						},
+					},
+				},
+			}, nil
+		},
+	}
+
+	handler := NewHandler(mockMeta, taskStore, sessionStore, "workspace-1", projectRoot, repo, nil)
+	ctx := context.Background()
+	session, err := handler.CreateSession(ctx)
+	if err != nil {
+		t.Fatalf("CreateSession failed: %v", err)
+	}
+
+	resp, err := handler.HandleMessage(ctx, session.ID, "テスト")
+	if err != nil {
+		t.Fatalf("HandleMessage failed: %v", err)
+	}
+	if len(resp.GeneratedTasks) != 2 {
+		t.Fatalf("expected 2 generated tasks, got %d", len(resp.GeneratedTasks))
+	}
+
+	// WBS が作成され、Root にタスクが紐づく
+	wbs, err := repo.Design().LoadWBS()
+	if err != nil {
+		t.Fatalf("failed to load wbs: %v", err)
+	}
+	if wbs.RootNodeID == "" {
+		t.Fatalf("root node id should not be empty")
+	}
+	rootChildren := map[string]struct{}{}
+	for _, idx := range wbs.NodeIndex {
+		if idx.NodeID == wbs.RootNodeID {
+			for _, c := range idx.Children {
+				rootChildren[c] = struct{}{}
+			}
+		}
+	}
+
+	// NodesRuntime / TasksState を一度だけロードして検証する
+	nodesRuntime, err := repo.State().LoadNodesRuntime()
+	if err != nil {
+		t.Fatalf("failed to load nodes runtime: %v", err)
+	}
+	runtimeIDs := map[string]struct{}{}
+	for _, rt := range nodesRuntime.Nodes {
+		runtimeIDs[rt.NodeID] = struct{}{}
+	}
+
+	tasksState, err := repo.State().LoadTasks()
+	if err != nil {
+		t.Fatalf("failed to load tasks state: %v", err)
+	}
+	taskStatesByID := map[string]persistence.TaskState{}
+	for _, ts := range tasksState.Tasks {
+		taskStatesByID[ts.TaskID] = ts
+	}
+
+	for _, task := range resp.GeneratedTasks {
+		if _, ok := rootChildren[task.ID]; !ok {
+			t.Errorf("expected task %s to be a child of root in wbs", task.ID)
+		}
+
+		// NodeDesign が保存されている
+		node, err := repo.Design().GetNode(task.ID)
+		if err != nil {
+			t.Fatalf("failed to load node design %s: %v", task.ID, err)
+		}
+		if node.Name != task.Title {
+			t.Errorf("expected node name %q, got %q", task.Title, node.Name)
+		}
+
+		// NodesRuntime が作られている
+		if _, ok := runtimeIDs[task.ID]; !ok {
+			t.Errorf("expected node runtime for %s", task.ID)
+		}
+
+		// TasksState が作られている
+		ts, ok := taskStatesByID[task.ID]
+		if !ok {
+			t.Errorf("expected task state for %s", task.ID)
+			continue
+		}
+		if ts.NodeID != task.ID {
+			t.Errorf("expected task state node_id %s, got %s", task.ID, ts.NodeID)
+		}
+	}
+}
+
 func TestHandler_HandleMessage_MetaError(t *testing.T) {
 	tmpDir := t.TempDir()
 	taskStore := orchestrator.NewTaskStore(tmpDir)
@@ -345,6 +480,13 @@ func TestHandler_HandleMessage_PotentialConflicts(t *testing.T) {
 	tmpDir := t.TempDir()
 	taskStore := orchestrator.NewTaskStore(tmpDir)
 	sessionStore := NewChatSessionStore(tmpDir)
+	projectRoot := filepath.Join(tmpDir, "project")
+	if err := os.MkdirAll(filepath.Join(projectRoot, "src", "auth"), 0o755); err != nil {
+		t.Fatalf("failed to create project root: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "src", "auth", "login.ts"), []byte(""), 0o644); err != nil {
+		t.Fatalf("failed to create conflict file: %v", err)
+	}
 
 	mockMeta := &MockMetaClient{
 		DecomposeFunc: func(ctx context.Context, req *meta.DecomposeRequest) (*meta.DecomposeResponse, error) {
@@ -373,7 +515,7 @@ func TestHandler_HandleMessage_PotentialConflicts(t *testing.T) {
 		},
 	}
 
-	handler := NewHandler(mockMeta, taskStore, sessionStore, "workspace-1", "/project", nil, nil)
+	handler := NewHandler(mockMeta, taskStore, sessionStore, "workspace-1", projectRoot, nil, nil)
 
 	ctx := context.Background()
 

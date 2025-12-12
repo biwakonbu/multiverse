@@ -311,12 +311,12 @@
 
   /* タイトル */
   .title {
-    font-size: var(--mv-font-size-sm);
-    font-weight: var(--mv-font-weight-semibold);
+    font-size: var(--mv-font-size-md);
+    font-weight: var(--mv-font-weight-bold);
     color: var(--mv-color-text-primary);
     line-height: var(--mv-line-height-normal);
     flex: 1;
-    text-shadow: var(--mv-text-shadow-base-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 
     /* 3行まで表示してclamp */
     display: -webkit-box;

@@ -69,17 +69,21 @@ go test -tags=codex -timeout=10m ./test/codex/...
 # 全テストを実行（推奨）
 go test -tags=docker,codex -timeout=15m ./...
 
-# カバレッジレポート生成
-go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
-
-# ゴールデンテスト（一気通しテスト）
-## Backend (GT-1, GT-2)
-go test -v ./test/integration/... -run TestTaskBuilder_Golden
-go test -v -tags=codex ./test/codex/... -run TestCodex_TableDriven/golden_todo.yaml
-
-## Frontend E2E (GT-3)
-cd frontend/ide && pnpm test:e2e tests/golden_flow.spec.ts && cd ../..
-```
+	# カバレッジレポート生成
+	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
+	
+	# ゴールデンテスト（一気通しテスト）
+	## Backend (MVP ゴールデンパス)
+	# Chat→decompose→design/state生成→依存解決→Executor→state/TaskStore同期までをモック付きで検証
+	go test -v ./test/e2e/... -run TestGoldenPass_Backend
+	
+	## Backend (GT-1, GT-2: TaskConfig/AgentRunner)
+	go test -v ./test/integration/... -run TestTaskBuilder_Golden
+	go test -v -tags=codex ./test/codex/... -run TestCodex_TableDriven/golden_todo.yaml
+	
+	## Frontend E2E (GT-3: IDE 一気通し)
+	cd frontend/ide && pnpm test:e2e tests/golden_flow.spec.ts && cd ../..
+	```
 
 ### サンドボックス環境のセットアップ
 
@@ -123,7 +127,7 @@ task:
 runner:
   meta:
     kind: "openai-chat"
-    model: "gpt-5.1-codex-max-high" # または --meta-model フラグで指定
+    model: "gpt-5.2" # または --meta-model フラグで指定
 
   worker:
     kind: "codex-cli"

@@ -26,7 +26,7 @@ task:
 runner:
   meta:
     kind: "mock"
-    model: "gpt-5.1"
+    model: "gpt-5.2"
   worker:
     kind: "codex-cli"
     docker_image: "agent-runner-codex:latest"

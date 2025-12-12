@@ -306,3 +306,83 @@ func TestExecutionOrchestrator_Stop_CancelsRunningTask(t *testing.T) {
 	mockExecutor.AssertExpectations(t)
 	assert.Equal(t, ExecutionStateIdle, orch.State())
 }
+
+func TestExecutionOrchestrator_processJob_MarksNodeImplementedOnSuccess(t *testing.T) {
+	emitter := new(MockEventEmitter)
+	emitter.On("Emit", mock.Anything, mock.Anything).Return()
+
+	repo, queue := setupTestRepo(t)
+	now := time.Now()
+
+	saveDesign(t, repo, []persistence.NodeDesign{
+		{NodeID: "node-1", Name: "Test Node"},
+	})
+	saveState(t, repo, []persistence.TaskState{
+		{
+			TaskID:    "task-1",
+			NodeID:    "node-1",
+			Kind:      "implementation",
+			Status:    string(TaskStatusPending),
+			CreatedAt: now,
+			UpdatedAt: now,
+			Inputs: map[string]interface{}{
+				InputKeyAttemptCount: 0,
+			},
+		},
+	}, []persistence.NodeRuntime{
+		{
+			NodeID: "node-1",
+			Status: "planned",
+			Implementation: persistence.NodeImplementation{
+				Files:          []string{},
+				LastModifiedAt: now,
+				LastModifiedBy: "test",
+			},
+			Verification: persistence.NodeVerification{Status: "not_tested"},
+		},
+	})
+
+	mockExecutor := new(MockExecutor)
+	finished := time.Now()
+	mockExecutor.On("ExecuteTask", mock.Anything, mock.Anything).
+		Return(&Attempt{Status: AttemptStatusSucceeded, FinishedAt: &finished}, nil)
+
+	orch := NewExecutionOrchestrator(
+		nil,
+		mockExecutor,
+		repo,
+		queue,
+		emitter,
+		nil,
+		[]string{"default"},
+	)
+
+	job := &ipc.Job{ID: "job-1", TaskID: "task-1", PoolID: "default"}
+	orch.processJob(context.Background(), job)
+
+	// NodesRuntime が implemented に更新される
+	nodesRuntime, err := repo.State().LoadNodesRuntime()
+	assert.NoError(t, err)
+	foundNode := false
+	for _, rt := range nodesRuntime.Nodes {
+		if rt.NodeID == "node-1" {
+			foundNode = true
+			assert.Equal(t, "implemented", rt.Status)
+		}
+	}
+	assert.True(t, foundNode)
+
+	// TasksState が SUCCEEDED に更新される
+	tasksState, err := repo.State().LoadTasks()
+	assert.NoError(t, err)
+	foundTask := false
+	for _, ts := range tasksState.Tasks {
+		if ts.TaskID == "task-1" {
+			foundTask = true
+			assert.Equal(t, string(TaskStatusSucceeded), ts.Status)
+		}
+	}
+	assert.True(t, foundTask)
+
+	mockExecutor.AssertExpectations(t)
+}

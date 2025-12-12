@@ -252,7 +252,7 @@ Meta 用 LLM モデル ID は以下の優先順位で決定されます：
 
 1. **CLI オプション**: `--meta-model` で指定された値
 2. **Task YAML**: `runner.meta.model` で指定された値
-3. **ビルトインデフォルト**: `gpt-5.1`
+3. **ビルトインデフォルト**: `gpt-5.2`
 
 **認証について (v3.0 以降)**:
 AgentRunner Core は、各プロバイダ（OpenAI, Anthropic 等）の **CLI ツールが保持する認証セッション** を利用することを推奨します。
@@ -303,7 +303,7 @@ runner:
 
   meta:
     kind: "openai-chat" # v1 は固定想定
-    model: "gpt-5.1" # 任意。プロバイダのモデルIDを直接指定
+    model: "gpt-5.2" # 任意。プロバイダのモデルIDを直接指定
     # system_prompt: |              # 任意。Meta 用 system prompt を上書き
 
   worker:
@@ -324,13 +324,13 @@ runner:
 | フィールド                       | デフォルト値                      |
 | -------------------------------- | --------------------------------- |
 | `task.id`                        | UUID 自動生成                     |
-| `task.title`                     | `task.id` と同じ                  |
+| `task.title`                     | 未設定（空文字）。上位システムが補完する場合あり |
 | `task.repo`                      | `"."` (カレントディレクトリ)      |
 | `task.test`                      | 未設定（テスト自動実行なし）      |
 | `task.wbs_level`                 | 0 (未定義)                        |
 | `task.dependencies`              | [] (なし)                         |
 | `runner.meta.kind`               | `"openai-chat"`                   |
-| `runner.meta.model`              | `gpt-5.1` (プロバイダのモデル ID) |
+| `runner.meta.model`              | `gpt-5.2` (プロバイダのモデル ID) |
 | `runner.max_loops`              | `10`                              |
 | `runner.worker.kind`             | `"codex-cli"`                     |
 | `runner.worker.docker_image`     | デフォルトイメージ                |
@@ -2017,7 +2017,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
   - Codex CLI 0.65.0 対応。exec モードのみサポート（chat サブコマンドは存在しない）。
   - Docker 内実行: `--dangerously-bypass-approvals-and-sandbox` でサンドボックス・承認を無効化。
   - フラグ体系: `-C`（作業ディレクトリ）、`--json`（JSONL 出力）、`-m`（モデル）、`-c`（設定オーバーライド）。
-  - デフォルト値: モデル `gpt-5.1-codex`（Worker 用）/ `gpt-5.1`（Meta 用）、思考の深さ `medium`。
+  - デフォルト値: モデル `gpt-5.1-codex`（Worker 用）/ `gpt-5.2`（Meta 用）、思考の深さ `medium`。
   - stdin 対応: PROMPT に `-` を指定して stdin から読み取り。
   - **ToolSpecific オプション**: `docker_mode`（Docker 内実行フラグ制御）、`json_output`（JSON 出力制御）
 - **Execute ヘルパー** (`internal/agenttools/exec.go`):
@@ -2038,7 +2038,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 | 用途                     | モデル ID       | 設定箇所                       |
 | ------------------------ | --------------- | ------------------------------ |
-| Meta-agent（計画・思考） | `gpt-5.1`       | `internal/meta/client.go`      |
+| Meta-agent（計画・思考） | `gpt-5.2`       | `internal/meta/client.go`      |
 | Worker タスク実行        | `gpt-5.1-codex` | `internal/agenttools/codex.go` |
 
 #### 思考の深さ（reasoning effort）
@@ -3211,7 +3211,7 @@ task:
 runner:
   meta:
     kind: "openai-chat"
-    model: "gpt-5.1"
+    model: "gpt-5.2"
     max_loops: 5
   worker:
     kind: "codex-cli"
@@ -4707,7 +4707,7 @@ failed to parse YAML response: mapping values are not allowed in this context
 OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 --------
 user
@@ -5115,4 +5115,3 @@ Error: Request timeout
 - [Gemini API モデル一覧](https://ai.google.dev/gemini-api/docs/models)
 - [Gemini CLI 設定ドキュメント](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md)
 - [Google Codelabs - Gemini CLI ハンズオン](https://codelabs.developers.google.com/gemini-cli-hands-on)
-

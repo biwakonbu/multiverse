@@ -15,8 +15,8 @@ func TestLLMConfigStore_LoadDefault(t *testing.T) {
 
 	config, err := store.Load()
 	require.NoError(t, err)
-	assert.Equal(t, "codex-cli", config.Kind)
-	assert.Empty(t, config.Model) // codex-cli 使用時は agenttools.DefaultMetaModel を使用
+	assert.Equal(t, "openai-chat", config.Kind)
+	assert.Empty(t, config.Model) // 空の場合は agenttools.DefaultMetaModel を使用
 }
 
 func TestLLMConfigStore_SaveAndLoad(t *testing.T) {
@@ -53,7 +53,7 @@ func TestLLMConfigStore_SaveAndLoad_CLI(t *testing.T) {
 
 	config := &LLMConfig{
 		Kind:  "codex-cli",
-		Model: "gpt-5.1",
+		Model: "gpt-5.2",
 	}
 	err := store.Save(config)
 	require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestLLMConfigStore_SaveAndLoad_CLI(t *testing.T) {
 	loaded, err := store.Load()
 	require.NoError(t, err)
 	assert.Equal(t, "codex-cli", loaded.Kind)
-	assert.Equal(t, "gpt-5.1", loaded.Model)
+	assert.Equal(t, "gpt-5.2", loaded.Model)
 }
 
 func TestLLMConfigStore_GetAPIKey_FromEnv(t *testing.T) {

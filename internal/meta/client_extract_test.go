@@ -28,11 +28,11 @@ func TestExtractJSON(t *testing.T) {
 		{
 			name: "Codex CLI output with header",
 			input: `OpenAI Codex v0.65.0 (research preview)
---------
-workdir: /path/to/project
-model: gpt-5.1
-provider: openai
---------
+	--------
+	workdir: /path/to/project
+	model: gpt-5.2
+	provider: openai
+	--------
 user
 Some prompt text here
 codex
@@ -42,10 +42,10 @@ codex
 		{
 			name: "Codex CLI output with multiline JSON",
 			input: `OpenAI Codex v0.65.0 (research preview)
---------
-workdir: /path/to/project
-model: gpt-5.1
---------
+	--------
+	workdir: /path/to/project
+	model: gpt-5.2
+	--------
 codex
 {
   "type": "decompose",
@@ -146,11 +146,11 @@ func TestExtractYAML(t *testing.T) {
 		{
 			name: "Codex CLI output with header",
 			input: `OpenAI Codex v0.65.0 (research preview)
---------
-workdir: /path/to/project
-model: gpt-5.1
-provider: openai
---------
+	--------
+	workdir: /path/to/project
+	model: gpt-5.2
+	provider: openai
+	--------
 user
 Some prompt text here
 codex

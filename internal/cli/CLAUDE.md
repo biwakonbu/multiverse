@@ -52,7 +52,7 @@ Meta-agent のモデル ID を優先順位に基づいて解決します。
 **優先順位**:
 1. CLI フラグ（`-meta-model`）
 2. タスク YAML 設定（`runner.meta.model`）
-3. デフォルト値（`gpt-5.1`）
+3. デフォルト値（`gpt-5.2`）
 
 ## 使用例
 
@@ -117,7 +117,7 @@ func TestResolveMetaModel(t *testing.T) {
     assert.Equal(t, "yaml-model", ResolveMetaModel("", "yaml-model"))
 
     // デフォルト値
-    assert.Equal(t, "gpt-5.1", ResolveMetaModel("", ""))
+    assert.Equal(t, "gpt-5.2", ResolveMetaModel("", ""))
 }
 ```
 

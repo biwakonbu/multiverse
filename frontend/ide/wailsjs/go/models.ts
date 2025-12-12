@@ -394,6 +394,20 @@ export namespace orchestrator {
 	        this.counts = source["counts"];
 	    }
 	}
+	export class RunnerSpec {
+	    maxLoops?: number;
+	    workerKind?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RunnerSpec(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.maxLoops = source["maxLoops"];
+	        this.workerKind = source["workerKind"];
+	    }
+	}
 	export class SuggestedImpl {
 	    language?: string;
 	    filePaths?: string[];
@@ -436,6 +450,7 @@ export namespace orchestrator {
 	    nextRetryAt?: any;
 	    suggestedImpl?: SuggestedImpl;
 	    artifacts?: Artifacts;
+	    runner?: RunnerSpec;
 	
 	    static createFrom(source: any = {}) {
 	        return new Task(source);
@@ -463,6 +478,7 @@ export namespace orchestrator {
 	        this.nextRetryAt = this.convertValues(source["nextRetryAt"], null);
 	        this.suggestedImpl = this.convertValues(source["suggestedImpl"], SuggestedImpl);
 	        this.artifacts = this.convertValues(source["artifacts"], Artifacts);
+	        this.runner = this.convertValues(source["runner"], RunnerSpec);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

@@ -58,6 +58,7 @@
 ### Executor / AgentRunner
 
 - **デフォルト設定**: `Executor` が生成する Task YAML はデフォルトで `runner.max_loops: 5` と `runner.worker.kind: "codex-cli"` を設定します（`state/tasks.json` の `inputs.runner_max_loops` / `inputs.runner_worker_kind` で上書き可能）。
+- **Meta-agent プロバイダ（IDE）**: IDE 経由の計画/分解は `openai-chat` がデフォルトです。`codex-cli` は当面無効化しており、指定されても `openai-chat` にフォールバックします（`app.go` の `newMetaClientFromConfig()` 参照）。
 - **Worker 環境**: 現在は Docker ベースの実行のみサポート。
 
 ### IPC

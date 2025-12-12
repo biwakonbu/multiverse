@@ -4,6 +4,7 @@
 
 Codex CLI は OpenAI が提供する AI コーディングアシスタントのコマンドラインツール。
 multiverse IDE では Worker エージェントとして Docker コンテナ内で実行される。
+※ 2025-12-12 現在、Meta-agent 側の `codex-cli` 利用は一旦廃止しており、IDE 経由の計画/分解は `openai-chat` がデフォルト。
 
 ## 対応バージョン
 
@@ -16,35 +17,37 @@ multiverse IDE では Worker エージェントとして Docker コンテナ内�
 
 ### 統一実装
 
-multiverse IDE では `internal/agenttools/codex.go` で Codex CLI の呼び出しを統一管理。
-Worker 実行と Meta-agent 実行の両方で同じ `CodexProvider` を使用する。
+multiverse IDE では Worker 実行における Codex CLI 呼び出しを `internal/agenttools/codex.go` の `CodexProvider` で統一管理。
+Meta-agent は現状 `openai-chat` をデフォルトとし、設定で `codex-cli` を指定しても `openai-chat` にフォールバックする。
 
 ### 実行モード
 
 | モード | 用途 | docker_mode | json_output |
 |--------|------|-------------|-------------|
 | Worker | Docker 内タスク実行 | `true`（デフォルト） | `true`（デフォルト） |
-| Meta-agent | ホスト上で計画・分解 | `false` | `false` |
+| Meta-agent（参考） | ホスト上で計画・分解 | `false` | `false` |
 
 ### Worker 実行コマンド（Docker 内）
 
 ```bash
-codex exec \
-  --dangerously-bypass-approvals-and-sandbox \
-  -C /workspace/project \
-  --json \
-  -m gpt-5.1-codex \
-  -c reasoning_effort=medium \
-  "プロンプト..."
+	codex exec \
+	  --dangerously-bypass-approvals-and-sandbox \
+	  -C /workspace/project \
+	  --json \
+	  -m gpt-5.1-codex \
+	  -c reasoning_effort=medium \
+	  "プロンプト..."
 ```
 
-### Meta-agent 実行コマンド（ホスト上）
+### Meta-agent 実行コマンド（ホスト上 / 参考）
+
+※ IDE 経由では `codex-cli` は無効化されているため、手動で Codex CLI を使う場合の参考例。
 
 ```bash
-codex exec \
-  -m gpt-5.1 \
-  -c reasoning_effort=medium \
-  -
+	codex exec \
+	  -m gpt-5.2 \
+	  -c reasoning_effort=medium \
+	  -
 ```
 
 ### 必須フラグ（Worker 実行時）
@@ -61,8 +64,8 @@ codex exec \
 | 用途 | モデル ID | 設定箇所 |
 |------|----------|---------|
 | Worker タスク実行 | `gpt-5.1-codex` | `agenttools.DefaultCodexModel` |
-| Meta-agent（計画・思考） | `gpt-5.1` | `agenttools.DefaultMetaModel` |
-| 高速実行（必要時） | `gpt-5.1-codex-mini` | - |
+| Meta-agent（計画・思考） | `gpt-5.2` | `agenttools.DefaultMetaModel` |
+| 高速実行（必要時） | 利用可能な `gpt-5.x-codex-mini` 系 | - |
 
 ### 思考の深さ（reasoning effort）
 
@@ -77,12 +80,12 @@ codex exec \
 プロンプトを stdin から読み取る場合、PROMPT に `-` を指定:
 
 ```bash
-echo "プロンプト内容" | codex exec \
-  --dangerously-bypass-approvals-and-sandbox \
-  -C /workspace/project \
-  --json \
-  -m gpt-5.1-codex \
-  -
+	echo "プロンプト内容" | codex exec \
+	  --dangerously-bypass-approvals-and-sandbox \
+	  -C /workspace/project \
+	  --json \
+	  -m gpt-5.1-codex \
+	  -
 ```
 
 ### 設定オーバーライド (-c)

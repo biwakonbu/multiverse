@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/biwakonbu/agent-runner/internal/agenttools"
 	"github.com/biwakonbu/agent-runner/internal/logging"
 	"gopkg.in/yaml.v3"
 )
@@ -29,7 +30,7 @@ type Client struct {
 
 func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	if model == "" {
-		model = "gpt-5.1" // Meta-agent 用デフォルトモデル
+		model = agenttools.DefaultMetaModel // Meta-agent 用デフォルトモデル
 	}
 	c := &Client{
 		kind:         kind,
@@ -54,11 +55,6 @@ func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 func (c *Client) SetLogger(logger *slog.Logger) {
 	c.logger = logging.WithComponent(logger, "meta-client")
 }
-
-// ... (keep existing structs)
-
-// We need to replace the whole file or use targeted replaces.
-// Let's use targeted replaces for PlanTask and NextAction.
 
 // OpenAI Chat Completion Request
 type chatRequest struct {

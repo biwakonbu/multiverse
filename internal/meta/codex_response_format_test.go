@@ -27,7 +27,7 @@ var codexVersionTestCases = []CodexVersionTestCase{
 		RawResponse: `OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /Users/biwakonbu/github/multiverse
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 approval: never
 sandbox: read-only
@@ -103,7 +103,7 @@ tokens used 10,158`,
 		RawResponse: `OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 --------
 user
@@ -155,7 +155,7 @@ codex
 		RawResponse: `OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 --------
 user
@@ -198,7 +198,7 @@ tokens used 6,290
 		RawResponse: `OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 approval: never
 sandbox: read-only
@@ -243,7 +243,7 @@ func TestCodexJSONToDecomposeResponse(t *testing.T) {
 	rawResponse := `OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 --------
 codex
 {

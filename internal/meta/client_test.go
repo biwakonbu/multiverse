@@ -359,9 +359,9 @@ func TestClient_APIKeyHandling(t *testing.T) {
 	}
 
 	// Verify other public fields
-	// デフォルトモデルは gpt-5.1（Meta-agent 用）
-	if client.model != "gpt-5.1" {
-		t.Errorf("expected default model gpt-5.1, got %s", client.model)
+	// デフォルトモデルは gpt-5.2（Meta-agent 用）
+	if client.model != "gpt-5.2" {
+		t.Errorf("expected default model gpt-5.2, got %s", client.model)
 	}
 }
 

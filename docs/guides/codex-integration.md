@@ -114,7 +114,7 @@ failed to parse YAML response: mapping values are not allowed in this context
 OpenAI Codex v0.65.0 (research preview)
 --------
 workdir: /path/to/project
-model: gpt-5.1
+model: gpt-5.2
 provider: openai
 --------
 user

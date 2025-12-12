@@ -59,28 +59,32 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) newMetaClientFromConfig() *meta.Client {
 	config, err := a.llmConfigStore.GetEffectiveConfig()
 	if err != nil {
-		// エラー時でも実クライアント(codex-cli)を返す（モック廃止）
-		// エラーログは出しておく
-		runtime.LogErrorf(a.ctx, "Failed to load LLM config, falling back to default codex-cli: %v", err)
-		return meta.NewClient("codex-cli", "", "", "")
+		// codex-cli は環境に Codex CLI が無い場合に失敗するため、当面は openai-chat にフォールバックする。
+		runtime.LogErrorf(a.ctx, "Failed to load LLM config, falling back to default openai-chat: %v", err)
+		apiKey := os.Getenv("OPENAI_API_KEY")
+		return meta.NewClient("openai-chat", apiKey, "", "")
 	}
 
 	kind := config.Kind
 	if kind == "" {
-		kind = "codex-cli" // デフォルトで実タスク実行
+		kind = "openai-chat" // codex-cli を一旦廃止し、HTTP ベースをデフォルトに
 	}
 
 	switch kind {
 	case "codex-cli":
-		return meta.NewClient("codex-cli", "", config.Model, config.SystemPrompt)
+		// codex-cli は一旦廃止。設定で指定されても openai-chat にフォールバックする。
+		runtime.LogErrorf(a.ctx, "codex-cli is temporarily disabled, falling back to openai-chat")
+		apiKey := os.Getenv("OPENAI_API_KEY")
+		return meta.NewClient("openai-chat", apiKey, config.Model, config.SystemPrompt)
 	case "openai-chat":
 		// 後方互換性のため残す（HTTP ベース）
 		apiKey := os.Getenv("OPENAI_API_KEY")
 		return meta.NewClient("openai-chat", apiKey, config.Model, config.SystemPrompt)
 	default:
-		// 未知の種類の時も実クライアント(codex-cli)を返す（モック廃止）
-		runtime.LogErrorf(a.ctx, "Unknown LLM kind '%s', falling back to codex-cli", kind)
-		return meta.NewClient("codex-cli", "", config.Model, config.SystemPrompt)
+		// 未知の種類の時も openai-chat にフォールバックする。
+		runtime.LogErrorf(a.ctx, "Unknown LLM kind '%s', falling back to openai-chat", kind)
+		apiKey := os.Getenv("OPENAI_API_KEY")
+		return meta.NewClient("openai-chat", apiKey, config.Model, config.SystemPrompt)
 	}
 }
 
@@ -158,22 +162,8 @@ func (a *App) SelectWorkspace() string {
 	// Initialize ChatHandler with Meta client from LLMConfigStore
 	sessionStore := chat.NewChatSessionStore(wsDir)
 	metaClient := a.newMetaClientFromConfig()
-	// ChatHandler still needs TaskStore? Or Repo?
-	// ChatHandler needs to create nodes/tasks.
-	// I need to check ChatHandler signature. Assuming it needs update too.
-	// For now let's pass nil or fix ChatHandler later?
-	// ChatHandler uses TaskStore to List/Create tasks.
-	// I should probably force ChatHandler update or provide adapter.
-	// If ChatHandler expects *TaskStore, I'm stuck unless I update it.
-	// I'll leave a.taskStore as nil passed to ChatHandler? It will crash.
-	// I'll create a new TaskStore instance just for legacy compatibility if needed?
-	// "a.taskStore = orchestrator.NewTaskStore(wsDir)" -> I can keep this line for ChatHandler if needed?
-	// But TaskStore writes to old paths?
-	// ChatHandler should use Repo.
-	// I will update ChatHandler signature in next step.
-	// For this block I will pass 'nil' and fix compilation later?
-	// Or define 'taskStore' locally if ChatHandler needs it.
-	taskStore := orchestrator.NewTaskStore(wsDir) // Temporary for ChatHandler compatibility?
+	// ChatHandler の互換のため TaskStore を引き続き生成（design/state との同期は Handler 内で行う）
+	taskStore := orchestrator.NewTaskStore(wsDir)
 	a.chatHandler = chat.NewHandler(metaClient, taskStore, sessionStore, id, ws.ProjectRoot, a.repo, a.eventEmitter)
 
 	return id
@@ -266,7 +256,6 @@ func (a *App) RemoveWorkspace(id string) error {
 }
 
 // ListTasks returns all tasks in the current workspace.
-// ListTasks returns all tasks in the current workspace.
 func (a *App) ListTasks() []orchestrator.Task {
 	if a.repo == nil {
 		return []orchestrator.Task{}
@@ -279,11 +268,41 @@ func (a *App) ListTasks() []orchestrator.Task {
 	}
 
 	var tasks []orchestrator.Task
+	// node_id ごとに Design ノード名をキャッシュし、ディスクアクセスを最小化する。
+	nodeTitleCache := make(map[string]string)
 	for _, t := range tasksState.Tasks {
+		title := ""
+		// Inputs に title があれば最優先で使う（manualタスク等）。
+		if t.Inputs != nil {
+			if raw, ok := t.Inputs["title"]; ok {
+				if s, ok := raw.(string); ok && s != "" {
+					title = s
+				}
+			}
+		}
+
+		// NodeDesign があれば Name をタイトルとして使う。
+		if title == "" && t.NodeID != "" {
+			if cached, ok := nodeTitleCache[t.NodeID]; ok {
+				title = cached
+			} else {
+				if node, err := a.repo.Design().GetNode(t.NodeID); err == nil && node.Name != "" {
+					title = node.Name
+				}
+				if title == "" {
+					title = t.Kind + ": " + t.NodeID // Fallback
+				}
+				nodeTitleCache[t.NodeID] = title
+			}
+		}
+
+		if title == "" {
+			title = t.Kind + ": " + t.NodeID // Fallback
+		}
 		// Map persistence.TaskState to orchestrator.Task
 		task := orchestrator.Task{
 			ID:        t.TaskID,
-			Title:     t.Kind + ": " + t.NodeID, // Fallback
+			Title:     title,
 			Status:    orchestrator.TaskStatus(t.Status),
 			PoolID:    "default", // Missing in TaskState
 			CreatedAt: t.CreatedAt,

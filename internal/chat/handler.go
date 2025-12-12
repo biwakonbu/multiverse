@@ -168,6 +168,12 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 		return nil, fmt.Errorf("failed to persist tasks: %w", err)
 	}
 
+	// Filter potential conflicts against actual workspace files.
+	filteredConflicts := h.filterPotentialConflicts(decomposeResp.PotentialConflicts)
+	if len(filteredConflicts) != len(decomposeResp.PotentialConflicts) {
+		decomposeResp.PotentialConflicts = filteredConflicts
+	}
+
 	// 5. アシスタント応答メッセージを作成 (Event: completed)
 	emitProgress("Completed", "処理が完了しました。")
 	responseContent := h.buildResponseContent(decomposeResp, generatedTasks)
@@ -197,7 +203,7 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 		Message:        *assistantMsg,
 		GeneratedTasks: generatedTasks,
 		Understanding:  decomposeResp.Understanding,
-		Conflicts:      decomposeResp.PotentialConflicts,
+		Conflicts:      filteredConflicts,
 	}, nil
 }
 
@@ -689,4 +695,41 @@ func (h *Handler) validateFilePaths(paths []string) []string {
 		}
 	}
 	return validated
+}
+
+// filterPotentialConflicts removes conflicts for files that do not exist in the workspace.
+// potential_conflicts はヒューリスティック出力なので false positive を含む。
+func (h *Handler) filterPotentialConflicts(conflicts []meta.PotentialConflict) []meta.PotentialConflict {
+	if h.ProjectRoot == "" || len(conflicts) == 0 {
+		return conflicts
+	}
+
+	filtered := make([]meta.PotentialConflict, 0, len(conflicts))
+	for _, c := range conflicts {
+		file := strings.TrimSpace(c.File)
+		if file == "" {
+			continue
+		}
+		checkPath := file
+		if !filepath.IsAbs(file) {
+			checkPath = filepath.Join(h.ProjectRoot, file)
+		}
+
+		if _, err := os.Stat(checkPath); err == nil {
+			filtered = append(filtered, c)
+			continue
+		} else if os.IsNotExist(err) {
+			if h.logger != nil {
+				h.logger.Debug("dropping potential conflict for non-existent file",
+					slog.String("file", file),
+				)
+			}
+			continue
+		}
+
+		// Non-ENOENT errors (permission, etc.): keep to avoid hiding real conflicts.
+		filtered = append(filtered, c)
+	}
+
+	return filtered
 }

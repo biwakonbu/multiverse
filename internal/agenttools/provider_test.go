@@ -141,6 +141,42 @@ func TestCodexProvider_Build_ReasoningEffort(t *testing.T) {
 	}
 }
 
+func TestCodexProvider_Build_InvalidReasoningEffortFallback(t *testing.T) {
+	p := NewCodexProvider(ProviderConfig{Kind: "codex-cli"})
+
+	ctx := context.Background()
+
+	t.Run("xhigh is clamped to high", func(t *testing.T) {
+		req := Request{
+			Prompt:          "test",
+			ReasoningEffort: "xhigh",
+		}
+		plan, err := p.Build(ctx, req)
+		if err != nil {
+			t.Fatalf("Build() failed: %v", err)
+		}
+		args := strings.Join(plan.Args, " ")
+		if !strings.Contains(args, "-c reasoning_effort=high") {
+			t.Errorf("Args should contain '-c reasoning_effort=high', got: %s", args)
+		}
+	})
+
+	t.Run("unknown value falls back to medium", func(t *testing.T) {
+		req := Request{
+			Prompt:          "test",
+			ReasoningEffort: "weird",
+		}
+		plan, err := p.Build(ctx, req)
+		if err != nil {
+			t.Fatalf("Build() failed: %v", err)
+		}
+		args := strings.Join(plan.Args, " ")
+		if !strings.Contains(args, "-c reasoning_effort=medium") {
+			t.Errorf("Args should contain '-c reasoning_effort=medium', got: %s", args)
+		}
+	})
+}
+
 func TestCodexProvider_Build_Stdin(t *testing.T) {
 	p := NewCodexProvider(ProviderConfig{Kind: "codex-cli"})
 

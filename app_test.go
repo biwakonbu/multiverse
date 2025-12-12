@@ -87,24 +87,31 @@ func TestListTasks_WithRepo(t *testing.T) {
 	_ = repo.Init()
 	app.repo = repo
 
+	now := time.Now()
 	// Add tasks via Repo
 	tasksState := &persistence.TasksState{
 		Tasks: []persistence.TaskState{
-			{TaskID: "task-1", Status: string(orchestrator.TaskStatusPending), CreatedAt: time.Now()},
-			{TaskID: "task-2", Status: string(orchestrator.TaskStatusRunning), CreatedAt: time.Now()},
+			{
+				TaskID:    "task-1",
+				NodeID:    "node-1",
+				Kind:      "implementation",
+				Status:    string(orchestrator.TaskStatusPending),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			{
+				TaskID:    "task-2",
+				NodeID:    "node-2",
+				Kind:      "implementation",
+				Status:    string(orchestrator.TaskStatusRunning),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 		},
 	}
 	_ = repo.State().SaveTasks(tasksState)
 
-	// Since ListTasks needs Design for Title, let's add dummy design
-	_ = repo.Design().SaveNode(&persistence.NodeDesign{NodeID: "", Name: "Task 1"})
-	// NodeID is empty in task above? TaskState has NodeID field.
-	// Let's fix setup.
-
-	tasksState.Tasks[0].NodeID = "node-1"
-	tasksState.Tasks[1].NodeID = "node-2"
-	_ = repo.State().SaveTasks(tasksState)
-
+	// Design のノード名がタイトルとして使われることを確認するためのダミー設計を保存
 	_ = repo.Design().SaveNode(&persistence.NodeDesign{NodeID: "node-1", Name: "Task 1"})
 	_ = repo.Design().SaveNode(&persistence.NodeDesign{NodeID: "node-2", Name: "Task 2"})
 
@@ -112,6 +119,16 @@ func TestListTasks_WithRepo(t *testing.T) {
 
 	if len(tasks) != 2 {
 		t.Errorf("expected 2 tasks, got %d", len(tasks))
+	}
+	titles := map[string]string{}
+	for _, task := range tasks {
+		titles[task.ID] = task.Title
+	}
+	if titles["task-1"] != "Task 1" {
+		t.Errorf("expected title 'Task 1', got '%s'", titles["task-1"])
+	}
+	if titles["task-2"] != "Task 2" {
+		t.Errorf("expected title 'Task 2', got '%s'", titles["task-2"])
 	}
 }
 

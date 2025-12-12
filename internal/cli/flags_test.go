@@ -19,8 +19,8 @@ func TestParseFlags(t *testing.T) {
 		},
 		{
 			name: "meta-model flag",
-			args: []string{"--meta-model=gpt-5.1-mini"},
-			want: &Flags{MetaModel: "gpt-5.1-mini"},
+			args: []string{"--meta-model=gpt-5.2-mini"},
+			want: &Flags{MetaModel: "gpt-5.2-mini"},
 		},
 		{
 			name:    "unknown flag",
@@ -70,7 +70,7 @@ func TestResolveMetaModel(t *testing.T) {
 			name:      "Default used if both empty",
 			cliModel:  "",
 			yamlModel: "",
-			want:      "gpt-5.1",
+			want:      "gpt-5.2",
 		},
 	}
 

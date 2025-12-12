@@ -5,6 +5,7 @@
   import ChatMessage from "../ChatMessage.svelte";
   import {
     chatMessages,
+    chatLog,
     isChatLoading,
     chatError,
     type ChatResponse,
@@ -47,6 +48,14 @@
   // 表示するメッセージ（最新10000件まで）
   let displayMessages = $derived($chatMessages.slice(-MAX_DISPLAY_MESSAGES));
 
+  // 最新の進捗（Loading中のみ表示）
+  let latestProgress = $derived(
+    $chatLog.length > 0 ? $chatLog[$chatLog.length - 1] : null
+  );
+  let progressContent = $derived(
+    latestProgress ? `[${latestProgress.step}] ${latestProgress.message}` : ""
+  );
+
   // 最新に移動
   function scrollToBottom() {
     if (contentEl) {
@@ -76,6 +85,13 @@
         timestamp={msg.timestamp}
       />
     {/each}
+    {#if $isChatLoading && latestProgress && progressContent}
+      <ChatMessage
+        role="system"
+        content={progressContent}
+        timestamp={latestProgress.timestamp}
+      />
+    {/if}
     {#if $isChatLoading}
       <div class="loading-indicator">
         <span class="dot"></span>
