@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { LogEntry } from "../../stores/logStore";
+  import { logs as logStore } from "../../stores/logStore";
 
   interface Props {
     logs?: LogEntry[];
@@ -11,10 +12,9 @@
   let container: HTMLDivElement | undefined = $state();
   let autoScroll = $state(true);
 
-  // 自動スクロール（Svelte 5: $effect を使用）
+  // Scroll to bottom when logs update, if autoScroll is enabled
   $effect(() => {
-    // logs を追跡して変更時にスクロール
-    logs;
+    logs; // dependency for reactivity
     if (autoScroll && container) {
       container.scrollTop = container.scrollHeight;
     }
@@ -23,8 +23,22 @@
   function onScroll() {
     if (!container) return;
     const { scrollTop, scrollHeight, clientHeight } = container;
-    // 下部から少し離れたら自動スクロール解除
-    autoScroll = scrollHeight - scrollTop - clientHeight < 50;
+    // Tolerance of 5px to consider "at bottom"
+    const atBottom = scrollHeight - scrollTop - clientHeight <= 20;
+
+    // If not at bottom, disable auto-scroll
+    if (!atBottom) {
+      autoScroll = false;
+    } else {
+      // If user scrolls back to bottom, re-enable auto-scroll
+      autoScroll = true;
+    }
+  }
+
+  function clearLogs() {
+    // Since logs prop might be immutable or controlled by parent,
+    // ideally we emit an event or call store. But for global log view, calling store directly is pragmatic for MVP.
+    logStore.clear();
   }
 
   function getLogColor(stream: LogEntry["stream"]): string {
@@ -36,10 +50,31 @@
 
 <div class="log-stream" style:height>
   <div class="log-header">
-    <span class="title">LIVE LOGS</span>
-    <span class="status-badge" class:active={autoScroll}
-      >{autoScroll ? "AUTO" : "PAUSED"}</span
-    >
+    <div class="header-left">
+      <span class="title">LIVE LOGS</span>
+      <!-- Debug/Status info -->
+      <span class="count">{logs.length} lines</span>
+    </div>
+    <div class="header-right">
+      {#if !autoScroll}
+        <button
+          class="action-btn resume"
+          onclick={() => {
+            autoScroll = true;
+          }}
+        >
+          RESUME AUTO-SCROLL
+        </button>
+      {/if}
+      <button class="action-btn clear" onclick={clearLogs}>CLEAR</button>
+      <span
+        class="status-badge"
+        class:active={autoScroll}
+        title={autoScroll ? "Auto-scroll enabled" : "Auto-scroll paused"}
+      >
+        {autoScroll ? "AUTO" : "PAUSED"}
+      </span>
+    </div>
   </div>
 
   <div class="log-content" bind:this={container} onscroll={onScroll}>
@@ -85,6 +120,13 @@
     backdrop-filter: var(--mv-glass-blur-light);
   }
 
+  .header-left,
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-space-3);
+  }
+
   .title {
     color: var(--mv-color-text-secondary);
     font-weight: var(--mv-font-weight-bold);
@@ -92,6 +134,35 @@
     font-size: var(--mv-font-size-2xs);
     text-transform: uppercase;
     text-shadow: var(--mv-text-shadow-subtle);
+  }
+
+  .count {
+    font-size: var(--mv-font-size-3xs);
+    color: var(--mv-color-text-muted);
+    opacity: var(--mv-opacity-60);
+  }
+
+  .action-btn {
+    background: transparent;
+    border: none;
+    color: var(--mv-color-text-muted);
+    font-size: var(--mv-font-size-2xs);
+    font-weight: var(--mv-font-weight-bold);
+    cursor: pointer;
+    padding: var(--mv-space-0-5) var(--mv-space-1-5);
+    border-radius: var(--mv-radius-sm);
+    transition: all var(--mv-transition-base);
+  }
+  .action-btn:hover {
+    background: var(--mv-glass-hover);
+    color: var(--mv-color-text-primary);
+  }
+  .action-btn.resume {
+    color: var(--mv-color-status-info-text);
+  }
+  .action-btn.clear:hover {
+    background: var(--mv-color-status-failed-bg);
+    color: var(--mv-color-status-failed-text);
   }
 
   .status-badge {
@@ -102,6 +173,7 @@
     color: var(--mv-color-text-muted);
     border: var(--mv-border-width-sm) solid transparent;
     transition: all var(--mv-transition-base);
+    user-select: none;
   }
 
   .status-badge.active {

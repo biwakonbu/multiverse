@@ -6,6 +6,13 @@
   import DraggableWindow from "../ui/window/DraggableWindow.svelte";
   import ChatView from "./tabs/ChatView.svelte";
   import LogView from "./tabs/LogView.svelte";
+  import LiveLogStream from "../../hud/LiveLogStream.svelte";
+  import {
+    logs as globalLogs,
+    getTaskLogs,
+    type LogEntry,
+  } from "../../../stores/logStore";
+  import { selectedTaskId } from "../../../stores/taskStore";
   import {
     chatStore,
     currentSessionId,
@@ -31,8 +38,29 @@
   let conflicts: NonNullable<ChatResponse["conflicts"]> = $state([]);
 
   // Tabs
-  const tabs = ["General", "Log"];
+  const tabs = ["General", "Execution", "System"];
   let activeTab = $state("General");
+
+  // Reactive log selection
+  // getTaskLogs returns a store, so we subscribe to it via auto-subscription in layout or new derived
+  // For simplicity in Svelte 5, we can use a derived store that switches source
+  import { derived } from "svelte/store";
+
+  // Create a switching store
+  const activeLogStore = derived(
+    [selectedTaskId, globalLogs],
+    ([$id, $global], set) => {
+      if ($id) {
+        // Subscribe to specific task logs
+        const unsub = getTaskLogs($id).subscribe((val) => set(val));
+        return () => unsub();
+      } else {
+        set($global);
+        return () => {};
+      }
+    },
+    [] as LogEntry[] // initial value
+  );
 
   // セッション初期化
   onMount(async () => {
@@ -124,7 +152,11 @@
     {#snippet children()}
       {#if activeTab === "General"}
         <ChatView {conflicts} />
-      {:else if activeTab === "Log"}
+      {:else if activeTab === "Execution"}
+        <div style:height="100%" style:width="100%">
+          <LiveLogStream logs={$activeLogStore} height="100%" />
+        </div>
+      {:else if activeTab === "System"}
         <LogView />
       {/if}
     {/snippet}

@@ -38,6 +38,10 @@ function createLogStore() {
 
 export const logs = createLogStore();
 
+// Derived store generator for specific task
+import { derived } from 'svelte/store';
+export const getTaskLogs = (taskId: string) => derived(logs, $logs => $logs.filter(l => l.taskId === taskId));
+
 interface TaskLogEvent {
     taskId: string;
     stream: 'stdout' | 'stderr';

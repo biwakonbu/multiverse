@@ -65,6 +65,20 @@ func (e *Executor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[
 
 	// Build provider config and request
 	reqEnv := mergeEnvMaps(e.Config.Env, call.Env, env)
+
+	// QH-007: Explicitly propagate Codex/Claude session tokens from Host to Container
+	// AgentRunner inherits these from Orchestrator (Host), but Docker container needs explicit injection.
+	for _, key := range []string{"CODEX_SESSION_TOKEN", "CODEX_API_KEY", "ANTHROPIC_API_KEY"} {
+		if val := os.Getenv(key); val != "" {
+			if reqEnv == nil {
+				reqEnv = make(map[string]string)
+			}
+			if _, exists := reqEnv[key]; !exists {
+				reqEnv[key] = val
+			}
+		}
+	}
+
 	providerCfg := agenttools.ProviderConfig{
 		Kind:         workerType,
 		CLIPath:      call.CLIPath,
@@ -152,6 +166,13 @@ func (e *Executor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[
 		Error:      execErr,
 	}
 
+	// Capture artifacts if execution was successful (or even if failed, we might want to see changes)
+	// QH-008: Track modified files
+	if artifacts, err := e.captureArtifacts(ctx, containerID); err == nil && len(artifacts) > 0 {
+		res.Artifacts = artifacts
+		logger.Info("artifacts detected", slog.Int("count", len(artifacts)))
+	}
+
 	durationMs := float64(finish.Sub(start).Milliseconds())
 	if execErr != nil {
 		logger.Error("worker execution failed",
@@ -180,14 +201,13 @@ func (e *Executor) Start(ctx context.Context) error {
 		return fmt.Errorf("container already started (ID: %s)", e.containerID)
 	}
 
-	// Verify Codex CLI session before starting container
 	if e.Config.Kind == "claude-code" {
 		if err := e.verifyClaudeSession(ctx); err != nil {
 			logger.Error("claude session verification failed",
 				slog.Any("error", err),
 				slog.String("hint", "claude login で認証してください"),
 			)
-			return fmt.Errorf("Claude Code セッションがありません: %w", err)
+			return fmt.Errorf("claude code session missing: %w", err)
 		}
 	} else if e.Config.Kind == "codex-cli" || e.Config.Kind == "" {
 		if err := e.verifyCodexSession(ctx); err != nil {
@@ -195,7 +215,7 @@ func (e *Executor) Start(ctx context.Context) error {
 				slog.Any("error", err),
 				slog.String("hint", "codex login で認証するか ~/.codex/auth.json を用意してください"),
 			)
-			return fmt.Errorf("Codex CLI セッションがありません: %w", err)
+			return fmt.Errorf("codex cli session missing: %w", err)
 		}
 	}
 
@@ -267,8 +287,8 @@ func (e *Executor) verifyCodexSession(ctx context.Context) error {
 		}
 	}
 
-	// 2. CODEX_API_KEY 環境変数の確認
-	if os.Getenv("CODEX_API_KEY") != "" {
+	// 2. CODEX_API_KEY or CODEX_SESSION_TOKEN environment variable check
+	if os.Getenv("CODEX_API_KEY") != "" || os.Getenv("CODEX_SESSION_TOKEN") != "" {
 		return nil
 	}
 
@@ -391,4 +411,58 @@ func buildEnvPrefix(env map[string]string) []string {
 		prefix = append(prefix, fmt.Sprintf("%s=%s", k, val))
 	}
 	return prefix
+}
+
+// captureArtifacts detects modified files using git status
+func (e *Executor) captureArtifacts(ctx context.Context, containerID string) ([]string, error) {
+	// Simple git status check
+	// porcelain format provides stable output: "M  file", "?? file", etc.
+	cmd := []string{"git", "status", "--porcelain"}
+
+	// Create short timeout context for artifact detection
+	dtCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, output, err := e.Sandbox.Exec(dtCtx, containerID, cmd, nil)
+	if err != nil {
+		// If fails (not a git repo, or git not installed), we just log and return empty
+		// e.logger.Debug("failed to capture artifacts (git status)", slog.Any("error", err))
+		return nil, nil // Non-critical failure
+	}
+
+	var artifacts []string
+	validCodes := map[byte]bool{
+		'M': true, // Modified
+		'A': true, // Added
+		'D': true, // Deleted
+		'R': true, // Renamed
+		'C': true, // Copied
+		'?': true, // Untracked
+	}
+
+	for _, line := range strings.Split(output, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if len(trimmed) < 4 {
+			continue
+		}
+
+		// Porcelain format: XY PATH
+		// X = staging status, Y = worktree status
+		x := trimmed[0]
+		y := trimmed[1]
+
+		if validCodes[x] || validCodes[y] {
+			// Extract path (handle potentially quoted paths if needed, but simple split for now)
+			// Status is usually fitst 2 chars, then space, then path
+			parts := strings.Fields(trimmed)
+			if len(parts) >= 2 {
+				// Rejoin parts in case of spaces in filename (though porcelain quotes them usually)
+				// For simple MVP: just take the rest
+				path := strings.TrimSpace(trimmed[2:])
+				artifacts = append(artifacts, path)
+			}
+		}
+	}
+
+	return artifacts, nil
 }

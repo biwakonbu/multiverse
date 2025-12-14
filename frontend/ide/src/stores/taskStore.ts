@@ -244,4 +244,31 @@ export function initTaskEvents(): void {
   });
 
   log.info('task events initialized');
+
+  // process:workerUpdate イベントをリッスン (QH-008: Artifacts)
+  EventsOn('process:workerUpdate', (event: ProcessWorkerUpdateEvent) => {
+    if (event.artifacts && event.artifacts.length > 0) {
+      log.info('worker artifacts received', { taskId: event.taskId, count: event.artifacts.length });
+      
+      // 既存のTaskを取得してマージするのはストア外では難しいので、
+      // updateTaskを利用してartifactsフィールドを更新する。
+      // 注意: logsなど他のフィールドがある場合は上書きに注意が必要だが、現状はfilesのみ。
+      tasks.updateTask(event.taskId, {
+        artifacts: {
+          files: event.artifacts
+        }
+      });
+    }
+  });
+}
+
+// Worker更新イベントの型
+interface ProcessWorkerUpdateEvent {
+  taskId: string;
+  workerId: string;
+  status: string;
+  command: string;
+  exitCode?: number;
+  artifacts?: string[];
+  timestamp: string;
 }

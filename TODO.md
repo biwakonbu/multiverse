@@ -96,13 +96,21 @@
 
 ### 3.3 P1（運用品質）
 
-#### 3.3.1 QH-006: 実行ログ UI の運用可能化
+### 3.3 P1（運用品質）
 
-- `ISSUE.md:15` の残タスクを “最小導線” に落とす（タスク別フィルタ/クリア/常時表示）。
+#### 3.3.1 QH-006: 実行ログ UI の運用可能化 (~100pt)
 
-#### 3.3.2 QH-007: Codex CLI セッション検証と注入仕様
+- [ ] **Store Logic**: `logStore.ts` に FIFO (1000 行) とフィルタリングロジック（TaskID 指定）を実装する。
+- [ ] **Component**: `LogPanel` に「Auto-scroll lock」（底にいる時は追従、外れたら停止）を実装する。
+- [ ] **Component**: `Clear` ボタンと、ログ種別（stdout/stderr/system）のスタイル定義（`design-system` 準拠）を追加する。
+- [ ] **Verification**: 大量ログ出力タスクを実行し、パフォーマンステスト（カクつきなし）とスクロール挙動を確認する。
 
-- `ISSUE.md:21` を “実装 + ドキュメント” まで閉じる。
+#### 3.3.2 QH-007: Codex CLI セッション検証と注入仕様 (~100pt)
+
+- [ ] **Executor**: `agent-runner` 起動前の Pre-flight Check ロジック（`codex` コマンド有無、`CODEX_SESSION_TOKEN` 確認）を追加する。
+- [ ] **Error Handling**: Check 失敗字に、UI が理解できる形式（例: `CompletionAssessment` のような構造化エラー、または Events 通知）で警告を返す。
+- [ ] **Injection**: `worker/executor.go` での環境変数注入がセキュアに行われているか再確認し、コメントで仕様を明記する。
+- [ ] **Verification**: `CODEX_SESSION_TOKEN` を外してタスク実行し、UI に適切な警告が出ることを確認する。
 
 ### 3.4 P2（将来拡張：仕様/テストを先に固めてから実装）
 

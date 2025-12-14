@@ -309,6 +309,7 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 					slog.String("event_type", "worker:completed"),
 					slog.Int("exit_code", res.ExitCode),
 					slog.Int("output_length", len(res.RawOutput)),
+					slog.Any("artifacts", res.Artifacts),
 					logging.LogDuration(workerStart),
 				)
 				logger.Debug("worker output", slog.String("output", res.RawOutput))

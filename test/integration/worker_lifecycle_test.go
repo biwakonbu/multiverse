@@ -136,9 +136,9 @@ func TestWorkerLifecycle_MultipleRunsInSameContainer(t *testing.T) {
 		t.Errorf("Second RunWorker() RawOutput = %s, want 'Second success'", result2.RawOutput)
 	}
 
-	// Verify Exec was called twice
-	if mockSandbox.execCallCount != 2 {
-		t.Errorf("Exec should have been called 2 times, got %d", mockSandbox.execCallCount)
+	// Verify Exec was called 4 times (2 worker calls + 2 artifact captures via git status)
+	if mockSandbox.execCallCount != 4 {
+		t.Errorf("Exec should have been called 4 times, got %d", mockSandbox.execCallCount)
 	}
 
 	// Stop container

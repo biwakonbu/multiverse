@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -78,6 +80,12 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 	taskYAML := e.generateTaskYAML(task)
 	logger.Debug("generated task YAML", slog.Int("yaml_length", len(taskYAML)))
 
+	// QH-007: Pre-flight check for worker session
+	if err := e.verifyPreFlight(ctx, task); err != nil {
+		logger.Error("pre-flight check failed", slog.Any("error", err))
+		return e.handleExecutionError(attempt, task, err)
+	}
+
 	// Execute agent-runner
 	logger.Info("executing agent-runner", slog.String("binary_path", e.AgentRunnerPath))
 
@@ -104,6 +112,9 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 	// Setup stdout/stderr streaming if event emitter is available
 	var stdoutPipe, stderrPipe io.ReadCloser
 	var outputBuf bytes.Buffer
+	// Capture artifacts from log stream
+	var capturedArtifacts []string
+
 	if e.events != nil {
 		stdoutPipe, err = cmd.StdoutPipe()
 		if err != nil {
@@ -126,7 +137,9 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 				// Try parsing as structured log/event
 				var entry map[string]interface{}
 				if err := json.Unmarshal([]byte(line), &entry); err == nil {
-					e.handleStructuredLog(task.ID, task.Title, entry)
+					e.handleStructuredLog(task.ID, task.Title, entry, func(artifacts []string) {
+						capturedArtifacts = artifacts
+					})
 				}
 
 				e.events.Emit(EventTaskLog, TaskLogEvent{
@@ -200,6 +213,14 @@ func (e *Executor) ExecuteTask(ctx context.Context, task *Task) (*Attempt, error
 			logging.LogDuration(start),
 		)
 		logger.Debug("agent-runner output", slog.String("output", string(output)))
+
+		if len(capturedArtifacts) > 0 {
+			if task.Artifacts == nil {
+				task.Artifacts = &Artifacts{}
+			}
+			task.Artifacts.Files = capturedArtifacts
+			logger.Info("artifacts captured", slog.Int("count", len(capturedArtifacts)))
+		}
 
 		if e.events != nil {
 			e.events.Emit(EventProcessMetaUpdate, ProcessMetaUpdateEvent{
@@ -349,7 +370,7 @@ func quoteList(items []string) string {
 	return strings.Join(quoted, ", ")
 }
 
-func (e *Executor) handleStructuredLog(taskID, taskTitle string, entry map[string]interface{}) {
+func (e *Executor) handleStructuredLog(taskID, taskTitle string, entry map[string]interface{}, onArtifacts func([]string)) {
 	eventType, ok := entry["event_type"].(string)
 	if !ok {
 		return
@@ -399,12 +420,66 @@ func (e *Executor) handleStructuredLog(taskID, taskTitle string, entry map[strin
 		})
 	case "worker:completed":
 		exitCode, _ := entry["exit_code"].(float64)
+		var artifacts []string
+		if rawArtifacts, ok := entry["artifacts"].([]interface{}); ok {
+			for _, a := range rawArtifacts {
+				if s, ok := a.(string); ok {
+					artifacts = append(artifacts, s)
+				}
+			}
+		}
+
+		if len(artifacts) > 0 && onArtifacts != nil {
+			onArtifacts(artifacts)
+		}
+
 		e.events.Emit(EventProcessWorkerUpdate, ProcessWorkerUpdateEvent{
 			TaskID:    taskID,
 			WorkerID:  "worker-1",
 			Status:    "IDLE", // Or FINISHED
 			ExitCode:  int(exitCode),
+			Artifacts: artifacts,
 			Timestamp: timestamp,
 		})
 	}
+}
+
+// verifyPreFlight performs checks before starting the agent-runner.
+// QH-007: Verifies CLI session existence for codex/claude.
+func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
+	workerKind := DefaultWorkerKind
+	if task.Runner != nil && task.Runner.WorkerKind != "" {
+		workerKind = task.Runner.WorkerKind
+	}
+
+	if workerKind == "codex-cli" {
+		// Check for CODEX_SESSION_TOKEN or auth file
+		// Note: We check host environment because Orchestrator and AgentRunner share the same host context in local mode.
+		if os.Getenv("CODEX_SESSION_TOKEN") == "" && os.Getenv("CODEX_API_KEY") == "" {
+			// Check ~/.codex/auth.json
+			home, err := os.UserHomeDir()
+			if err == nil {
+				authPath := filepath.Join(home, ".codex", "auth.json")
+				if _, err := os.Stat(authPath); err == nil {
+					return nil // Auth file exists
+				}
+			}
+
+			// Notify UI about missing session
+			if e.events != nil {
+				e.events.Emit(EventProcessMetaUpdate, ProcessMetaUpdateEvent{
+					TaskID:    task.ID,
+					TaskTitle: task.Title,
+					State:     "ERROR",
+					Detail:    "Codex Session Missing: Please set CODEX_SESSION_TOKEN or run `codex login`",
+					Timestamp: time.Now(),
+				})
+			}
+			return fmt.Errorf("Codex CLI session not found. Please set CODEX_SESSION_TOKEN or run `codex login`.")
+		}
+	}
+
+	// Future: Add claude-code check if needed
+
+	return nil
 }

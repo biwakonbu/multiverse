@@ -94,6 +94,7 @@ type ProcessWorkerUpdateEvent struct {
 	Status    string    `json:"status"` // "RUNNING", "IDLE", "ERROR"
 	Command   string    `json:"command"`
 	ExitCode  int       `json:"exitCode,omitempty"`
+	Artifacts []string  `json:"artifacts,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 }
 

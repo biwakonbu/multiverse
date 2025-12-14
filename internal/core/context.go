@@ -62,6 +62,7 @@ type WorkerRunResult struct {
 	RawOutput  string
 	Summary    string
 	Error      error
+	Artifacts  []string
 }
 
 // TestResult records the result of the test command
