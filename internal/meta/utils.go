@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -150,6 +151,21 @@ func buildDecomposeUserPrompt(req *DecomposeRequest) string {
 	return b.String()
 }
 
+// statusPriority returns priority for deterministic sorting (lower = higher priority)
+// PRD 13.3 #2: RUNNING > BLOCKED > PENDING/READY > others
+func statusPriority(status string) int {
+	switch status {
+	case "RUNNING":
+		return 0
+	case "BLOCKED":
+		return 1
+	case "PENDING", "READY":
+		return 2
+	default:
+		return 3 // SUCCEEDED, FAILED, COMPLETED, etc.
+	}
+}
+
 // buildPlanPatchUserPrompt builds the user prompt for plan patch request
 // QH-001: Includes full structured context (WBS node_index, conversation history, task details)
 func buildPlanPatchUserPrompt(req *PlanPatchRequest) string {
@@ -159,12 +175,23 @@ func buildPlanPatchUserPrompt(req *PlanPatchRequest) string {
 	fmt.Fprintf(b, "Context:\n")
 
 	// Existing tasks with full facet information (max 200 tasks)
+	// PRD 13.3 #2: 決定論的ソート (status優先 + ID昇順)
 	if len(req.Context.ExistingTasks) > 0 {
 		fmt.Fprintf(b, "Existing Tasks:\n")
 		tasks := req.Context.ExistingTasks
 		if len(tasks) > 200 {
-			tasks = tasks[:200]
-			fmt.Fprintf(b, "(showing first 200 of %d tasks)\n", len(req.Context.ExistingTasks))
+			// Sort by status priority (RUNNING > BLOCKED > PENDING > SUCCEEDED) + ID
+			sortedTasks := make([]ExistingTaskSummary, len(tasks))
+			copy(sortedTasks, tasks)
+			sort.SliceStable(sortedTasks, func(i, j int) bool {
+				pi, pj := statusPriority(sortedTasks[i].Status), statusPriority(sortedTasks[j].Status)
+				if pi != pj {
+					return pi < pj
+				}
+				return sortedTasks[i].ID < sortedTasks[j].ID
+			})
+			tasks = sortedTasks[:200]
+			fmt.Fprintf(b, "(showing first 200 of %d tasks, prioritized by status)\n", len(req.Context.ExistingTasks))
 		}
 		for _, t := range tasks {
 			deps := "none"
@@ -180,10 +207,19 @@ func buildPlanPatchUserPrompt(req *PlanPatchRequest) string {
 		}
 	}
 
-	// WBS structure with full node_index (PRD 12.1 / meta-protocol.md 10.2)
+	// WBS structure with node_index (PRD 12.1 / meta-protocol.md 10.2)
+	// QH-001: Deterministic trimming to max 200 nodes via BFS from root
 	if req.Context.ExistingWBS != nil {
-		fmt.Fprintf(b, "\nWBS Structure (Root: %s):\n", req.Context.ExistingWBS.RootNodeID)
-		for _, n := range req.Context.ExistingWBS.NodeIndex {
+		nodes := req.Context.ExistingWBS.NodeIndex
+		const maxWBSNodes = 200
+		if len(nodes) > maxWBSNodes {
+			nodes = trimWBSNodesBFS(nodes, req.Context.ExistingWBS.RootNodeID, maxWBSNodes)
+			fmt.Fprintf(b, "\nWBS Structure (Root: %s, showing %d of %d nodes):\n",
+				req.Context.ExistingWBS.RootNodeID, len(nodes), len(req.Context.ExistingWBS.NodeIndex))
+		} else {
+			fmt.Fprintf(b, "\nWBS Structure (Root: %s):\n", req.Context.ExistingWBS.RootNodeID)
+		}
+		for _, n := range nodes {
 			parent := "root"
 			if n.ParentID != nil && *n.ParentID != "" {
 				parent = *n.ParentID
@@ -213,4 +249,49 @@ func buildPlanPatchUserPrompt(req *PlanPatchRequest) string {
 	}
 
 	return b.String()
+}
+
+// trimWBSNodesBFS trims WBS nodes to a maximum count using BFS from root.
+// QH-001 (PRD 13.3 #1): Deterministic subset selection for large WBS.
+// Returns nodes in BFS order, ensuring root and its descendants are prioritized.
+func trimWBSNodesBFS(nodes []WBSNodeIndex, rootNodeID string, maxNodes int) []WBSNodeIndex {
+	if len(nodes) <= maxNodes {
+		return nodes
+	}
+
+	// Build lookup maps
+	nodeByID := make(map[string]WBSNodeIndex, len(nodes))
+	for _, n := range nodes {
+		nodeByID[n.NodeID] = n
+	}
+
+	// BFS from root
+	result := make([]WBSNodeIndex, 0, maxNodes)
+	seen := make(map[string]struct{})
+	queue := []string{rootNodeID}
+
+	for len(queue) > 0 && len(result) < maxNodes {
+		nodeID := queue[0]
+		queue = queue[1:]
+
+		if _, ok := seen[nodeID]; ok {
+			continue
+		}
+		seen[nodeID] = struct{}{}
+
+		node, exists := nodeByID[nodeID]
+		if !exists {
+			continue
+		}
+		result = append(result, node)
+
+		// Add children to queue (maintains child order for determinism)
+		for _, childID := range node.Children {
+			if _, ok := seen[childID]; !ok {
+				queue = append(queue, childID)
+			}
+		}
+	}
+
+	return result
 }

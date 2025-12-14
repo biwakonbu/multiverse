@@ -39,7 +39,17 @@ func NewMockClient() *Client {
 
 // shimMockRoundTripper intercepts HTTP requests and returns hardcoded responses
 // mirroring the old "mock mode" logic.
+// QH-005 (PRD 13.3 #4): Uses structure-based matching with string fallback
 type shimMockRoundTripper struct{}
+
+// openAIRequest represents the structure of OpenAI chat completion request
+type openAIRequest struct {
+	Messages []struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	} `json:"messages"`
+	Model string `json:"model"`
+}
 
 func (m *shimMockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	// Read body to determine request type
@@ -48,12 +58,30 @@ func (m *shimMockRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	// Restore body for any downstream readers (not needed here but good practice)
 	req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
+	// QH-005: Try structure-based matching first
+	var oaiReq openAIRequest
+	_ = json.Unmarshal(bodyBytes, &oaiReq) // ignore error, fallback to string matching
+
 	bodyStr := string(bodyBytes)
+
+	// Extract system prompt from messages (first message with role="system")
+	systemPrompt := ""
+	userPrompt := ""
+	for _, msg := range oaiReq.Messages {
+		if msg.Role == "system" && systemPrompt == "" {
+			systemPrompt = msg.Content
+		}
+		if msg.Role == "user" && userPrompt == "" {
+			userPrompt = msg.Content
+		}
+	}
 
 	// Determine response based on content
 	var content string
 
-	if strings.Contains(bodyStr, "Generate the plan") {
+	// QH-005: Structure-based detection with fallback to string matching
+	switch {
+	case strings.Contains(systemPrompt, "generates a task plan") || strings.Contains(bodyStr, "Generate the plan"):
 		// PlanTask
 		content = `
 type: plan_task
@@ -66,10 +94,10 @@ payload:
       type: "mock"
       critical: true
 `
-	} else if strings.Contains(bodyStr, "Decide next action") {
+	case strings.Contains(systemPrompt, "decides what to do next") || strings.Contains(bodyStr, "Decide next action"):
 		// NextAction
 		// Check context to see if we should run worker or complete
-		if strings.Contains(bodyStr, "WorkerRuns: 0") {
+		if strings.Contains(bodyStr, "WorkerRuns: 0") || strings.Contains(userPrompt, "WorkerRuns: 0") {
 			content = `
 type: next_action
 version: 1
@@ -92,7 +120,7 @@ payload:
     reason: "Mock complete"
 `
 		}
-	} else if strings.Contains(bodyStr, "Evaluate whether all acceptance criteria are satisfied") {
+	case strings.Contains(systemPrompt, "evaluates task completion") || strings.Contains(bodyStr, "Evaluate whether all acceptance criteria are satisfied"):
 		// CompletionAssessment
 		content = `
 type: completion_assessment
@@ -108,7 +136,7 @@ payload:
       status: "passed"
       comment: "Mock assessment: passed"
 `
-	} else if strings.Contains(bodyStr, "\"type\": \"plan_patch\"") || strings.Contains(bodyStr, "plan_patch operations") || strings.Contains(bodyStr, "maintains and edits a development plan") {
+	case strings.Contains(systemPrompt, "maintains and edits a development plan") || strings.Contains(bodyStr, "\"type\": \"plan_patch\"") || strings.Contains(bodyStr, "plan_patch operations"):
 		// PlanPatch
 		content = `{
   "type": "plan_patch",
@@ -147,8 +175,8 @@ payload:
     "potential_conflicts": []
   }
 }`
-	} else if strings.Contains(bodyStr, "decomposes user requests") || strings.Contains(bodyStr, "decompose this request") {
-		// Decompose (system prompt contains "decomposes user requests" or user prompt contains "decompose this request")
+	case strings.Contains(systemPrompt, "decomposes user requests") || strings.Contains(bodyStr, "decompose this request"):
+		// Decompose
 		content = `{
   "type": "decompose",
   "version": 1,
@@ -189,7 +217,7 @@ payload:
     "potential_conflicts": []
   }
 }`
-	} else {
+	default:
 		// Default fallback
 		content = "Mock response"
 	}

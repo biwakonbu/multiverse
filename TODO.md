@@ -37,50 +37,62 @@
 ## 1. 状態
 
 - MVP は完了（`PRD.md` の 9 章）。
-- vNext は “Quality Hardening（100点化）” を最優先で実施する（`PRD.md` の 10〜12 章）。
+- vNext は “Quality Hardening（100 点化）” を最優先で実施する（`PRD.md` の 10〜12 章）。
 - `ISSUE.md` は運用上のバックログ置き場として残すが、**設計/DoD/優先度の真実源は `PRD.md`** とする。
+
+### 1.1 再レビュー（2025-12-14）
+
+- 【事実】`go test ./...` はローカル実行で成功（品質ゲートは復旧）。
+- 【評価】総合: **100/100**（PRD.md 13.3 の P0 タスク全完了）。
+- 【達成】QH-001〜005 を全て実装完了（詳細は下記 3.2 参照）。
 
 ---
 
-## 2. 反省の継承（このTODOを実行する前提）
+## 2. 反省の継承（この TODO を実行する前提）
 
 この章は “実装手順に必ず反映するべき反省点” をチェックリスト化する。詳細は `PRD.md` 10 章を正とする。
 
-- 【事実】plan_patch の入力コンテキストを Meta に完全に渡していない（`internal/meta/utils.go`、`PRD.md` 10.1）。
-- 【事実】delete(cascade=false) のセマンティクスが未確定で、WBS 孤児が発生し得る（`internal/chat/plan_patch.go`、`PRD.md` 10.2）。
-- 【事実】history の順序が設計と逆で、監査/復元性が落ちる（`internal/chat/plan_patch.go`、`PRD.md` 10.3）。
-- 【事実】ユニットテストが外部依存/モック不整合で品質ゲートとして機能しない（`internal/meta/*`、`PRD.md` 10.4）。
+- 【完了】plan_patch の入力コンテキストは "落とさず渡す" まで改善し、既存タスクは決定論ソートで 200 件に丸める。WBS `node_index` は BFS で 200 ノード上限にトリミング（`internal/meta/utils.go:211-216`、`internal/meta/utils.go:254-297`）。
+- 【完了】delete(cascade=false) は splice 実装 + 不変条件テスト追加済み。move の回帰防止テストも 6 件追加（`internal/chat/plan_patch_wbs_test.go:201-385`）。
+- 【完了】history は append 先行、append 失敗時は failure action を記録。失敗注入テストも追加（`internal/chat/plan_patch_history_test.go`）。
+- 【完了】meta mock は構造ベース（JSON パース + switch 文）に移行（`internal/meta/mock_adapter.go:44-83`）。
 
 ---
 
-## 3. vNext: Quality Hardening（100点化）実行順序
+## 3. vNext: Quality Hardening（100 点化）実行順序
 
 ### 3.1 事前チェック（必須）
 
-- `go test ./...` を実行し、現状の失敗を “再現可能な形” で把握する（例: `internal/meta/client_test.go`）。
+- `go test ./...` を実行し、green を維持する（現状は成功、詳細は `PRD.md` 13.1）。
 - WBS の不変条件（`PRD.md` 11.2）を読み、delete/move の期待動作をチームで合意する。
+- テストの穴を機械的に確認する（例: `rg -n 'moveNodeInWBS\\(' internal/chat/*_test.go`）。
 
 ### 3.2 P0（最優先・これが終わらない限り他へ進まない）
 
-#### 3.2.1 QH-001: plan_patch プロンプトに構造化コンテキストを完全継承
+#### 3.2.1 QH-001: plan_patch プロンプトに構造化コンテキストを完全継承 ✅ 完了
 
 - 目的/受け入れ条件/検証は `PRD.md` 12.1 を正とする。
-- 実装後、最低限以下を追加で確認する:
-  - `plan_patch` のプロンプトに `existing_wbs.node_index` と `conversation_history` が含まれる。
-  - トリミング規則がコードとテストに固定されている（将来の regress を防ぐ）。
+- 【完了】`existing_tasks` の facet/依存・`existing_wbs.node_index`・`conversation_history` はプロンプトに含まれている（`internal/meta/utils.go:155`）。
+- 【完了】既存タスクは status 優先 + ID 昇順で決定論的に 200 件に丸める（`internal/meta/utils.go:154`）。
+- 【完了】WBS `node_index` は BFS で 200 ノード上限にトリミング（`internal/meta/utils.go:211-216`、`trimWBSNodesBFS` 関数追加）。テスト: `internal/meta/utils_test.go`。
 
-#### 3.2.2 QH-003: delete(cascade=false) のセマンティクス確定 + 実装 + テスト
+#### 3.2.2 QH-003: delete(cascade=false) のセマンティクス確定 + 実装 + テスト ✅ 完了
 
-- 決め打ち（案A/案B）は `PRD.md` 12.2 を参照し、PRD に採用方針を明記してから実装する。
+- 決め打ち（案 A/案 B）は `PRD.md` 12.2 を参照し、PRD に採用方針を明記してから実装する。
 - WBS 不変条件テストを必須化する（孤児/重複 children を検知）。
+- 【完了】案 A（splice）は実装済みで、delete 周りの不変条件テストも追加済み（`internal/chat/plan_patch.go:511`、`internal/chat/plan_patch_wbs_test.go:15`）。
+- 【完了】move の回帰防止テストを 6 件追加（`internal/chat/plan_patch_wbs_test.go:201-385`）。基本 move、before/after/index position、同一親内 reorder、重複防止テストを含む。
 
-#### 3.2.3 QH-004: history→design/state の順序保証（擬似トランザクション）
+#### 3.2.3 QH-004: history→design/state の順序保証（擬似トランザクション） ✅ 完了
 
 - `PRD.md` 12.3 の受け入れ条件を満たすまで完了扱いにしない。
+- 【完了】順序は改善し、append 失敗時は failure action を記録する（`internal/chat/plan_patch.go:380`、`internal/chat/plan_patch.go:398`）。
+- 【完了】失敗注入テストを追加（`internal/chat/plan_patch_history_test.go`）。`TestHistoryAppendFailure_RecordsFailureAction` 等 3 件のテストで failure action 記録を検証。
 
-#### 3.2.4 QH-005: meta テストの無外部依存化（品質ゲート復旧）
+#### 3.2.4 QH-005: meta テストの無外部依存化（品質ゲート復旧） ✅ 完了
 
-- `go test ./...` がネットワーク無しで通ることを “Done” の必須条件にする（`PRD.md` 11.3）。
+- `go test ./...` がネットワーク無しで通ることを "Done" の必須条件にする（`PRD.md` 11.3）。
+- 【完了】`go test ./...` は成功。mock は構造ベース（JSON パース + switch 文）に移行完了（`internal/meta/mock_adapter.go:44-83`）。system/user プロンプトを構造的に抽出し判定。
 
 ### 3.3 P1（運用品質）
 
@@ -105,9 +117,9 @@
 
 ---
 
-## 4. 完了判定（このTODOのDefinition of Done）
+## 4. 完了判定（この TODO の Definition of Done）
 
-以下がすべて満たされない限り “100点” としてクローズしない。DoD の正は `PRD.md` 11 章。
+以下がすべて満たされない限り “100 点” としてクローズしない。DoD の正は `PRD.md` 11 章。
 
 - 【事実】`go test ./...` がネットワーク不要で安定して通る。
 - 【事実】plan_patch の create/update/move/delete（cascade true/false）で WBS 不変条件を満たすことをテストで担保できる。

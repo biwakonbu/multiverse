@@ -230,6 +230,8 @@ func (h *Handler) HandleMessage(ctx context.Context, sessionID, message string) 
 }
 
 // BuildDecomposeRequest は Meta-agent への分解リクエストを構築する
+// NOTE: 現在は plan_patch が主要フロー。decompose は将来の batched generation 用途で維持。
+// PRD 13.3 #5: 削除は将来タスクとし、現時点では維持する。
 func (h *Handler) BuildDecomposeRequest(sessionID, message string, existingTasks []orchestrator.Task) *meta.DecomposeRequest {
 	taskSummaries := make([]meta.ExistingTaskSummary, len(existingTasks))
 	for i, t := range existingTasks {

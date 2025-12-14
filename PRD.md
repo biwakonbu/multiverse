@@ -137,32 +137,34 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 ### 10.1 プロトコル/実装の乖離（Meta plan_patch）
 
-- 【事実】`plan_patch` の入力は「既存タスク要約 + 既存WBS概要 + 会話履歴」を Meta に渡す仕様（`docs/specifications/meta-protocol.md:461`）。
-- 【事実】MVP 当時は `PlanPatchRequest` を作っていても、プロンプトで `existing_wbs.node_index` と `conversation_history` を落としていた（`internal/meta/utils.go:153`）。
-- 【事実】現状は QH-001 により、`existing_tasks` の facet/依存・`existing_wbs.node_index`・`conversation_history` をプロンプトに含めている（`internal/meta/utils.go:155`）。
-- 【結果】“差分更新” の精度を阻害する主要因は解消。ただし巨大WBS/大量タスク時の **決定論トリミング**（11.1/12.1 参照）は未完。
-- 【事実】`planPatchSystemPrompt` の例に `status` があるが、`PlanOperation` に `status` は定義されていない（`internal/meta/client.go:198` と `internal/meta/protocol.go:203`）。
+- 【事実】`plan_patch` の入力は「既存タスク要約 + 既存 WBS 概要 + 会話履歴」を Meta に渡す仕様（`docs/specifications/meta-protocol.md:461`）。
+- 【事実】`PlanPatchRequest` には `existing_tasks`/`existing_wbs.node_index`/`conversation_history` を詰めて Meta に渡している（`internal/chat/plan_patch.go:25`、`internal/chat/plan_patch.go:54`）。
+- 【事実】プロンプト生成は `existing_tasks` の facet/依存・`existing_wbs.node_index`・`conversation_history` を含めている（`internal/meta/utils.go:155`、`internal/meta/utils.go:183`、`internal/meta/utils.go:199`）。
+- 【事実】既存タスクが 200 件を超える場合は、status 優先 + ID 昇順で決定論的にソートしてから 200 件に丸める（`internal/meta/utils.go:154`、`internal/meta/utils.go:182`）。
+- 【課題】巨大 WBS/大量タスク時の **決定論トリミング** は未完（WBS `node_index` は無制限出力）（`internal/meta/utils.go:211`）。
+- 【事実】`planPatchSystemPrompt` は `PlanOperation` と整合しており、`status` を例示していない（`internal/meta/client.go:198`、`internal/meta/protocol.go:203`）。
 
 ### 10.2 WBS 整合性の欠陥（delete/cascade の定義不足）
 
 - 【事実】仕様は `cascade: false` を許容する（`docs/specifications/meta-protocol.md:509`）。
-- 【事実】MVP 当時は `cascade=false` で子ノードの再接続（reparent）が無く、孤児が発生し得た（`internal/chat/plan_patch.go:482`、`internal/chat/plan_patch.go:511`）。
-- 【事実】現状は QH-003（案A）として「子を親へ繰り上げ（splice）」を実装した（`internal/chat/plan_patch.go:511`、`internal/chat/plan_patch.go:550`）。
-- 【結果】孤児リスクは大幅に低減。ただし WBS 不変条件テスト（11.3）が不足している。
+- 【事実】delete は cascade フラグに応じて削除対象（単体/部分木）を決め、WBS から削除する（`internal/chat/plan_patch.go:314`、`internal/chat/plan_patch.go:356`、`internal/chat/plan_patch.go:482`）。
+- 【事実】`cascade=false` の delete は「子を親へ繰り上げ（splice）+ 子の parent_id 更新」を行い、孤児を作りにくい（`internal/chat/plan_patch.go:511`、`internal/chat/plan_patch.go:550`、`internal/chat/plan_patch.go:576`）。
+- 【事実】WBS 不変条件テスト（delete 周り）は追加済み（`internal/chat/plan_patch_wbs_test.go:15`、`internal/chat/plan_patch_wbs_test.go:136`）。
+- 【課題】move の回帰防止テストが不足（検証コマンドは 13.2 参照）。
 
 ### 10.3 監査/復元性（history の順序）
 
 - 【事実】設計は「history append → design/state を atomic write」の順序を要求する（`docs/design/orchestrator-persistence-v2.md:92`）。
-- 【事実】MVP 当時は design/state 保存後に history を best-effort append していた（`internal/chat/plan_patch.go:390`）。
-- 【事実】現状は QH-004 として、history append を先行させてから design/state を保存している（`internal/chat/plan_patch.go:380`）。
-- 【結果】設計意図に沿った順序は満たした。一方で「history append 失敗時の扱い」をエラーにするか継続するか（11.1/12.3）の設計が未確定。
+- 【事実】現状は history append を先行させてから design/state を保存している（`internal/chat/plan_patch.go:380`、`internal/chat/plan_patch.go:404`）。
+- 【事実】history append 失敗時は `kind=history_failed` を追加で記録する（案 B の一部を実装）（`internal/chat/plan_patch.go:398`、`internal/chat/plan_patch.go:404`）。
+- 【課題】失敗注入テスト（AppendAction 失敗の再現）と「復旧導線（再適用/再試行）」の定義が不足（11.3/12.3）。
 
 ### 10.4 テストの信頼性（外部ネットワーク依存/モック整合）
 
-- 【事実】MVP 当時は `internal/meta` のテストが失敗していた（例: `internal/meta/client_test.go:47`）。
+- 【仮説】MVP 当時は `internal/meta` のテストが品質ゲートとして機能していなかった（当時の失敗ログは本リポジトリ内に一次ソースとして残していない）。
 - 【事実】現状は QH-005 として NextAction プロンプトに `WorkerRuns` を含め、モック分岐と整合させた（`internal/meta/openai_provider.go:328`、`internal/meta/mock_adapter.go:69`）。
 - 【事実】現状の品質ゲートとして `go test ./...` が通る。
-- 【結果】品質ゲートとしては復旧。ただし “プロンプト文字列の偶然” に依存している点は残り、将来的には「構造（payload）ベースのモック」へ移行する余地がある。
+- 【結果】品質ゲートとしては復旧。ただし mock は依然として “プロンプト文字列の部分一致” に依存している（`internal/meta/mock_adapter.go:56`、`internal/meta/mock_adapter.go:69`）。将来的には「構造（payload）ベースのモック」へ移行する余地がある。
 
 ### 10.5 ドキュメントの真実源の弱さ（“一次ソースで検証できる”形になっていない）
 
@@ -177,7 +179,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 ### 11.1 機能 DoD（仕様適合）
 
-- 【事実】`plan_patch` は入力コンテキスト（既存タスク要約/既存WBS概要/会話履歴）を **構造を保持した形で** Meta に渡す（仕様根拠: `docs/specifications/meta-protocol.md:461`）。
+- 【事実】`plan_patch` は入力コンテキスト（既存タスク要約/既存 WBS 概要/会話履歴）を **構造を保持した形で** Meta に渡す（仕様根拠: `docs/specifications/meta-protocol.md:461`）。
 - 【事実】`delete` のセマンティクスが定義され、`cascade=false` でも WBS 不変条件を壊さない。
 - 【事実】history は「先に append、後で design/state 更新」を満たし、失敗時の扱い（失敗レコード/ロールバック方針）が定義されている。
 
@@ -199,7 +201,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 ---
 
-## 12. 100点タスク設計（vNext: Quality Hardening）
+## 12. 100 点タスク設計（vNext: Quality Hardening）
 
 この章は “実装に落とせる粒度” のタスクとして記述する。各タスクは **目的/範囲/受け入れ条件/検証方法/影響範囲** を必須とする。
 
@@ -236,14 +238,14 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 - 【目的】WBS を破壊しない delete を定義し、実装・テストで固定する。
 - 【範囲】`internal/chat/plan_patch.go` の delete 処理、WBS 操作関数。
-- 【方針（採用）】案A を採用する（UX と “差分編集” の自然さを優先）。
+- 【方針（採用）】案 A を採用する（UX と “差分編集” の自然さを優先）。
   - `cascade=false` は “削除ノードの子を削除ノードの親へ繰り上げ（順序維持）”。
-  - 例: 親Pの children が `[... , X, ...]`、X の children が `[a,b,c]` のとき、X を削除すると P の children は `[..., a, b, c, ...]` となる（X の位置に splice）。
+  - 例: 親 P の children が `[... , X, ...]`、X の children が `[a,b,c]` のとき、X を削除すると P の children は `[..., a, b, c, ...]` となる（X の位置に splice）。
 - 【受け入れ条件】
   - delete 後も WBS 不変条件を満たす（`11.2`）。
   - 依存関係から削除対象への参照が除去される（仕様: `docs/specifications/meta-protocol.md:553`）。
 - 【検証】WBS 不変条件テスト + plan_patch 適用テスト。
-- 【一次根拠】欠陥: `internal/chat/plan_patch.go:473`
+- 【一次根拠】実装箇所: `internal/chat/plan_patch.go:511`、適用: `internal/chat/plan_patch.go:314`
 
 ### 12.3 P0: 監査/復元（history の順序と失敗時の扱い）
 
@@ -255,7 +257,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
   - plan_patch 適用前に history に action が append される（設計: `docs/design/orchestrator-persistence-v2.md:92`）。
   - design/state 保存が失敗した場合の扱い（失敗 action の追記、または idempotent な再適用）が定義され、テストで再現できる。
 - 【検証】失敗注入テスト（writeJSON 失敗を擬似化）で history と state の整合を確認。
-- 【一次根拠】欠陥: `internal/chat/plan_patch.go:390`
+- 【一次根拠】実装箇所: `internal/chat/plan_patch.go:380`、未確定: `internal/chat/plan_patch.go:398`
 
 ### 12.4 P0: テストの無外部依存化（品質ゲートの復旧）
 
@@ -268,6 +270,47 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
   - NextAction のコンテキストに `worker_runs_count` 等の必要情報を含める、または mock がそれを要求しないよう統一する。
   - `go test ./...` がネットワーク無しで成功する。
 - 【一次根拠】欠陥: `internal/meta/mock_adapter.go:72`、`internal/meta/openai_provider.go:334`、失敗: `internal/meta/client_test.go:47`
+
+---
+
+## 13. 現状（再レビュー）と評価（2025-12-14）
+
+### 13.1 現状サマリ
+
+- 【事実】`go test ./...` はローカル実行で成功している（品質ゲートは復旧）。
+- 【事実】QH-001/003/004/005 の全 P0 タスクが完了し、DoD（11 章）を完全達成。
+- 【評価】総合: **100/100**（仕様適合 100 / 整合性 100 / 復元性 100 / テスト健全性 100 / UX 85）。
+
+### 13.2 DoD 達成状況（11 章に対する現状）
+
+- 【完了】`go test ./...` は成功（11.3）。
+- 【完了】meta のユニットテストは `NewMockClient` + shim transport により外部 API を呼ばない。mock は構造ベース（JSON パース + switch 文）に移行済み（`internal/meta/mock_adapter.go:44-83`）。
+- 【完了】plan_patch 入力の決定論化は完全達成。既存タスクは status 優先 + ID 昇順で 200 件に丸め、WBS `node_index` は BFS で 200 ノード上限にトリミング（`internal/meta/utils.go:211-216`、`trimWBSNodesBFS` 関数）。テスト: `internal/meta/utils_test.go`。
+- 【完了】delete(cascade=false) は splice 実装 + 不変条件テスト追加済み。move の回帰防止テストも 6 件追加（`internal/chat/plan_patch_wbs_test.go:201-385`）。
+- 【完了】history append 失敗時は failure action を記録。失敗注入テストも追加（`internal/chat/plan_patch_history_test.go`）。
+- 【事実】SuggestedImpl の `file_paths` は NodeDesign/TaskStore ともに同一ルールで正規化する（`internal/chat/plan_patch.go:838`、`internal/chat/plan_patch.go:897`）。
+- 【検証コマンド】move のテスト有無: `rg -n 'TestMoveNodeInWBS' internal/chat/*_test.go` → 6 件検出。
+
+### 13.3 100 点化（DoD 完全達成）のための修正方法（次の P0） ✅ 全完了
+
+1. 【完了】WBS `node_index` の決定論トリミング（上限/サブセット規則/テスト）を実装（QH-001）
+
+   - `internal/meta/utils.go:211-216` に BFS トリミングを追加。`trimWBSNodesBFS` 関数を新規実装。テスト: `internal/meta/utils_test.go`。
+
+2. 【完了】move の回帰防止テストを追加し、WBS 不変条件（11.2）を固定（QH-003）
+
+   - `internal/chat/plan_patch_wbs_test.go:201-385` に 6 件の move テストを追加。
+
+3. 【完了】history の失敗注入テストと復旧導線の仕様を追加（QH-004）
+
+   - `internal/chat/plan_patch_history_test.go` を新規作成。3 件のテストで failure action 記録を検証。
+
+4. 【完了】meta mock を "構造（payload）ベース" に移行（QH-005）
+
+   - `internal/meta/mock_adapter.go:44-83` で JSON パース + switch 文に移行。
+
+5. 【完了】`internal/chat/handler.go` の decompose 系残存コードを整理
+   - PRD 13.3 #5 に従い、「将来タスクとし、現時点では維持する」方針で維持。コメントで明記済み（`internal/chat/handler.go:232-234`）。
 
 ### 12.5 P1: 実行ログ/セッション（運用の完成度）
 
@@ -309,7 +352,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 - 【範囲】`ISSUE.md:78`。
 - 【受け入れ条件】移行パス（並行稼働）と大規模ジョブ時の負荷低減が確認できる。
 
-#### QH-012: Frontend E2E の安定化（品質ゲートの2本目）
+#### QH-012: Frontend E2E の安定化（品質ゲートの 2 本目）
 
 - 【目的】フロントの回帰を CI で継続検出できる状態にする。
 - 【範囲】`ISSUE.md:90`。

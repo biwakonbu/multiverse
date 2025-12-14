@@ -396,20 +396,74 @@ func (h *Handler) applyPlanPatch(
 	}
 	if h.Repo.History() != nil {
 		if err := h.Repo.History().AppendAction(historyAction); err != nil {
-			logger.Warn("failed to append history action (continuing)", slog.Any("error", err))
-			// Continue with design/state updates even if history fails (best-effort history)
+			logger.Warn("history append failed, recording failure", slog.Any("error", err))
+			// PRD 13.3 #1: Record failure as separate action for recovery tracking (案B)
+			failAction := &persistence.Action{
+				ID:          uuid.New().String(),
+				At:          now,
+				Kind:        "history_failed",
+				WorkspaceID: h.WorkspaceID,
+				Payload: map[string]interface{}{
+					"original_action_id": historyAction.ID,
+					"error":              err.Error(),
+				},
+			}
+			_ = h.Repo.History().AppendAction(failAction)
 		}
 	}
 
 	// Then save design/state
+	// If save fails, record failure action for recovery tracking (PRD 12.3 requirement)
 	wbs.UpdatedAt = now
 	if err := h.Repo.Design().SaveWBS(wbs); err != nil {
+		if h.Repo.History() != nil {
+			failAction := &persistence.Action{
+				ID:          uuid.New().String(),
+				At:          now,
+				Kind:        "state_save_failed",
+				WorkspaceID: h.WorkspaceID,
+				Payload: map[string]interface{}{
+					"original_action_id": historyAction.ID,
+					"stage":              "save_wbs",
+					"error":              err.Error(),
+				},
+			}
+			_ = h.Repo.History().AppendAction(failAction)
+		}
 		return nil, fmt.Errorf("failed to save wbs: %w", err)
 	}
 	if err := h.Repo.State().SaveNodesRuntime(nodesRuntime); err != nil {
+		if h.Repo.History() != nil {
+			failAction := &persistence.Action{
+				ID:          uuid.New().String(),
+				At:          now,
+				Kind:        "state_save_failed",
+				WorkspaceID: h.WorkspaceID,
+				Payload: map[string]interface{}{
+					"original_action_id": historyAction.ID,
+					"stage":              "save_nodes_runtime",
+					"error":              err.Error(),
+				},
+			}
+			_ = h.Repo.History().AppendAction(failAction)
+		}
 		return nil, fmt.Errorf("failed to save nodes runtime: %w", err)
 	}
 	if err := h.Repo.State().SaveTasks(tasksState); err != nil {
+		if h.Repo.History() != nil {
+			failAction := &persistence.Action{
+				ID:          uuid.New().String(),
+				At:          now,
+				Kind:        "state_save_failed",
+				WorkspaceID: h.WorkspaceID,
+				Payload: map[string]interface{}{
+					"original_action_id": historyAction.ID,
+					"stage":              "save_tasks_state",
+					"error":              err.Error(),
+				},
+			}
+			_ = h.Repo.History().AppendAction(failAction)
+		}
 		return nil, fmt.Errorf("failed to save tasks state: %w", err)
 	}
 
@@ -631,6 +685,14 @@ func moveNodeInWBS(wbs *persistence.WBS, nodeID string, op meta.PlanOperation, t
 		indexPosByID[wbs.NodeIndex[i].NodeID] = i
 	}
 
+	// Validate parent exists before move (PRD 11.2 invariant: no orphan nodes)
+	// Parent must be either: root, existing in WBS, or created in same patch (via tempToReal)
+	if parentID != wbs.RootNodeID {
+		if _, exists := indexPosByID[parentID]; !exists {
+			return fmt.Errorf("move target parent does not exist: %s", parentID)
+		}
+	}
+
 	ensureNode := func(id string, parent *string) int {
 		if pos, ok := indexPosByID[id]; ok {
 			return pos
@@ -662,8 +724,8 @@ func moveNodeInWBS(wbs *persistence.WBS, nodeID string, op meta.PlanOperation, t
 	oldParentPos := ensureNode(oldParentID, nil)
 	wbs.NodeIndex[oldParentPos].Children = removeString(wbs.NodeIndex[oldParentPos].Children, nodeID)
 
-	// Attach to new parent.
-	newParentPos := ensureNode(parentID, nil)
+	// Attach to new parent (parent is already validated to exist).
+	newParentPos := indexPosByID[parentID]
 	children := removeString(wbs.NodeIndex[newParentPos].Children, nodeID)
 	children = insertWithPosition(children, nodeID, op.Position, tempToReal)
 	wbs.NodeIndex[newParentPos].Children = children
@@ -884,9 +946,14 @@ func (h *Handler) applyUpdateOp(
 			storeTask.AcceptanceCriteria = op.AcceptanceCriteria
 		}
 		if op.SuggestedImpl != nil {
+			// PRD 13.3 #3: 正規化（NodeDesignと同一ルール）
+			normalizedPaths := make([]string, 0, len(op.SuggestedImpl.FilePaths))
+			for _, p := range op.SuggestedImpl.FilePaths {
+				normalizedPaths = append(normalizedPaths, strings.TrimSuffix(p, " (New File)"))
+			}
 			storeTask.SuggestedImpl = &orchestrator.SuggestedImpl{
 				Language:    op.SuggestedImpl.Language,
-				FilePaths:   op.SuggestedImpl.FilePaths,
+				FilePaths:   normalizedPaths,
 				Constraints: op.SuggestedImpl.Constraints,
 			}
 		}
