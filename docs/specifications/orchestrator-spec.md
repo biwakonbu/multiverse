@@ -119,3 +119,21 @@ v0.1 ではファイルシステムベースの単純な IPC を採用してい�
 現在の `Executor` は簡易実装であり、以下の制限があります。
 
 - `agent-runner` への入力 YAML はコード内で生成されており、デフォルトでは `runner.max_loops: 5` と `runner.worker.kind: "codex-cli"` が設定されます（`state/tasks.json` の `inputs.runner_max_loops` / `inputs.runner_worker_kind` で上書き可能）。
+
+## 5. Persistence & Consistency (Quality Hardening)
+
+vNext 実装では、データの整合性と復元性を高めるために以下の永続化モデルを採用しています。
+
+### 5.1 Pseudo-Transaction (History First)
+
+Chat からの計画変更（plan_patch）は、以下の順序でアトミックに近い形を目指して永続化されます。
+
+1.  **History Append**: ユーザーの操作意図（Action）を履歴に追加（Append Only）。これが成功した時点を「操作の受理」とみなします。
+2.  **State Update**: Task YAML / WBS JSON / Task Store などの状態（Snapshot）を上書き更新します。
+
+### 5.2 Failure Handling
+
+State Update（ステップ 2）が失敗した場合、以下のように記録され、将来的な復元（Repair）のトレースとなります。
+
+- **`history_failed` Action**: History Append 自体が失敗した場合に、可能な限り記録されるエラーアクションです。
+- **`state_save_failed` Action**: State Update 中にエラーが発生した場合、History にその旨を追記します。これにより、「履歴にはあるが状態には反映されていない」不整合を検知可能にします。

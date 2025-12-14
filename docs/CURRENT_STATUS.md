@@ -1,6 +1,6 @@
 # Current System Status Report
 
-最終更新: 2025-12-07
+最終更新: 2025-12-14
 
 ## 1. コンポーネント開発ステータス
 
@@ -68,3 +68,12 @@
 ### Testing
 
 - **E2E テスト**: Frontend の E2E テスト (`pnpm test:e2e`) は存在するが、タイムアウト等の問題で調整が必要な状態。
+
+## 4. Recent Hardening (vNext P0)
+
+MVP 完了後の品質強化（Quality Hardening）として、以下の重要項目が完了しています（2025-12-14 時点）。
+
+1.  **QH-001 (Structure Context)**: `plan_patch` への入力コンテキスト決定論化（Task 200 件 / WBS Node 200 件のトリミング仕様の確立）。
+2.  **QH-003 (Delete Semantics)**: `cascade=false` 時の splice 挙動による WBS 破壊防止（孤児ノード防止）。
+3.  **QH-004 (Recoverability)**: History Append -> State Update の順序保証と、失敗時の `history_failed` レコード記録。
+4.  **QH-005 (Mock Stability)**: テスト用 Mock の構造ベース移行により、外部ネットワーク依存なしで `go test ./...` が安定通過。

@@ -95,6 +95,7 @@ graph LR
 1. アクションを構築（メモリ上）
 2. history にアクションを書き込む（append）
 3. state/design の該当ファイルを atomic に書き換える
+   - 失敗時: `history_failed` または `state_save_failed` アクションを history に追記し、不整合を記録する。
 4. 必要であればエージェント実行などの外部作用を開始する
 ```
 
@@ -299,31 +300,31 @@ classDiagram
 {
   "tasks": [
     {
-	      "task_id": "task-1234",
-	      "node_id": "node-auth",
-	      "kind": "implementation", // planning / implementation / test / refactor / analysis ...
-	      "status": "PENDING", // PENDING / READY / RUNNING / SUCCEEDED / FAILED / CANCELED / SKIPPED / BLOCKED / RETRY_WAIT
-	      "created_at": "2025-12-11T07:05:00Z",
-	      "updated_at": "2025-12-11T07:05:00Z",
-	      "scheduled_by": "scheduler",
-	      "assigned_agent": "agent:codex",
-	      "priority": 100,
-	      "inputs": {
-	        "goal": "node-auth を acceptance_criteria を満たすよう実装・テストすること",
-	        "attempt_count": 0,
-	        "runner_max_loops": 5,
-	        "runner_worker_kind": "codex-cli",
-	        "constraints": [
-	          "既存 API 構成を変更しないこと",
-	          "ユニットテストを追加すること"
-	        ]
-	      },
-	      "outputs": {
-	        "status": "unknown",
-	        "artifacts": {}
-	      }
-	    }
-	  ],
+      "task_id": "task-1234",
+      "node_id": "node-auth",
+      "kind": "implementation", // planning / implementation / test / refactor / analysis ...
+      "status": "PENDING", // PENDING / READY / RUNNING / SUCCEEDED / FAILED / CANCELED / SKIPPED / BLOCKED / RETRY_WAIT
+      "created_at": "2025-12-11T07:05:00Z",
+      "updated_at": "2025-12-11T07:05:00Z",
+      "scheduled_by": "scheduler",
+      "assigned_agent": "agent:codex",
+      "priority": 100,
+      "inputs": {
+        "goal": "node-auth を acceptance_criteria を満たすよう実装・テストすること",
+        "attempt_count": 0,
+        "runner_max_loops": 5,
+        "runner_worker_kind": "codex-cli",
+        "constraints": [
+          "既存 API 構成を変更しないこと",
+          "ユニットテストを追加すること"
+        ]
+      },
+      "outputs": {
+        "status": "unknown",
+        "artifacts": {}
+      }
+    }
+  ],
   "queue_meta": {
     "last_scheduled_at": "2025-12-11T07:05:00Z",
     "next_task_id_seq": 1235
