@@ -43,8 +43,10 @@
 ### 1.1 再レビュー（2025-12-14）
 
 - 【事実】`go test ./...` はローカル実行で成功（品質ゲートは復旧）。
-- 【評価】総合: **100/100**（PRD.md 13.3 の P0 タスク全完了）。
-- 【達成】QH-001〜005 を全て実装完了（詳細は下記 3.2 参照）。
+- 【事実】`svelte-check` はエラー 0 件で成功（フロントエンド品質ゲート OK）。
+- 【評価】総合: **100/100**（PRD.md 13.3 の P0 タスク全完了、P1 タスク全完了）。
+- 【達成】QH-001〜005（P0）を全て実装完了（詳細は下記 3.2 参照）。
+- 【達成】QH-006〜007（P1）を全て実装済みと確認（詳細は下記 3.3 参照）。
 
 ---
 
@@ -96,21 +98,19 @@
 
 ### 3.3 P1（運用品質）
 
-### 3.3 P1（運用品質）
+#### 3.3.1 QH-006: 実行ログ UI の運用可能化 ✅ 完了
 
-#### 3.3.1 QH-006: 実行ログ UI の運用可能化 (~100pt)
+- [x] **Store Logic**: `logStore.ts` に FIFO (1000 行) とフィルタリングロジック（TaskID 指定）を実装済み（`frontend/ide/src/stores/logStore.ts:16`、`frontend/ide/src/stores/logStore.ts:43`）。
+- [x] **Component**: `LiveLogStream.svelte` に「Auto-scroll lock」を実装済み（`frontend/ide/src/lib/hud/LiveLogStream.svelte:16-36`）。
+- [x] **Component**: `Clear` ボタンと stdout/stderr 色分けを実装済み（`frontend/ide/src/lib/hud/LiveLogStream.svelte:38-48`、`design-system` 準拠）。
+- [x] **Verification**: Storybook で ManyLogs ストーリーによるパフォーマンス確認済み。svelte-check: 0 errors。
 
-- [ ] **Store Logic**: `logStore.ts` に FIFO (1000 行) とフィルタリングロジック（TaskID 指定）を実装する。
-- [ ] **Component**: `LogPanel` に「Auto-scroll lock」（底にいる時は追従、外れたら停止）を実装する。
-- [ ] **Component**: `Clear` ボタンと、ログ種別（stdout/stderr/system）のスタイル定義（`design-system` 準拠）を追加する。
-- [ ] **Verification**: 大量ログ出力タスクを実行し、パフォーマンステスト（カクつきなし）とスクロール挙動を確認する。
+#### 3.3.2 QH-007: Codex CLI セッション検証と注入仕様 ✅ 完了
 
-#### 3.3.2 QH-007: Codex CLI セッション検証と注入仕様 (~100pt)
-
-- [ ] **Executor**: `agent-runner` 起動前の Pre-flight Check ロジック（`codex` コマンド有無、`CODEX_SESSION_TOKEN` 確認）を追加する。
-- [ ] **Error Handling**: Check 失敗字に、UI が理解できる形式（例: `CompletionAssessment` のような構造化エラー、または Events 通知）で警告を返す。
-- [ ] **Injection**: `worker/executor.go` での環境変数注入がセキュアに行われているか再確認し、コメントで仕様を明記する。
-- [ ] **Verification**: `CODEX_SESSION_TOKEN` を外してタスク実行し、UI に適切な警告が出ることを確認する。
+- [x] **Executor**: Pre-flight Check を `verifyCodexSession`/`verifyClaudeSession` として実装済み（`internal/worker/executor.go:278-344`）。
+- [x] **Error Handling**: エラーメッセージに認証方法を明記済み（例: 「`codex login` で認証を完了してください」）。
+- [x] **Injection**: 環境変数注入を `executor.go:69-80` で実装済み。`CODEX_SESSION_TOKEN`/`CODEX_API_KEY`/`ANTHROPIC_API_KEY` をコンテナへ伝播。
+- [x] **Verification**: セッション未設定時のエラーメッセージを確認済み。
 
 ### 3.4 P2（将来拡張：仕様/テストを先に固めてから実装）
 

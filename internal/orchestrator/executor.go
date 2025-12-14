@@ -479,7 +479,39 @@ func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
 		}
 	}
 
-	// Future: Add claude-code check if needed
+	if workerKind == "claude-code" {
+		// CLAUDECODE.md: Check for Claude CLI authentication
+		// Claude CLI stores auth in ~/.config/claude (see CLAUDECODE.md section 2.3)
+		home, err := os.UserHomeDir()
+		if err != nil {
+			if e.events != nil {
+				e.events.Emit(EventProcessMetaUpdate, ProcessMetaUpdateEvent{
+					TaskID:    task.ID,
+					TaskTitle: task.Title,
+					State:     "ERROR",
+					Detail:    "Claude Session Check Failed: Unable to determine home directory",
+					Timestamp: time.Now(),
+				})
+			}
+			return fmt.Errorf("claude-code: unable to determine home directory: %w", err)
+		}
+
+		// Check ~/.config/claude directory
+		claudeConfigPath := filepath.Join(home, ".config", "claude")
+		if _, err := os.Stat(claudeConfigPath); os.IsNotExist(err) {
+			// Notify UI about missing session
+			if e.events != nil {
+				e.events.Emit(EventProcessMetaUpdate, ProcessMetaUpdateEvent{
+					TaskID:    task.ID,
+					TaskTitle: task.Title,
+					State:     "ERROR",
+					Detail:    "Claude Session Missing: Please run `claude login` to authenticate",
+					Timestamp: time.Now(),
+				})
+			}
+			return fmt.Errorf("Claude CLI session not found. Please run `claude login` to authenticate. (Expected: %s)", claudeConfigPath)
+		}
+	}
 
 	return nil
 }
