@@ -86,7 +86,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 - IDE 表示用の `orchestrator.Task` を保存する既存形式を維持。
 - NodeDesign/TaskState と同一の `id` を持ち、最低限 `dependencies`, `wbsLevel`, `phaseName`, `suggestedImpl`, `artifacts` を同期する。
-- `ListTasks()` は IDE 表示の正規化のため、少なくとも `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:269`）。
+- `ListTasks()` は IDE 表示の正規化のため、少なくとも `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:279`）。
 
 ## 7. 主要フロー
 
@@ -102,7 +102,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 
 ### 7.2 Run → 実行
 
-1. 自律実行ループは `StartExecution` で開始する（`app.go:472`、`internal/orchestrator/execution_orchestrator.go:80`）。
+1. 自律実行ループは `StartExecution` で開始する（`app.go:601`、`internal/orchestrator/execution_orchestrator.go:80`）。
    - 基本動作: **チャット完了後に自動で開始**する（Chat Autopilot）
    - フォールバック: UI から明示的に開始/停止できる。
 2. Scheduler が依存解決し、実行可能タスクを READY→enqueue する（自動: `internal/orchestrator/execution_orchestrator.go:245`、手動: `app.go:377`、`internal/orchestrator/scheduler.go:31`）。
@@ -115,7 +115,8 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 2. SUCCEEDED の場合 NodeRuntime.Status を `implemented` へ更新。
 3. TaskStore（legacy）の Task も更新し、IDE へ `task:stateChange` を emit。
 
-（将来拡張）AgentRunner の出力（Task Note や JSON サマリ）から「生成・変更されたファイル一覧」を抽出し、`Artifacts.Files` に保存して IDE で参照できるようにする。MVP では `Artifacts.Files` が空でも許容する。
+【事実】現状は Worker 側で `git status --porcelain` を用いて変更/生成ファイルを検出し（`internal/worker/executor.go:420`）、AgentRunner の structured log（`worker:completed` の `artifacts`）経由で Orchestrator が `task.Artifacts.Files` に反映し（`internal/orchestrator/executor.go:115`、`internal/orchestrator/executor.go:217`）、さらに `state/tasks.json`（TaskState.Outputs.Files）と legacy TaskStore に同期して IDE で参照できる（`internal/orchestrator/execution_orchestrator.go:424`、`frontend/ide/src/lib/components/ui/TaskPropPanel.svelte:82`）。
+【事実】検出できないケース（git 非管理/検出エラー等）でも実行自体は継続し、`Artifacts.Files` が空であることを許容する（`internal/worker/executor.go:430`）。
 
 ## 8. UX/性能方針（イベント駆動）
 
@@ -141,7 +142,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 - 【事実】`PlanPatchRequest` には `existing_tasks`/`existing_wbs.node_index`/`conversation_history` を詰めて Meta に渡している（`internal/chat/plan_patch.go:25`、`internal/chat/plan_patch.go:54`）。
 - 【事実】プロンプト生成は `existing_tasks` の facet/依存・`existing_wbs.node_index`・`conversation_history` を含めている（`internal/meta/utils.go:155`、`internal/meta/utils.go:183`、`internal/meta/utils.go:199`）。
 - 【事実】既存タスクが 200 件を超える場合は、status 優先 + ID 昇順で決定論的にソートしてから 200 件に丸める（`internal/meta/utils.go:154`、`internal/meta/utils.go:182`）。
-- 【課題】巨大 WBS/大量タスク時の **決定論トリミング** は未完（WBS `node_index` は無制限出力）（`internal/meta/utils.go:211`）。
+- 【解消】巨大 WBS/大量タスク時の **決定論トリミング** を実装済み（WBS `node_index` は root からの BFS で最大 200 ノードに制限）（`internal/meta/utils.go:210`、`internal/meta/utils.go:254`、テスト: `internal/meta/utils_test.go:18`）。
 - 【事実】`planPatchSystemPrompt` は `PlanOperation` と整合しており、`status` を例示していない（`internal/meta/client.go:198`、`internal/meta/protocol.go:203`）。
 
 ### 10.2 WBS 整合性の欠陥（delete/cascade の定義不足）
@@ -150,21 +151,21 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
 - 【事実】delete は cascade フラグに応じて削除対象（単体/部分木）を決め、WBS から削除する（`internal/chat/plan_patch.go:314`、`internal/chat/plan_patch.go:356`、`internal/chat/plan_patch.go:482`）。
 - 【事実】`cascade=false` の delete は「子を親へ繰り上げ（splice）+ 子の parent_id 更新」を行い、孤児を作りにくい（`internal/chat/plan_patch.go:511`、`internal/chat/plan_patch.go:550`、`internal/chat/plan_patch.go:576`）。
 - 【事実】WBS 不変条件テスト（delete 周り）は追加済み（`internal/chat/plan_patch_wbs_test.go:15`、`internal/chat/plan_patch_wbs_test.go:136`）。
-- 【課題】move の回帰防止テストが不足（検証コマンドは 13.2 参照）。
+- 【解消】move の回帰防止テストを追加済み（6 件、WBS 不変条件も検証）（`internal/chat/plan_patch_wbs_test.go:199`、検証コマンドは 13.2 参照）。
 
 ### 10.3 監査/復元性（history の順序）
 
 - 【事実】設計は「history append → design/state を atomic write」の順序を要求する（`docs/design/orchestrator-persistence-v2.md:92`）。
 - 【事実】現状は history append を先行させてから design/state を保存している（`internal/chat/plan_patch.go:380`、`internal/chat/plan_patch.go:404`）。
 - 【事実】history append 失敗時は `kind=history_failed` を追加で記録する（案 B の一部を実装）（`internal/chat/plan_patch.go:398`、`internal/chat/plan_patch.go:404`）。
-- 【課題】失敗注入テスト（AppendAction 失敗の再現）と「復旧導線（再適用/再試行）」の定義が不足（11.3/12.3）。
+- 【解消】失敗注入テスト（AppendAction 失敗の再現）を追加し、復旧のための最小情報（`original_action_id`/`error`）を failure action に保存する仕様を固定（`internal/chat/plan_patch_history_test.go:52`、`internal/chat/plan_patch.go:400`）。
 
 ### 10.4 テストの信頼性（外部ネットワーク依存/モック整合）
 
 - 【仮説】MVP 当時は `internal/meta` のテストが品質ゲートとして機能していなかった（当時の失敗ログは本リポジトリ内に一次ソースとして残していない）。
 - 【事実】現状は QH-005 として NextAction プロンプトに `WorkerRuns` を含め、モック分岐と整合させた（`internal/meta/openai_provider.go:328`、`internal/meta/mock_adapter.go:69`）。
 - 【事実】現状の品質ゲートとして `go test ./...` が通る。
-- 【結果】品質ゲートとしては復旧。ただし mock は依然として “プロンプト文字列の部分一致” に依存している（`internal/meta/mock_adapter.go:56`、`internal/meta/mock_adapter.go:69`）。将来的には「構造（payload）ベースのモック」へ移行する余地がある。
+- 【結果】品質ゲートとしては復旧。mock は OpenAI リクエスト（messages）を JSON パースして system/user を抽出し判定する（fallback として文字列マッチも残す）（`internal/meta/mock_adapter.go:54`、`internal/meta/mock_adapter.go:61`、`internal/meta/mock_adapter.go:82`）。
 
 ### 10.5 ドキュメントの真実源の弱さ（“一次ソースで検証できる”形になっていない）
 
@@ -257,7 +258,7 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
   - plan_patch 適用前に history に action が append される（設計: `docs/design/orchestrator-persistence-v2.md:92`）。
   - design/state 保存が失敗した場合の扱い（失敗 action の追記、または idempotent な再適用）が定義され、テストで再現できる。
 - 【検証】失敗注入テスト（writeJSON 失敗を擬似化）で history と state の整合を確認。
-- 【一次根拠】実装箇所: `internal/chat/plan_patch.go:380`、未確定: `internal/chat/plan_patch.go:398`
+- 【一次根拠】実装箇所: `internal/chat/plan_patch.go:380`、append 失敗時の failure action 記録: `internal/chat/plan_patch.go:398`（テスト: `internal/chat/plan_patch_history_test.go:52`）
 
 ### 12.4 P0: テストの無外部依存化（品質ゲートの復旧）
 
@@ -334,41 +335,3 @@ MVP では **Chat Handler が Planner/TaskBuilder の役割を兼務**する。
   - **Pre-flight Check**: 実装済み。`verifyCodexSession`/`verifyClaudeSession`（`internal/worker/executor.go:278-344`）。
   - **エラー誘導**: 実装済み。認証方法を明記したエラーメッセージ（例: 「`codex login` で認証を完了してください」）。
   - **セキュアな注入**: 実装済み。環境変数のみで伝播（`executor.go:69-80`）。
-
-### 12.6 P2: 将来拡張（“今回の反省” 由来で仕様/テストを先に固める）
-
-#### QH-008: Artifacts.Files の自動抽出/反映（実行結果の追跡可能性）
-
-- 【目的】「どのタスクがどのファイルを生成/変更したか」を IDE の一次情報として扱える状態にする。
-- 【範囲】`ISSUE.md:38` の実装タスク群（executor/note/persistence/UI）。
-- 【受け入れ条件】タスク完了後にファイル一覧が IDE で確認できる。
-
-#### QH-009: Meta Protocol のバージョニング導入（将来互換）
-
-- 【目的】プロトコル更新時の破壊的変更を検知し、安全にフォールバックする。
-- 【範囲】`ISSUE.md:52`（spec 更新 + core 実装 + テスト）。
-- 【受け入れ条件】バージョン不一致時の挙動が仕様/実装/テストで一致している。
-
-#### QH-010: 追加 Worker 種別のサポート（設計先行）
-
-- 【目的】`codex-cli` 以外の CLI エージェントを Worker として選択可能にする。
-- 【範囲】`ISSUE.md:64`。
-- 【受け入れ条件】`runner.worker.kind` に応じた選択/エラー/ドキュメントが揃う。
-
-#### QH-011: IPC の WebSocket / gRPC 化（性能ボトルネック解消）
-
-- 【目的】ファイルポーリング IPC の負荷/拡張性制約を解消する。
-- 【範囲】`ISSUE.md:78`。
-- 【受け入れ条件】移行パス（並行稼働）と大規模ジョブ時の負荷低減が確認できる。
-
-#### QH-012: Frontend E2E の安定化（品質ゲートの 2 本目）
-
-- 【目的】フロントの回帰を CI で継続検出できる状態にする。
-- 【範囲】`ISSUE.md:90`。
-- 【受け入れ条件】`pnpm test:e2e` が安定して完走する。
-
-#### QH-013: Task Note 保存の圧縮（ストレージ/性能）
-
-- 【目的】大きな履歴の保存サイズを抑え、読み書き性能を維持する。
-- 【範囲】`ISSUE.md:102`。
-- 【受け入れ条件】後方互換を維持しつつ保存容量が有意に減る。

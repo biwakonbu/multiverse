@@ -114,14 +114,14 @@
 
 ### 3.4 P2（将来拡張：仕様/テストを先に固めてから実装）
 
-以下は `PRD.md` 12.6 を正とし、着手順は運用上の都合で入れ替えてよい。ただし P0 を完了してから着手する。
+以下は `ISSUE.md`（Deferred）を正とし、着手順は運用上の都合で入れ替えてよい。ただし P0 を完了してから着手する。
 
-- QH-008: Artifacts.Files の自動抽出/反映（`ISSUE.md:38`）
-- QH-009: Meta Protocol のバージョニング導入（`ISSUE.md:52`）
-- QH-010: 追加 Worker 種別のサポート（`ISSUE.md:64`）
-- QH-011: IPC の WebSocket / gRPC 化（`ISSUE.md:78`）
-- QH-012: Frontend E2E の安定化（`ISSUE.md:90`）
-- QH-013: Task Note 保存の圧縮（`ISSUE.md:102`）
+- QH-008: Artifacts.Files の自動抽出/反映（`ISSUE.md`）
+- QH-009: Meta Protocol のバージョニング導入（`ISSUE.md`）
+- QH-010: 追加 Worker 種別のサポート（`ISSUE.md`）
+- QH-011: IPC の WebSocket / gRPC 化（`ISSUE.md`）
+- QH-012: Frontend E2E の安定化（`ISSUE.md`）
+- QH-013: Task Note 保存の圧縮（`ISSUE.md`）
 
 ---
 

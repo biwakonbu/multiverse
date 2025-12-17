@@ -10,10 +10,10 @@ docs/cli-agents/
 ├── codex/              # Codex CLI
 │   ├── CLAUDE.md       # AI 向けナレッジ
 │   └── version-X.X.X.md # バージョン固有仕様
-├── gemini/             # Gemini CLI（将来拡張）
-├── claude-code/        # Claude Code（将来拡張）
-└── cursor/             # Cursor CLI（将来拡張）
+├── claude-code/        # Claude Code
 ```
+
+未対応 CLI（例: Gemini/Cursor）の追加は `ISSUE.md`（Deferred: 「追加 Worker 種別のサポート」）を正とする。
 
 ## 共通原則
 
@@ -47,9 +47,7 @@ docs/cli-agents/
 | CLI ツール | ステータス | 対応バージョン |
 |-----------|----------|---------------|
 | Codex CLI | ✅ 対応済み | 0.65.0 |
-| Gemini CLI | ⏳ 未対応 | - |
-| Claude Code | ⏳ 未対応 | - |
-| Cursor CLI | ⏳ 未対応 | - |
+| Claude Code | ✅ 対応済み | - |
 
 ## 関連ドキュメント
 

@@ -12,15 +12,15 @@
   - `LLMSettings` は Kind/Model を保存するが、CLI セッション状態を表示できず、`TestLLMConnection` も OpenAI HTTP 前提で CLI セッションを検証できない。API キーは不要なので UI をセッション表示に置換する必要。
   - 対応完了（2025-12-14）: API キーの強制を解除し、`TestLLMConnection` がプロバイダ経由で CLI バージョンチェックを行うように変更済み。設定画面で API キーが空でも CLI があれば接続成功となる。
 
-- [ ] 実行ログ（stdout/stderr）のリアルタイム配信/表示の整備
+- [x] 実行ログ（stdout/stderr）のリアルタイム配信/表示の整備
 
   - バックエンド: stdout/stderr を逐次読み取り、`task:log` イベントを送出済み（`internal/orchestrator/executor.go:93`、`internal/orchestrator/executor.go:121`、`internal/orchestrator/events.go:39`）。
   - フロント: `task:log` を購読して store に蓄積する実装は存在（`frontend/ide/src/stores/logStore.ts:49`）。
-  - 残タスク: UI 上でのタスク別フィルタ/クリア導線/常時表示など、運用可能な表示体験に仕上げる。
+  - 対応完了（2025-12-14）: UI 上でのタスク別フィルタ/クリア導線/常時表示など、運用可能な表示体験に仕上げた（`frontend/ide/src/lib/hud/LiveLogStream.svelte`、`frontend/ide/src/stores/logStore.ts`）。
 
-- [ ] Codex CLI セッションの存在確認・注入手段が未整備
+- [x] Codex CLI セッションの存在確認・注入手段が未整備
   - Worker Executor は `codex exec ...` を呼び出すが、セッション有無の検証・警告やコンテナへのセッション注入方法（環境変数/ボリューム）が明確でない。
-  - 対応: コンテナ起動時にセッション確認を行い、失敗時は UI に警告を返す。セッションの受け渡し仕様をドキュメント化。
+  - 対応完了（2025-12-14）: コンテナ起動時にセッション確認を行い、失敗時はユーザー向けエラーメッセージを返す。環境変数（`CODEX_SESSION_TOKEN`/`CODEX_API_KEY`/`ANTHROPIC_API_KEY`）をコンテナへ注入する（`internal/worker/executor.go`）。
 
 ## Deferred (moved from TODO.md, 2025-12-13)
 
@@ -48,6 +48,7 @@
     3. IDE の TaskPropPanel で一覧表示。
   - 完了条件:
     - タスク完了後にファイル一覧が確認できる。
+  - 【事実】最小要件（変更/生成ファイルの検出→イベント→IDE 表示）は先行実装済み（検出: `internal/worker/executor.go:420`、反映: `internal/orchestrator/executor.go:115`、永続化/同期: `internal/orchestrator/execution_orchestrator.go:424`、表示: `frontend/ide/src/lib/components/ui/TaskPropPanel.svelte:82`）。
 
 - [ ] Meta Protocol のバージョニング導入
 
@@ -60,6 +61,7 @@
     2. バージョン不一致時のフォールバック/警告/拒否方針を定義する。
   - 完了条件:
     - プロトコル更新時に旧クライアントが安全に扱える。
+  - 【一次ソース】`docs/specifications/meta-protocol.md:318` の制約事項（「プロトコルバージョニングは未実装」）から移設。
 
 - [ ] 追加 Worker 種別のサポート
 
@@ -68,12 +70,40 @@
     - `internal/orchestrator/executor*.go`
     - `internal/worker/*`
     - `docs/cli-agents/*`
+    - `docs/specifications/worker-interface.md`
   - 実装タスク:
     1. Worker kind と Docker イメージ/起動コマンドの対応表を追加する。
     2. `runner.worker.kind` に応じた選択とエラーハンドリングを実装する。
     3. 各 CLI のナレッジ（`docs/cli-agents/<kind>/...`）とテストを追加する。
   - 完了条件:
     - `gemini-cli` / `claude-code-cli` / `cursor-cli` を指定して実行できる。
+  - 【一次ソース】`docs/specifications/worker-interface.md:28` の「将来的に cursor-cli」を移設。
+  - 【一次ソース】`docs/cli-agents/README.md:5` の「未対応 CLI（gemini/cursor）」から移設。
+
+- [ ] Task Builder（raw_prompt → TaskConfig YAML）
+
+  - 【目的】`raw_prompt` から TaskConfig YAML を LLM で生成できるようにし、Executor の決定的生成から段階的に移行できるようにする。
+  - 【一次ソース】`docs/task-builder-and-golden-test-design.md:43` の「Task Builder（CLI プロバイダ）」から移設。
+  - 実装タスク:
+    1. Task Builder の入出力（raw_prompt/context → TaskConfig）を仕様化する。
+    2. 検証手段（ゴールデンテスト/ユニットテスト）を定義する。
+    3. 既存 Executor 生成とのフォールバック（feature flag 等）を用意する。
+  - 完了条件:
+    - 同一入力で決定論的に動作し、`go test ./...` の品質ゲートを維持できる。
+
+- [ ] 永続化レイヤー（DB / resume / 分散実行）
+
+  - 【目的】TaskContext/実行履歴の永続化と、タスクの resume・複数ノード実行を可能にする。
+  - 【一次ソース】`docs/design/architecture.md:398` の「永続化レイヤー」から移設。
+  - スコープ例:
+    - TaskContext を DB（例: PostgreSQL）に永続化
+    - タスクの resume 機能
+    - 複数ノードでの分散実行
+
+- [ ] Web UI（タスク起動/モニタリング/ログ可視化）
+
+  - 【目的】デスクトップ IDE 以外の導線として、タスク起動・モニタリング・履歴可視化・リアルタイムログ表示を提供する。
+  - 【一次ソース】`docs/design/architecture.md:416` の「Web UI」から移設。
 
 - [ ] IPC の WebSocket / gRPC 化
 

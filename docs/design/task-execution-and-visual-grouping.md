@@ -1,20 +1,19 @@
 # タスク実行と多軸グルーピング設計（Planning → Execution）
 
-最終更新: 2025-12-13
+最終更新: 2025-12-17
 
 ## 1. 背景 / 問題
 
 ### 1.1 「タスクは作られるが実行されない」
 
 - `ExecutionOrchestrator` は `StartExecution()` を呼ぶまで `IDLE` のまま（`internal/orchestrator/execution_orchestrator.go:79`）。
-- IDE には `StartExecution` API が存在するが（`app.go:472`）、現状の UI からの明示的な呼び出し導線が見当たらない。
-  - `frontend/ide/src/App.svelte:69-72` では E2E 用に `window.startExecution = startExecution` を割り当てるだけで、通常フローでの実行開始は呼んでいない。
-  - `frontend/ide/src/lib/hud/TaskBar.svelte:11-63` は Chat/Process/Backlog のトグルのみで、実行開始 UI を持たない。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
+- 【補足】UI からの明示的な開始/停止はフォールバック（強制介入）であり、通常フローの必須操作にはしない（3 章）。
 
 ### 1.2 「タスクがフラットで、分類/可視化が雑になる」
 
 - Frontend の WBS ツリーは `milestone -> phase -> task` でツリー化する設計（`frontend/ide/src/stores/wbsStore.ts:161-240`）。
-- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:269`）。
+- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:279`）。
   - これにより UI では `phaseName/milestone` が空扱いにならず、WBS が 1 グループに潰れにくい。
 - `design/state` 側も、TaskState.Kind が全タスクで `"implementation"` 固定になっており（`internal/chat/handler.go:579-596`）、作業種別（仕様/ドキュメント/設計/実装/検証など）という分類軸を表現できない。
 
@@ -88,7 +87,7 @@
 
 - ユーザーは「計画して」「実行して」などの役割分担を要求されない。
 - Chat の「タスク永続化」完了後に以下を実行する:
-  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:472`）
+  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:601`）
   2. 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証（2 秒ポーリング待ちを削減）
 
 ### 6.3 自然言語での介入（必須）

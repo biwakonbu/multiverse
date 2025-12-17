@@ -1,6 +1,6 @@
 # Chat Autopilot 設計（会話だけで「計画→実行→質問→継続」）
 
-最終更新: 2025-12-13
+最終更新: 2025-12-17
 
 ## 1. 目的
 
@@ -12,12 +12,12 @@
 - 不明点が出たら、エージェントがチャットで質問し、人間の回答を取り込んで継続する。
 - IDE の実行ボタン（Start/Pause/Stop）はフォールバック（強制介入）であり、必須操作にしない。
 
-## 2. 現状のギャップ（一次ソース）
+## 2. 以前のギャップ（一次ソース） ※解消済み
 
 ### 2.1 チャットは「分解→保存」で止まる
 
 - `ChatHandler.HandleMessage` は `Meta.PlanPatch` → 永続化（create/update/delete/move の適用）まで実行し、そこで完了する（`internal/chat/handler.go`）。
-- `StartExecution()` を呼ぶ経路が無いため、生成されたタスクが自走しない（`app.go:472`、`internal/orchestrator/execution_orchestrator.go:79`）。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
 
 ### 2.2 “人間に質問する” が実行ループに無い
 
@@ -27,7 +27,7 @@
 ### 2.3 可視化グルーピングが崩れる
 
 - Frontend は `milestone -> phase -> task` を前提に WBS を構築する（`frontend/ide/src/stores/wbsStore.ts:161`）。
-- しかし `ListTasks()` が `phaseName/milestone/wbsLevel/dependencies` を返していないため、WBS が潰れて見える（`app.go:313-325`）。
+- 【解消】`ListTasks()` は `NodeDesign` 由来の `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:279`、`app.go:400`）。
 
 ## 3. 設計方針（結論）
 
@@ -66,7 +66,7 @@
 1. IDE → `SendChatMessage(sessionId, message)`
 2. ChatHandler が `Meta.PlanPatch` → `design/state/task_store` へ差分永続化（`internal/chat/handler.go`）
 3. Autopilot が以下を実行（追加）
-   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:472`）
+   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:633`、`app.go:601`）
    - 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証
 4. ExecutionOrchestrator がジョブを処理して `Executor` を起動し、`agent-runner` を実行する（`internal/orchestrator/execution_orchestrator.go:256`、`internal/orchestrator/executor.go:63`）
 
@@ -101,9 +101,9 @@ Autopilot は以下の制御語を LLM を経由せず解釈する（決定論�
 
 ### 6.1 既存 API（利用する）
 
-- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:472`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
-- `SendChatMessage`（`app.go:431`）
-- `GetBacklogItems/ResolveBacklogItem`（`app.go:517`、`app.go:553`）
+- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:601`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
+- `SendChatMessage`（`app.go:532`）
+- `GetBacklogItems/ResolveBacklogItem`（`app.go:645`、`app.go:673`）
 
 ### 6.2 既存イベント（利用する）
 

@@ -329,7 +329,7 @@ runner:
 ### 8.2 制約事項
 
 - v1 では OpenAI Chat API のみサポート
-- プロトコルバージョニングは未実装（将来拡張予定）
+- プロトコルバージョニングは `ISSUE.md`（Deferred: 「Meta Protocol のバージョニング導入」）を正とする。
 
 ## 9. decompose プロトコル (v2.0)
 

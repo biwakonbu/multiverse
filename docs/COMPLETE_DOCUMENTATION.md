@@ -1,7 +1,7 @@
 
 # Complete Documentation
 
-Generated: 2025-12-14 15:36:56
+Generated: 2025-12-18 01:16:25
 
 This document consolidates all documentation from the docs/ directory for LLM context.
 
@@ -253,6 +253,10 @@ Meta 用 LLM モデル ID は以下の優先順位で決定されます：
 1. **CLI オプション**: `--meta-model` で指定された値
 2. **Task YAML**: `runner.meta.model` で指定された値
 3. **ビルトインデフォルト**: `gpt-5.2`
+
+**参照 URL（OpenAI/Codex: モデル/価格）**:
+
+- https://platform.openai.com/docs/pricing
 
 **認証について (v3.0 以降)**:
 AgentRunner Core は、各プロバイダ（OpenAI, Anthropic 等）の **CLI ツールが保持する認証セッション** を利用することを推奨します。
@@ -930,7 +934,7 @@ runner:
 #### 8.2 制約事項
 
 - v1 では OpenAI Chat API のみサポート
-- プロトコルバージョニングは未実装（将来拡張予定）
+- プロトコルバージョニングは `ISSUE.md`（Deferred: 「Meta Protocol のバージョニング導入」）を正とする。
 
 ### 9. decompose プロトコル (v2.0)
 
@@ -1164,7 +1168,7 @@ Core は以下の情報を Meta に渡します：
 **Source**: `specifications/worker-interface.md`
 
 
-最終更新: 2025-11-22
+最終更新: 2025-12-17
 
 ### 概要
 
@@ -1182,18 +1186,14 @@ Worker Executor は以下の責務を持ちます：
 
 #### 2.1 v1 サポート Worker
 
-v1 では `codex-cli` のみをサポートします。
+v1 では `codex-cli` と `claude-code` をサポートします。
 
 | Worker 種別 | 説明                               | Docker イメージ             |
 | ----------- | ---------------------------------- | --------------------------- |
-| `codex-cli` | Codex CLI コーディングエージェント | `agent-runner-codex:latest` |
+| `codex-cli` | Codex CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-codex:latest` |
+| `claude-code` | Claude Code CLI コーディングエージェント（互換: `claude-code-cli`） | `ghcr.io/biwakonbu/agent-runner-claude:latest` |
 
-#### 2.2 将来拡張
-
-将来的に以下の Worker をサポート予定：
-
-- `cursor-cli`
-- `claude-code-cli`
+（バックログ）追加 Worker（例: `cursor-cli` 等）のサポートは `ISSUE.md` の Deferred（「追加 Worker 種別のサポート」）を正とする。
 
 ### 3. Worker 実行インターフェース
 
@@ -1253,7 +1253,7 @@ type WorkerRunResult struct {
 
 | 項目                   | 設定                                                    |
 | ---------------------- | ------------------------------------------------------- |
-| **デフォルトイメージ** | `agent-runner-codex:latest`                             |
+| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`） |
 | **カスタマイズ**       | Task YAML の `runner.worker.docker_image` で上書き可能  |
 | **自動 Pull**          | イメージが存在しない場合、自動的に `docker pull` を実行 |
 
@@ -1263,6 +1263,7 @@ type WorkerRunResult struct {
 | ------------------------ | ------------------ | ----------------------------- |
 | `/workspace/project`     | プロジェクトルート | ホストの `task.repo`          |
 | `/root/.codex/auth.json` | Codex 認証情報     | ホストの `~/.codex/auth.json` |
+| `/root/.config/claude`   | Claude Code 認証情報 | ホストの `~/.config/claude` |
 
 #### 4.3 マウント仕様
 
@@ -1286,9 +1287,17 @@ v1 実装では、以下の順序で Codex 認証情報を自動的に検出・�
    ```
 
 2. `~/.codex/auth.json` が存在しない場合:
-   ```bash
-   -e CODEX_API_KEY=$CODEX_API_KEY
-   ```
+	   ```bash
+	   -e CODEX_API_KEY=$CODEX_API_KEY
+	   ```
+
+#### 4.3.3 Claude Code 認証マウント（自動）
+
+`~/.config/claude` が存在する場合、ReadOnly でマウントします：
+
+```bash
+-v ~/.config/claude:/root/.config/claude:ro
+```
 
 #### 4.4 環境変数
 
@@ -2158,7 +2167,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 詳細は [サンドボックス方針](sandbox-policy.md) を参照。
 
-#### 実装状態（2025-12-07 更新）
+#### 実装状態（2025-12-17 更新）
 
 - **CodexProvider** (`internal/agenttools/codex.go`):
   - Codex CLI 0.65.0 対応。exec モードのみサポート（chat サブコマンドは存在しない）。
@@ -2171,8 +2180,13 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 - **Execute ヘルパー** (`internal/agenttools/exec.go`):
   - `agenttools.Execute(ctx, plan)` でホスト上で直接 ExecPlan を実行。
   - Meta-agent の CLI 呼び出しで使用。
-- **Stub Providers** (`stub_providers.go`):
-  - gemini-cli / claude-code / cursor-cli をスタブ登録し、未実装エラーを明示。実装時は Registry 差し替えで有効化。
+- **ClaudeProvider** (`internal/agenttools/claude.go`):
+  - `claude --model <id> -p <prompt>`（stdin 時は `-p -`）で単発実行。
+  - デフォルトモデル: `claude-haiku-4-5-20251001`（`internal/agenttools/claude.go`）。
+- **GeminiProvider** (`internal/agenttools/gemini.go`):
+  - Gemini CLI 向けの ExecPlan 生成を実装（運用は `docs/guides/gemini-cli.md` を参照）。
+- **CursorProvider** (`internal/agenttools/cursor.go`):
+  - Cursor CLI 向けの ExecPlan 生成を実装。
 - **WorkerCall 拡張** (`internal/meta/protocol.go`):
   - model, temperature, max_tokens, reasoning_effort, cli_path, flags, env, tool_specific, workdir, use_stdin を追加。
 - **Worker 実行経路** (`internal/worker/executor.go`):
@@ -2188,6 +2202,12 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 | ------------------------ | --------------- | ------------------------------ |
 | Meta-agent（計画・思考） | `gpt-5.2`       | `internal/meta/client.go`      |
 | Worker タスク実行        | `gpt-5.1-codex` | `internal/agenttools/codex.go` |
+| Worker タスク実行（高速） | `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`） | `internal/agenttools/openai_models.go` |
+| Worker タスク実行（Claude Code） | `claude-haiku-4-5-20251001` | `internal/agenttools/claude.go` |
+
+参照 URL（モデル/価格）:
+
+- https://platform.openai.com/docs/pricing
 
 #### 思考の深さ（reasoning effort）
 
@@ -2211,6 +2231,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 - [CLI エージェント共通ガイド](../cli-agents/README.md)
 - [Codex CLI ナレッジ](../cli-agents/codex/CLAUDE.md)
+- [Claude Code ナレッジ](../cli-agents/claude-code/CLAUDE.md)
 
 #### 統一された実行フロー
 
@@ -2229,7 +2250,7 @@ agenttools.Build()                    agenttools.Build()
 
 #### 今後の実装方針
 
-- Gemini / Claude Code / Cursor 各 CLI のフラグ体系に合わせた Provider を追加し、stub を置換。
+- CLI ごとの運用ガイド（インストール/認証/制約）の充実（`docs/cli-agents/` / `docs/guides/`）。
 - ExecPlan 出力の JSON をパースして WorkerRunResult.Summary を改善（codex --json を活用）。
 
 #### 5. External Outputs
@@ -2399,27 +2420,7 @@ payload:
 
 ### 拡張性
 
-#### 将来拡張
-
-#### 複数 Worker サポート
-
-```yaml
-runner:
-  worker:
-    kind: "cursor-cli" # または "claude-code-cli"
-```
-
-#### 永続化レイヤー
-
-- TaskContext を DB（PostgreSQL）に永続化
-- タスクの resume 機能
-- 複数ノードでの分散実行
-
-#### Web UI
-
-- タスクの起動・モニタリング
-- 実行履歴の可視化
-- リアルタイムログ表示
+バックログのタスク（複数 Worker、永続化レイヤー、Web UI など）は `ISSUE.md`（Deferred）に集約し、このドキュメントからは削除する（重複/不整合の防止）。
 
 ### 設計上の制約
 
@@ -3973,7 +3974,7 @@ func (c *Client) Chat(ctx context.Context, req ChatRequest) (ChatResponse, error
 **Source**: `design/sandbox-policy.md`
 
 
-最終更新: 2025-12-07
+最終更新: 2025-12-17
 
 ### 基本原則（絶対遵守）
 
@@ -4002,7 +4003,7 @@ Docker コンテナが外部サンドボックスとして機能するため、C
 |-----------|-------------|------|
 | Codex CLI | `--dangerously-bypass-approvals-and-sandbox` | 0.65.0 で確認 |
 | Gemini CLI | （TBD: 実装時に調査） | |
-| Claude Code | （TBD: 実装時に調査） | |
+| Claude Code | （該当フラグなし: 現実装は `-p`） | `internal/agenttools/claude.go` |
 | Cursor CLI | （TBD: 実装時に調査） | |
 
 ### 安全性の保証
@@ -4027,6 +4028,11 @@ volumes:
   - type: bind
     source: ~/.codex/auth.json
     target: /root/.codex/auth.json
+    read_only: true  # 認証情報は読み取り専用
+
+  - type: bind
+    source: ~/.config/claude
+    target: /root/.config/claude
     read_only: true  # 認証情報は読み取り専用
 ```
 
@@ -4116,10 +4122,9 @@ TODO アプリの仕様・技術スタック・テスト戦略などは **一切
   - Executor がタスクから TaskConfig YAML を生成し、`agent-runner` に stdin で渡して実行する。
   - 実行結果を `state/` と TaskStore に反映し、IDE にイベントとして露出する。
 
-#### 2.3 Task Builder（CLI プロバイダ - 将来拡張）
+#### 2.3 Task Builder（バックログ）
 
-将来的に、`raw_prompt` から TaskConfig YAML を LLM で生成するコンポーネントを想定する。  
-現行 MVP では Task Builder は未使用で、TaskConfig YAML は Executor が決定的に生成する。
+Task Builder（`raw_prompt` → TaskConfig YAML）の導入は `ISSUE.md`（Deferred: 「Task Builder（raw_prompt → TaskConfig YAML）」）を正とする。
 
 #### 2.4 AgentRunner
 
@@ -4435,10 +4440,10 @@ docs/cli-agents/
 ├── codex/              # Codex CLI
 │   ├── CLAUDE.md       # AI 向けナレッジ
 │   └── version-X.X.X.md # バージョン固有仕様
-├── gemini/             # Gemini CLI（将来拡張）
-├── claude-code/        # Claude Code（将来拡張）
-└── cursor/             # Cursor CLI（将来拡張）
+├── claude-code/        # Claude Code
 ```
+
+未対応 CLI（例: Gemini/Cursor）の追加は `ISSUE.md`（Deferred: 「追加 Worker 種別のサポート」）を正とする。
 
 ### 共通原則
 
@@ -4472,9 +4477,7 @@ docs/cli-agents/
 | CLI ツール | ステータス | 対応バージョン |
 |-----------|----------|---------------|
 | Codex CLI | ✅ 対応済み | 0.65.0 |
-| Gemini CLI | ⏳ 未対応 | - |
-| Claude Code | ⏳ 未対応 | - |
-| Cursor CLI | ⏳ 未対応 | - |
+| Claude Code | ✅ 対応済み | - |
 
 ### 関連ドキュメント
 
@@ -4745,6 +4748,13 @@ Codex 統合テストを実行する場合は [codex-integration.md](codex-integ
 
 このディレクトリには、実際の Codex CLI を使用した統合テストが含まれています。
 
+### モデル（参照 URL）
+
+- https://platform.openai.com/docs/pricing
+
+このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.1-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
+必要に応じて `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`）も利用できます（実装: `internal/agenttools/openai_models.go`）。
+
 ### 前提条件
 
 1. **Codex 認証の設定**
@@ -4878,55 +4888,76 @@ payload:
 **Source**: `guides/cli-subscription.md`
 
 
-AgentRunner uses your local CLI sessions to execute tasks. This avoids the need for API keys to be stored in the application and allows you to use your existing subscriptions.
+AgentRunner はローカルの CLI セッションを利用してタスクを実行します。アプリ内に API キーを保持せず、既存サブスクリプションをそのまま利用できます。
 
-### Supported Providers
+### 対応プロバイダ
 
 - **Codex CLI**: `codex`
 - **Claude Code**: `claude` / `claude-code`
 - **Gemini CLI**: `gemini`
 - **Cursor CLI**: `cursor`
 
-### Setup Instructions
+### セットアップ手順
 
 #### 1. Codex CLI
 
-1. Install Codex CLI.
-2. Login to your account:
+1. Codex CLI をインストール
+2. ログイン:
    ```bash
    codex login
    ```
-   This should create a session file at `~/.codex/auth.json`.
-3. AgentRunner will automatically mount this file into the sandbox container.
+   `~/.codex/auth.json` が作成されます。
+3. AgentRunner は `~/.codex/auth.json` をサンドボックスコンテナへ自動マウントします（ReadOnly）。
+
+#### モデル-価格（参照 URL）
+
+- https://platform.openai.com/docs/pricing
+
+#### このプロジェクトのデフォルト-推奨モデル
+
+- Meta-agent: `gpt-5.2`（実装: `internal/agenttools/codex.go`）
+- Worker: `gpt-5.1-codex`（実装: `internal/agenttools/codex.go`）
+- Worker（高速）: `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`、実装: `internal/agenttools/openai_models.go`）
 
 #### 2. Claude Code
 
-1. Install Claude Code (`npm install -g @anthropic-ai/claude-code`).
-2. Login:
+1. Claude Code をインストール:
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   ```
+2. ログイン:
    ```bash
    claude login
    ```
-3. Ensure the `claude` command is in your PATH.
+3. `claude` コマンドが PATH 上にあることを確認
+
+#### モデル一覧（参照 URL）
+
+- https://platform.claude.com/docs/en/about-claude/models/overview
+
+#### このプロジェクトのデフォルトモデル
+
+- `claude-haiku-4-5-20251001`（実装: `internal/agenttools/claude.go`）
+- 公式ドキュメント上に現れたモデル ID は `KnownClaudeModels` として実装に同梱（`internal/agenttools/claude_models.go`）
 
 #### 3. Gemini CLI
 
-1. Install Gemini CLI.
-2. Login or setup credentials as per official documentation.
+Gemini CLI の詳細は `docs/guides/gemini-cli.md` を参照してください。
 
 #### 4. Cursor CLI
 
-1. Ensure Cursor is installed and the CLI is available in your PATH.
+Cursor CLI が PATH 上にあることを確認してください。
 
-### Configuration in Multiverse IDE
+### Multiverse IDE 側の設定
 
-1. Open **Settings** -> **LLM**.
-2. Select your desired provider from the list (e.g., `codex-cli`, `claude-code`).
-3. Click "Test Connection" to verify that AgentRunner can access your local session.
+1. **Settings** -> **LLM** を開く
+2. Provider を選択（例: `codex-cli`, `claude-code`）
+3. "Test Connection" で疎通確認
 
-### Troubleshooting
+### トラブルシュート
 
-- **Session not found**: Ensure you have run the login command for the respective CLI.
-- **Permission denied**: On macOS, you might need to grant Full Disk Access to Docker or the terminal running AgentRunner if it needs to read strict paths (though usually standard home paths are fine).
+- **Session not found**: 各 CLI の login を実行し、認証情報が作成されていることを確認してください。
+- **Permission denied（macOS）**: Docker/Terminal に Full Disk Access が必要になる場合があります。
 
 <a id="guides-gemini-cli"></a>
 
@@ -5273,7 +5304,7 @@ Error: Request timeout
 **Source**: `design/chat-autopilot.md`
 
 
-最終更新: 2025-12-13
+最終更新: 2025-12-17
 
 ### 1. 目的
 
@@ -5285,12 +5316,12 @@ Error: Request timeout
 - 不明点が出たら、エージェントがチャットで質問し、人間の回答を取り込んで継続する。
 - IDE の実行ボタン（Start/Pause/Stop）はフォールバック（強制介入）であり、必須操作にしない。
 
-### 2. 現状のギャップ（一次ソース）
+### 2. 以前のギャップ（一次ソース） ※解消済み
 
 #### 2.1 チャットは「分解→保存」で止まる
 
 - `ChatHandler.HandleMessage` は `Meta.PlanPatch` → 永続化（create/update/delete/move の適用）まで実行し、そこで完了する（`internal/chat/handler.go`）。
-- `StartExecution()` を呼ぶ経路が無いため、生成されたタスクが自走しない（`app.go:472`、`internal/orchestrator/execution_orchestrator.go:79`）。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
 
 #### 2.2 “人間に質問する” が実行ループに無い
 
@@ -5300,7 +5331,7 @@ Error: Request timeout
 #### 2.3 可視化グルーピングが崩れる
 
 - Frontend は `milestone -> phase -> task` を前提に WBS を構築する（`frontend/ide/src/stores/wbsStore.ts:161`）。
-- しかし `ListTasks()` が `phaseName/milestone/wbsLevel/dependencies` を返していないため、WBS が潰れて見える（`app.go:313-325`）。
+- 【解消】`ListTasks()` は `NodeDesign` 由来の `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:279`、`app.go:400`）。
 
 ### 3. 設計方針（結論）
 
@@ -5339,7 +5370,7 @@ Error: Request timeout
 1. IDE → `SendChatMessage(sessionId, message)`
 2. ChatHandler が `Meta.PlanPatch` → `design/state/task_store` へ差分永続化（`internal/chat/handler.go`）
 3. Autopilot が以下を実行（追加）
-   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:472`）
+   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:633`、`app.go:601`）
    - 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証
 4. ExecutionOrchestrator がジョブを処理して `Executor` を起動し、`agent-runner` を実行する（`internal/orchestrator/execution_orchestrator.go:256`、`internal/orchestrator/executor.go:63`）
 
@@ -5374,9 +5405,9 @@ Autopilot は以下の制御語を LLM を経由せず解釈する（決定論�
 
 #### 6.1 既存 API（利用する）
 
-- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:472`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
-- `SendChatMessage`（`app.go:431`）
-- `GetBacklogItems/ResolveBacklogItem`（`app.go:517`、`app.go:553`）
+- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:601`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
+- `SendChatMessage`（`app.go:532`）
+- `GetBacklogItems/ResolveBacklogItem`（`app.go:645`、`app.go:673`）
 
 #### 6.2 既存イベント（利用する）
 
@@ -5418,21 +5449,20 @@ Autopilot が前提とする最低要件:
 **Source**: `design/task-execution-and-visual-grouping.md`
 
 
-最終更新: 2025-12-13
+最終更新: 2025-12-17
 
 ### 1. 背景 - 問題
 
 #### 1.1 「タスクは作られるが実行されない」
 
 - `ExecutionOrchestrator` は `StartExecution()` を呼ぶまで `IDLE` のまま（`internal/orchestrator/execution_orchestrator.go:79`）。
-- IDE には `StartExecution` API が存在するが（`app.go:472`）、現状の UI からの明示的な呼び出し導線が見当たらない。
-  - `frontend/ide/src/App.svelte:69-72` では E2E 用に `window.startExecution = startExecution` を割り当てるだけで、通常フローでの実行開始は呼んでいない。
-  - `frontend/ide/src/lib/hud/TaskBar.svelte:11-63` は Chat/Process/Backlog のトグルのみで、実行開始 UI を持たない。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
+- 【補足】UI からの明示的な開始/停止はフォールバック（強制介入）であり、通常フローの必須操作にはしない（3 章）。
 
 #### 1.2 「タスクがフラットで、分類-可視化が雑になる」
 
 - Frontend の WBS ツリーは `milestone -> phase -> task` でツリー化する設計（`frontend/ide/src/stores/wbsStore.ts:161-240`）。
-- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:269`）。
+- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:279`）。
   - これにより UI では `phaseName/milestone` が空扱いにならず、WBS が 1 グループに潰れにくい。
 - `design/state` 側も、TaskState.Kind が全タスクで `"implementation"` 固定になっており（`internal/chat/handler.go:579-596`）、作業種別（仕様/ドキュメント/設計/実装/検証など）という分類軸を表現できない。
 
@@ -5506,7 +5536,7 @@ Autopilot が前提とする最低要件:
 
 - ユーザーは「計画して」「実行して」などの役割分担を要求されない。
 - Chat の「タスク永続化」完了後に以下を実行する:
-  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:472`）
+  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:601`）
   2. 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証（2 秒ポーリング待ちを削減）
 
 #### 6.3 自然言語での介入（必須）

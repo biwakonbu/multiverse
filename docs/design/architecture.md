@@ -144,7 +144,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 詳細は [サンドボックス方針](sandbox-policy.md) を参照。
 
-### 実装状態（2025-12-07 更新）
+### 実装状態（2025-12-17 更新）
 
 - **CodexProvider** (`internal/agenttools/codex.go`):
   - Codex CLI 0.65.0 対応。exec モードのみサポート（chat サブコマンドは存在しない）。
@@ -157,8 +157,13 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 - **Execute ヘルパー** (`internal/agenttools/exec.go`):
   - `agenttools.Execute(ctx, plan)` でホスト上で直接 ExecPlan を実行。
   - Meta-agent の CLI 呼び出しで使用。
-- **Stub Providers** (`stub_providers.go`):
-  - gemini-cli / claude-code / cursor-cli をスタブ登録し、未実装エラーを明示。実装時は Registry 差し替えで有効化。
+- **ClaudeProvider** (`internal/agenttools/claude.go`):
+  - `claude --model <id> -p <prompt>`（stdin 時は `-p -`）で単発実行。
+  - デフォルトモデル: `claude-haiku-4-5-20251001`（`internal/agenttools/claude.go`）。
+- **GeminiProvider** (`internal/agenttools/gemini.go`):
+  - Gemini CLI 向けの ExecPlan 生成を実装（運用は `docs/guides/gemini-cli.md` を参照）。
+- **CursorProvider** (`internal/agenttools/cursor.go`):
+  - Cursor CLI 向けの ExecPlan 生成を実装。
 - **WorkerCall 拡張** (`internal/meta/protocol.go`):
   - model, temperature, max_tokens, reasoning_effort, cli_path, flags, env, tool_specific, workdir, use_stdin を追加。
 - **Worker 実行経路** (`internal/worker/executor.go`):
@@ -174,6 +179,12 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 | ------------------------ | --------------- | ------------------------------ |
 | Meta-agent（計画・思考） | `gpt-5.2`       | `internal/meta/client.go`      |
 | Worker タスク実行        | `gpt-5.1-codex` | `internal/agenttools/codex.go` |
+| Worker タスク実行（高速） | `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`） | `internal/agenttools/openai_models.go` |
+| Worker タスク実行（Claude Code） | `claude-haiku-4-5-20251001` | `internal/agenttools/claude.go` |
+
+参照 URL（モデル/価格）:
+
+- https://platform.openai.com/docs/pricing
 
 ### 思考の深さ（reasoning effort）
 
@@ -197,6 +208,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 
 - [CLI エージェント共通ガイド](../cli-agents/README.md)
 - [Codex CLI ナレッジ](../cli-agents/codex/CLAUDE.md)
+- [Claude Code ナレッジ](../cli-agents/claude-code/CLAUDE.md)
 
 ### 統一された実行フロー
 
@@ -215,7 +227,7 @@ agenttools.Build()                    agenttools.Build()
 
 ### 今後の実装方針
 
-- Gemini / Claude Code / Cursor 各 CLI のフラグ体系に合わせた Provider を追加し、stub を置換。
+- CLI ごとの運用ガイド（インストール/認証/制約）の充実（`docs/cli-agents/` / `docs/guides/`）。
 - ExecPlan 出力の JSON をパースして WorkerRunResult.Summary を改善（codex --json を活用）。
 
 #### 5. External Outputs
@@ -385,27 +397,7 @@ payload:
 
 ## 拡張性
 
-### 将来拡張
-
-#### 複数 Worker サポート
-
-```yaml
-runner:
-  worker:
-    kind: "cursor-cli" # または "claude-code-cli"
-```
-
-#### 永続化レイヤー
-
-- TaskContext を DB（PostgreSQL）に永続化
-- タスクの resume 機能
-- 複数ノードでの分散実行
-
-#### Web UI
-
-- タスクの起動・モニタリング
-- 実行履歴の可視化
-- リアルタイムログ表示
+バックログのタスク（複数 Worker、永続化レイヤー、Web UI など）は `ISSUE.md`（Deferred）に集約し、このドキュメントからは削除する（重複/不整合の防止）。
 
 ## 設計上の制約
 

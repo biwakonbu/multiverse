@@ -40,10 +40,9 @@ TODO アプリの仕様・技術スタック・テスト戦略などは **一切
   - Executor がタスクから TaskConfig YAML を生成し、`agent-runner` に stdin で渡して実行する。
   - 実行結果を `state/` と TaskStore に反映し、IDE にイベントとして露出する。
 
-### 2.3 Task Builder（CLI プロバイダ / 将来拡張）
+### 2.3 Task Builder（バックログ）
 
-将来的に、`raw_prompt` から TaskConfig YAML を LLM で生成するコンポーネントを想定する。  
-現行 MVP では Task Builder は未使用で、TaskConfig YAML は Executor が決定的に生成する。
+Task Builder（`raw_prompt` → TaskConfig YAML）の導入は `ISSUE.md`（Deferred: 「Task Builder（raw_prompt → TaskConfig YAML）」）を正とする。
 
 ### 2.4 AgentRunner
 

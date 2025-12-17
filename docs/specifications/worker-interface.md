@@ -1,6 +1,6 @@
 # Worker インターフェース仕様
 
-最終更新: 2025-11-22
+最終更新: 2025-12-17
 
 ## 概要
 
@@ -18,18 +18,14 @@ Worker Executor は以下の責務を持ちます：
 
 ### 2.1 v1 サポート Worker
 
-v1 では `codex-cli` のみをサポートします。
+v1 では `codex-cli` と `claude-code` をサポートします。
 
 | Worker 種別 | 説明                               | Docker イメージ             |
 | ----------- | ---------------------------------- | --------------------------- |
-| `codex-cli` | Codex CLI コーディングエージェント | `agent-runner-codex:latest` |
+| `codex-cli` | Codex CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-codex:latest` |
+| `claude-code` | Claude Code CLI コーディングエージェント（互換: `claude-code-cli`） | `ghcr.io/biwakonbu/agent-runner-claude:latest` |
 
-### 2.2 将来拡張
-
-将来的に以下の Worker をサポート予定：
-
-- `cursor-cli`
-- `claude-code-cli`
+（バックログ）追加 Worker（例: `cursor-cli` 等）のサポートは `ISSUE.md` の Deferred（「追加 Worker 種別のサポート」）を正とする。
 
 ## 3. Worker 実行インターフェース
 
@@ -89,7 +85,7 @@ type WorkerRunResult struct {
 
 | 項目                   | 設定                                                    |
 | ---------------------- | ------------------------------------------------------- |
-| **デフォルトイメージ** | `agent-runner-codex:latest`                             |
+| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`） |
 | **カスタマイズ**       | Task YAML の `runner.worker.docker_image` で上書き可能  |
 | **自動 Pull**          | イメージが存在しない場合、自動的に `docker pull` を実行 |
 
@@ -99,6 +95,7 @@ type WorkerRunResult struct {
 | ------------------------ | ------------------ | ----------------------------- |
 | `/workspace/project`     | プロジェクトルート | ホストの `task.repo`          |
 | `/root/.codex/auth.json` | Codex 認証情報     | ホストの `~/.codex/auth.json` |
+| `/root/.config/claude`   | Claude Code 認証情報 | ホストの `~/.config/claude` |
 
 ### 4.3 マウント仕様
 
@@ -122,9 +119,17 @@ v1 実装では、以下の順序で Codex 認証情報を自動的に検出・�
    ```
 
 2. `~/.codex/auth.json` が存在しない場合:
-   ```bash
-   -e CODEX_API_KEY=$CODEX_API_KEY
-   ```
+	   ```bash
+	   -e CODEX_API_KEY=$CODEX_API_KEY
+	   ```
+
+#### 4.3.3 Claude Code 認証マウント（自動）
+
+`~/.config/claude` が存在する場合、ReadOnly でマウントします：
+
+```bash
+-v ~/.config/claude:/root/.config/claude:ro
+```
 
 ### 4.4 環境変数
 
