@@ -174,3 +174,21 @@ func TestStart_ErrorPropagation(t *testing.T) {
 		t.Errorf("containerID should be empty on error, got: %s", executor.containerID)
 	}
 }
+
+func TestIsClaudeWorkerKind(t *testing.T) {
+	t.Run("canonical", func(t *testing.T) {
+		if !isClaudeWorkerKind("claude-code") {
+			t.Fatalf("expected true for claude-code")
+		}
+	})
+	t.Run("alias", func(t *testing.T) {
+		if !isClaudeWorkerKind("claude-code-cli") {
+			t.Fatalf("expected true for claude-code-cli")
+		}
+	})
+	t.Run("non-claude", func(t *testing.T) {
+		if isClaudeWorkerKind("codex-cli") {
+			t.Fatalf("expected false for codex-cli")
+		}
+	})
+}

@@ -479,7 +479,7 @@ func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
 		}
 	}
 
-	if workerKind == "claude-code" {
+	if isClaudeWorkerKind(workerKind) {
 		// CLAUDECODE.md: Check for Claude CLI authentication
 		// Claude CLI stores auth in ~/.config/claude (see CLAUDECODE.md section 2.3)
 		home, err := os.UserHomeDir()
@@ -509,9 +509,13 @@ func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
 					Timestamp: time.Now(),
 				})
 			}
-			return fmt.Errorf("Claude CLI session not found. Please run `claude login` to authenticate. (Expected: %s)", claudeConfigPath)
+			return fmt.Errorf("Claude CLI session not found. Please run `claude login` to authenticate. (Expected: ~/.config/claude)")
 		}
 	}
 
 	return nil
+}
+
+func isClaudeWorkerKind(kind string) bool {
+	return kind == "claude-code" || kind == "claude-code-cli"
 }

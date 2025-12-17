@@ -6,6 +6,10 @@ Codex CLI は OpenAI が提供する AI コーディングアシスタントの�
 multiverse IDE では Worker エージェントとして Docker コンテナ内で実行される。
 ※ IDE の Meta-agent はデフォルト `openai-chat` だが、`OPENAI_API_KEY` 未設定かつ `codex` が利用可能な場合は `codex-cli` に自動フォールバックする（`app.go` の `newMetaClientFromConfig()` 参照）。
 
+## 参照 URL（モデル/価格）
+
+- https://platform.openai.com/docs/pricing
+
 ## 対応バージョン
 
 - **現在**: 0.65.0
@@ -65,7 +69,7 @@ Meta-agent も `codex-cli` を選択可能（`openai-chat` は `OPENAI_API_KEY` 
 |------|----------|---------|
 | Worker タスク実行 | `gpt-5.1-codex` | `agenttools.DefaultCodexModel` |
 | Meta-agent（計画・思考） | `gpt-5.2` | `agenttools.DefaultMetaModel` |
-| 高速実行（必要時） | 利用可能な `gpt-5.x-codex-mini` 系 | - |
+| 高速実行（必要時） | `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`） | `internal/agenttools/openai_models.go` |
 
 ### 思考の深さ（reasoning effort）
 

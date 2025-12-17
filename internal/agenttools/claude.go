@@ -5,15 +5,14 @@ import (
 	"fmt"
 )
 
-// DefaultClaudeModel defines the default model for Claude Code.
+// DefaultClaudeModel は Claude Code のデフォルトモデル。
 // 参照: https://docs.anthropic.com/en/docs/claude-code
-// DefaultClaudeModel defines the default model for Claude Code.
-// 参照: https://docs.anthropic.com/en/docs/claude-code
-const DefaultClaudeModel = "claude-3-5-haiku-20241022"
+const DefaultClaudeModel = "claude-haiku-4-5-20251001"
 
 // ClaudeProvider builds ExecPlan for Claude Code CLI.
 // Wrapper for `claude-code` or `claude` CLI.
 type ClaudeProvider struct {
+	kind    string
 	cliPath string
 	model   string
 	env     map[string]string
@@ -22,7 +21,12 @@ type ClaudeProvider struct {
 
 // NewClaudeProvider constructs a ClaudeProvider from config.
 func NewClaudeProvider(cfg ProviderConfig) *ClaudeProvider {
+	return newClaudeProvider("claude-code", cfg)
+}
+
+func newClaudeProvider(kind string, cfg ProviderConfig) *ClaudeProvider {
 	return &ClaudeProvider{
+		kind:    kind,
 		cliPath: nonEmpty(cfg.CLIPath, "claude"),
 		model:   cfg.Model,
 		env:     mergeEnv(nil, cfg.ExtraEnv),
@@ -31,7 +35,7 @@ func NewClaudeProvider(cfg ProviderConfig) *ClaudeProvider {
 }
 
 func (p *ClaudeProvider) Kind() string {
-	return "claude-code"
+	return p.kind
 }
 
 func (p *ClaudeProvider) Capabilities() Capability {
@@ -98,6 +102,10 @@ func (p *ClaudeProvider) Build(_ context.Context, req Request) (ExecPlan, error)
 
 func init() {
 	Register("claude-code", func(cfg ProviderConfig) (AgentToolProvider, error) {
-		return NewClaudeProvider(cfg), nil
+		return newClaudeProvider("claude-code", cfg), nil
+	})
+	// Backward compatible alias (docs/specifications and ISSUE.md used this name historically).
+	Register("claude-code-cli", func(cfg ProviderConfig) (AgentToolProvider, error) {
+		return newClaudeProvider("claude-code-cli", cfg), nil
 	})
 }

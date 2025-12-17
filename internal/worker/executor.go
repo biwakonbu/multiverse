@@ -26,6 +26,10 @@ type Executor struct {
 	logger      *slog.Logger
 }
 
+func isClaudeWorkerKind(kind string) bool {
+	return kind == "claude-code" || kind == "claude-code-cli"
+}
+
 func NewExecutor(cfg config.WorkerConfig, repoPath string) (*Executor, error) {
 	sb, err := NewSandboxManager()
 	if err != nil {
@@ -201,7 +205,7 @@ func (e *Executor) Start(ctx context.Context) error {
 		return fmt.Errorf("container already started (ID: %s)", e.containerID)
 	}
 
-	if e.Config.Kind == "claude-code" {
+	if isClaudeWorkerKind(e.Config.Kind) {
 		if err := e.verifyClaudeSession(ctx); err != nil {
 			logger.Error("claude session verification failed",
 				slog.Any("error", err),
@@ -215,13 +219,13 @@ func (e *Executor) Start(ctx context.Context) error {
 				slog.Any("error", err),
 				slog.String("hint", "codex login で認証するか ~/.codex/auth.json を用意してください"),
 			)
-			return fmt.Errorf("codex cli session missing: %w", err)
+			return fmt.Errorf("Codex CLI session missing: %w", err)
 		}
 	}
 
 	image := e.Config.DockerImage
 	if image == "" {
-		if e.Config.Kind == "claude-code" {
+		if isClaudeWorkerKind(e.Config.Kind) {
 			image = "ghcr.io/biwakonbu/agent-runner-claude:latest"
 		} else {
 			image = "ghcr.io/biwakonbu/agent-runner-codex:latest"
@@ -248,7 +252,7 @@ func (e *Executor) Start(ctx context.Context) error {
 	start := time.Now()
 	// Pass internal auth path via env if configured
 	startEnv := make(map[string]string)
-	if e.Config.AuthPath != "" {
+	if isClaudeWorkerKind(e.Config.Kind) && e.Config.AuthPath != "" {
 		startEnv["__INTERNAL_CLAUDE_AUTH_PATH"] = e.Config.AuthPath
 	}
 

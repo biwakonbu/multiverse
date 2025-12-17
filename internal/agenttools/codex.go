@@ -108,6 +108,7 @@ func (p *CodexProvider) Build(_ context.Context, req Request) (ExecPlan, error) 
 
 	// モデル指定（デフォルト: gpt-5.1-codex）
 	model := nonEmpty(req.Model, p.model, DefaultCodexModel)
+	model = ResolveOpenAIModelID(model)
 	args = append(args, "-m", model)
 
 	// 思考の深さ（デフォルト: medium）

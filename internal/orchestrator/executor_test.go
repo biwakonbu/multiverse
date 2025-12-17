@@ -119,3 +119,62 @@ func TestGenerateTaskYAML(t *testing.T) {
 	assert.Contains(t, yamlStr, "      Suggested Implementation:")
 	assert.Contains(t, yamlStr, "      Language: go")
 }
+
+func TestExecutor_verifyPreFlight_ClaudeCodeAlias_SucceedsWhenAuthDirExists(t *testing.T) {
+	tmpHome := t.TempDir()
+
+	oldHome := os.Getenv("HOME")
+	oldUserProfile := os.Getenv("USERPROFILE")
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", oldHome)
+		_ = os.Setenv("USERPROFILE", oldUserProfile)
+	})
+	_ = os.Setenv("HOME", tmpHome)
+	_ = os.Setenv("USERPROFILE", tmpHome)
+
+	claudeAuthDir := filepath.Join(tmpHome, ".config", "claude")
+	err := os.MkdirAll(claudeAuthDir, 0o755)
+	if err != nil {
+		t.Fatalf("failed to create claude auth dir: %v", err)
+	}
+
+	executor := &Executor{}
+	task := &Task{
+		ID:    "task-claude-alias",
+		Title: "Claude Alias",
+		Runner: &RunnerSpec{
+			WorkerKind: "claude-code-cli",
+		},
+	}
+
+	err = executor.verifyPreFlight(context.Background(), task)
+	assert.NoError(t, err)
+}
+
+func TestExecutor_verifyPreFlight_ClaudeCode_DoesNotLeakAbsolutePathInError(t *testing.T) {
+	tmpHome := t.TempDir()
+
+	oldHome := os.Getenv("HOME")
+	oldUserProfile := os.Getenv("USERPROFILE")
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", oldHome)
+		_ = os.Setenv("USERPROFILE", oldUserProfile)
+	})
+	_ = os.Setenv("HOME", tmpHome)
+	_ = os.Setenv("USERPROFILE", tmpHome)
+
+	executor := &Executor{}
+	task := &Task{
+		ID:    "task-claude-missing",
+		Title: "Claude Missing",
+		Runner: &RunnerSpec{
+			WorkerKind: "claude-code",
+		},
+	}
+
+	err := executor.verifyPreFlight(context.Background(), task)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "~/.config/claude")
+		assert.NotContains(t, err.Error(), tmpHome)
+	}
+}

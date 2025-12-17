@@ -2,6 +2,13 @@
 
 このディレクトリには、実際の Codex CLI を使用した統合テストが含まれています。
 
+## モデル（参照 URL）
+
+- https://platform.openai.com/docs/pricing
+
+このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.1-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
+必要に応じて `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`）も利用できます（実装: `internal/agenttools/openai_models.go`）。
+
 ## 前提条件
 
 1. **Codex 認証の設定**

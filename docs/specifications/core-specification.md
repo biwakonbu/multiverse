@@ -29,6 +29,10 @@ Meta 用 LLM モデル ID は以下の優先順位で決定されます：
 2. **Task YAML**: `runner.meta.model` で指定された値
 3. **ビルトインデフォルト**: `gpt-5.2`
 
+**参照 URL（OpenAI/Codex: モデル/価格）**:
+
+- https://platform.openai.com/docs/pricing
+
 **認証について (v3.0 以降)**:
 AgentRunner Core は、各プロバイダ（OpenAI, Anthropic 等）の **CLI ツールが保持する認証セッション** を利用することを推奨します。
 環境変数 `OPENAI_API_KEY` 等は、CLI セッションが利用できない場合のフォールバック、または `openai-chat` (HTTP) プロバイダを明示的に使用する場合のみ必要となります。

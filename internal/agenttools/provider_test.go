@@ -7,7 +7,7 @@ import (
 )
 
 func TestRegistry_Implementations(t *testing.T) {
-	implementedKinds := []string{"claude-code", "cursor-cli"}
+	implementedKinds := []string{"claude-code", "claude-code-cli", "cursor-cli"}
 
 	for _, kind := range implementedKinds {
 		t.Run(kind, func(t *testing.T) {
@@ -119,6 +119,25 @@ func TestCodexProvider_Build_CustomModel(t *testing.T) {
 	args := strings.Join(plan.Args, " ")
 	if !strings.Contains(args, "-m o3") {
 		t.Errorf("Args should contain '-m o3', got: %s", args)
+	}
+}
+
+func TestCodexProvider_Build_ModelAliasIsNormalized(t *testing.T) {
+	p := NewCodexProvider(ProviderConfig{Kind: "codex-cli"})
+
+	ctx := context.Background()
+	req := Request{
+		Prompt: "test",
+		Model:  "5.1-codex-mini",
+	}
+	plan, err := p.Build(ctx, req)
+	if err != nil {
+		t.Fatalf("Build() failed: %v", err)
+	}
+
+	args := strings.Join(plan.Args, " ")
+	if !strings.Contains(args, "-m gpt-5.1-codex-mini") {
+		t.Errorf("Args should contain '-m gpt-5.1-codex-mini', got: %s", args)
 	}
 }
 

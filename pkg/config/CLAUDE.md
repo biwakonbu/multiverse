@@ -204,7 +204,7 @@ type MetaConfig struct {
 | フィールド | 値例 | 説明 |
 |----------|------|------|
 | `Kind` | "openai-chat" \| "mock" | LLM プロバイダー |
-| `Model` | "gpt-4-turbo" | LLM モデル指定 |
+| `Model` | "gpt-5.2" | LLM モデル指定 |
 
 **Kind 値の意味**:
 
@@ -218,14 +218,14 @@ type MetaConfig struct {
 runner:
   meta:
     kind: "mock"          # テスト時
-    model: "gpt-4-turbo"  # デフォルト値として機能
+    model: "gpt-5.2"      # 空の場合はビルトインデフォルトが使われる
 ```
 
-**実装** (internal/meta/client.go:22-31):
+**実装** (internal/meta/client.go):
 ```go
-func NewClient(kind, apiKey, model string) *Client {
+func NewClient(kind, apiKey, model, systemPrompt string) *Client {
     if model == "" {
-        model = "gpt-4-turbo"  // デフォルト
+        model = agenttools.DefaultMetaModel // デフォルト: gpt-5.2
     }
     // kind == "mock" の場合はシンプルな応答を返す
     // kind == "openai-chat" の場合は OpenAI API へ接続

@@ -33,6 +33,10 @@
 - `internal/worker/sandbox.go`: 認証情報のマウント
 - `internal/orchestrator`: Pre-flight Check
 
+参照（モデル一覧）:
+
+- https://platform.claude.com/docs/en/about-claude/models/overview
+
 ## 2. 現状実装（一次ソース）
 
 ### 2.1 AgentTools（CLI 実行計画）
@@ -40,7 +44,7 @@
 【事実】`claude-code` の ExecPlan は `internal/agenttools/claude.go` が生成する。
 
 - Kind 名: `claude-code`（`internal/agenttools/claude.go:33`）
-- デフォルトモデル: `claude-3-5-haiku-20241022`（`internal/agenttools/claude.go:12`）
+- デフォルトモデル: `claude-haiku-4-5-20251001`（`internal/agenttools/claude.go:10`）
 - 非対話の前提: `-p` を使用（`internal/agenttools/claude.go:64`）
 - stdin 使用時: `-p -` とし、`plan.Stdin` に prompt を入れる（`internal/agenttools/claude.go:84`）
 

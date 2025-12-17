@@ -1,51 +1,72 @@
-# CLI Subscription Setup Guide
+# CLI サブスクリプション設定ガイド
 
-AgentRunner uses your local CLI sessions to execute tasks. This avoids the need for API keys to be stored in the application and allows you to use your existing subscriptions.
+AgentRunner はローカルの CLI セッションを利用してタスクを実行します。アプリ内に API キーを保持せず、既存サブスクリプションをそのまま利用できます。
 
-## Supported Providers
+## 対応プロバイダ
 
 - **Codex CLI**: `codex`
 - **Claude Code**: `claude` / `claude-code`
 - **Gemini CLI**: `gemini`
 - **Cursor CLI**: `cursor`
 
-## Setup Instructions
+## セットアップ手順
 
 ### 1. Codex CLI
 
-1. Install Codex CLI.
-2. Login to your account:
+1. Codex CLI をインストール
+2. ログイン:
    ```bash
    codex login
    ```
-   This should create a session file at `~/.codex/auth.json`.
-3. AgentRunner will automatically mount this file into the sandbox container.
+   `~/.codex/auth.json` が作成されます。
+3. AgentRunner は `~/.codex/auth.json` をサンドボックスコンテナへ自動マウントします（ReadOnly）。
+
+#### モデル/価格（参照 URL）
+
+- https://platform.openai.com/docs/pricing
+
+#### このプロジェクトのデフォルト/推奨モデル
+
+- Meta-agent: `gpt-5.2`（実装: `internal/agenttools/codex.go`）
+- Worker: `gpt-5.1-codex`（実装: `internal/agenttools/codex.go`）
+- Worker（高速）: `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`、実装: `internal/agenttools/openai_models.go`）
 
 ### 2. Claude Code
 
-1. Install Claude Code (`npm install -g @anthropic-ai/claude-code`).
-2. Login:
+1. Claude Code をインストール:
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   ```
+2. ログイン:
    ```bash
    claude login
    ```
-3. Ensure the `claude` command is in your PATH.
+3. `claude` コマンドが PATH 上にあることを確認
+
+#### モデル一覧（参照 URL）
+
+- https://platform.claude.com/docs/en/about-claude/models/overview
+
+#### このプロジェクトのデフォルトモデル
+
+- `claude-haiku-4-5-20251001`（実装: `internal/agenttools/claude.go`）
+- 公式ドキュメント上に現れたモデル ID は `KnownClaudeModels` として実装に同梱（`internal/agenttools/claude_models.go`）
 
 ### 3. Gemini CLI
 
-1. Install Gemini CLI.
-2. Login or setup credentials as per official documentation.
+Gemini CLI の詳細は `docs/guides/gemini-cli.md` を参照してください。
 
 ### 4. Cursor CLI
 
-1. Ensure Cursor is installed and the CLI is available in your PATH.
+Cursor CLI が PATH 上にあることを確認してください。
 
-## Configuration in Multiverse IDE
+## Multiverse IDE 側の設定
 
-1. Open **Settings** -> **LLM**.
-2. Select your desired provider from the list (e.g., `codex-cli`, `claude-code`).
-3. Click "Test Connection" to verify that AgentRunner can access your local session.
+1. **Settings** -> **LLM** を開く
+2. Provider を選択（例: `codex-cli`, `claude-code`）
+3. "Test Connection" で疎通確認
 
-## Troubleshooting
+## トラブルシュート
 
-- **Session not found**: Ensure you have run the login command for the respective CLI.
-- **Permission denied**: On macOS, you might need to grant Full Disk Access to Docker or the terminal running AgentRunner if it needs to read strict paths (though usually standard home paths are fine).
+- **Session not found**: 各 CLI の login を実行し、認証情報が作成されていることを確認してください。
+- **Permission denied（macOS）**: Docker/Terminal に Full Disk Access が必要になる場合があります。

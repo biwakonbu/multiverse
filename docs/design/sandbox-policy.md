@@ -1,6 +1,6 @@
 # サンドボックス方針
 
-最終更新: 2025-12-07
+最終更新: 2025-12-17
 
 ## 基本原則（絶対遵守）
 
@@ -29,7 +29,7 @@ Docker コンテナが外部サンドボックスとして機能するため、C
 |-----------|-------------|------|
 | Codex CLI | `--dangerously-bypass-approvals-and-sandbox` | 0.65.0 で確認 |
 | Gemini CLI | （TBD: 実装時に調査） | |
-| Claude Code | （TBD: 実装時に調査） | |
+| Claude Code | （該当フラグなし: 現実装は `-p`） | `internal/agenttools/claude.go` |
 | Cursor CLI | （TBD: 実装時に調査） | |
 
 ## 安全性の保証
@@ -54,6 +54,11 @@ volumes:
   - type: bind
     source: ~/.codex/auth.json
     target: /root/.codex/auth.json
+    read_only: true  # 認証情報は読み取り専用
+
+  - type: bind
+    source: ~/.config/claude
+    target: /root/.config/claude
     read_only: true  # 認証情報は読み取り専用
 ```
 

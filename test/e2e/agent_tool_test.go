@@ -51,6 +51,15 @@ func TestAgentToolProviders(t *testing.T) {
 			wantStdin: false,
 		},
 		{
+			kind: "claude-code-cli",
+			req: agenttools.Request{
+				Prompt: "hello",
+				Mode:   "exec",
+			},
+			wantCmd:   "claude",
+			wantStdin: false,
+		},
+		{
 			kind: "cursor-cli",
 			req: agenttools.Request{
 				Prompt: "hello",
@@ -61,6 +70,16 @@ func TestAgentToolProviders(t *testing.T) {
 		},
 		{
 			kind: "claude-code",
+			req: agenttools.Request{
+				Prompt:   "hello piped",
+				Mode:     "exec",
+				UseStdin: true,
+			},
+			wantCmd:   "claude",
+			wantStdin: true,
+		},
+		{
+			kind: "claude-code-cli",
 			req: agenttools.Request{
 				Prompt:   "hello piped",
 				Mode:     "exec",
