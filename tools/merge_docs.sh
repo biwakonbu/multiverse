@@ -25,6 +25,8 @@ PRIORITY_FILES=(
   "design/architecture.md"
   "design/ide-architecture.md"
   "design/orchestrator-persistence-v2.md"
+  "design/chat-autopilot.md"
+  "design/task-execution-and-visual-grouping.md"
   "design/data-flow.md"
   "design/implementation-guide.md"
   "design/sandbox-policy.md"

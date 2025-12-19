@@ -1,7 +1,7 @@
 
 # Complete Documentation
 
-Generated: 2025-12-18 01:16:25
+Generated: 2025-12-19 14:07:12
 
 This document consolidates all documentation from the docs/ directory for LLM context.
 
@@ -30,6 +30,8 @@ This document consolidates all documentation from the docs/ directory for LLM co
 - [Architecture](#design-architecture)
 - [Ide Architecture](#design-ide-architecture)
 - [Orchestrator Persistence V2](#design-orchestrator-persistence-v2)
+- [Chat Autopilot](#design-chat-autopilot)
+- [Task Execution And Visual Grouping](#design-task-execution-and-visual-grouping)
 - [Data Flow](#design-data-flow)
 - [Implementation Guide](#design-implementation-guide)
 - [Sandbox Policy](#design-sandbox-policy)
@@ -3168,6 +3170,304 @@ classDiagram
 
 この上に、テスト統合・RePlan・複数エージェント等を段階的に載せる。
 
+<a id="design-chat-autopilot"></a>
+
+## Chat Autopilot
+
+**Source**: `design/chat-autopilot.md`
+
+
+最終更新: 2025-12-17
+
+### 1. 目的
+
+ユーザーが「計画して」「実行して」などの操作/役割分担を意識せず、**自然な会話だけ**で開発が前進する状態を作る。
+
+本設計は以下を満たす:
+
+- チャット入力を起点に、Meta-agent が計画/実行/再計画を柔軟に判断し、必要なら自走でタスクを実行する。
+- 不明点が出たら、エージェントがチャットで質問し、人間の回答を取り込んで継続する。
+- IDE の実行ボタン（Start/Pause/Stop）はフォールバック（強制介入）であり、必須操作にしない。
+
+### 2. 以前のギャップ（一次ソース） ※解消済み
+
+#### 2.1 チャットは「分解→保存」で止まる
+
+- `ChatHandler.HandleMessage` は `Meta.PlanPatch` → 永続化（create/update/delete/move の適用）まで実行し、そこで完了する（`internal/chat/handler.go`）。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
+
+#### 2.2 “人間に質問する” が実行ループに無い
+
+- AgentRunner Core の `Runner` は Meta の `next_action` を `run_worker/mark_complete` しか扱わず、その他は unknown として `FAILED` で終了する（`internal/core/runner.go:317-320`）。
+- つまり `ask_human` を実行ループに入れるには Core 側の実装拡張が必要。
+
+#### 2.3 可視化グルーピングが崩れる
+
+- Frontend は `milestone -> phase -> task` を前提に WBS を構築する（`frontend/ide/src/stores/wbsStore.ts:161`）。
+- 【解消】`ListTasks()` は `NodeDesign` 由来の `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:279`、`app.go:400`）。
+
+### 3. 設計方針（結論）
+
+1. **Chat Autopilot をバックエンドに実装**し、チャットの完了時点で実行ループ起動とスケジューリングを行う。
+2. 自然言語の “介入” を許容するが、危険操作（停止/再開/対象変更）は **決定論で解釈**できる範囲を先に持つ（誤作動を避ける）。
+3. 人間への質問はまず **plan_patch 由来の質問**（計画時の未確定事項）として実装し、将来的に Core の `ask_human` 対応へ拡張する。
+4. 分類/可視化（facet）は `design/` を正として、IDE の表示は `ListTasks()` が必要な情報を必ず返す。
+
+### 4. コンポーネント
+
+#### 4.1 Chat Autopilot（新規）
+
+バックエンド側に導入する論理コンポーネント（実装は `app.go` または `internal/chat` に配置）。
+
+責務:
+
+- チャット入力の解釈（制御語の検出 + それ以外は meta へ）
+- `Meta.PlanPatch` 実行と永続化（既存の `ChatHandler` を利用）
+- 計画が更新されたら **実行開始/スケジューリング**を自動で行う
+- 未解決の質問があれば停止して待つ
+
+#### 4.2 ExecutionOrchestrator（既存）
+
+- 実行ループは `Start()` を呼ぶと 2 秒ポーリングでキューを処理する（`internal/orchestrator/execution_orchestrator.go:79`）。
+- Ready タスクの enqueue は `Scheduler.ScheduleReadyTasks()` が担う（`internal/orchestrator/execution_orchestrator.go:245`、`internal/orchestrator/scheduler.go:112`）。
+
+#### 4.3 Backlog（既存・拡張）
+
+- バックログは永続化され、`backlog:added` を IDE に通知できる（`internal/orchestrator/execution_orchestrator.go:646`、`frontend/ide/src/stores/backlogStore.ts:97`）。
+- `BacklogTypeQuestion` が定義済み（`internal/orchestrator/backlog.go:21`）だが、現状の生成経路は主に failure 由来。
+
+### 5. 主要フロー
+
+#### 5.1 チャット入力 → 計画生成 → 自動実行開始（Autopilot 基本）
+
+1. IDE → `SendChatMessage(sessionId, message)`
+2. ChatHandler が `Meta.PlanPatch` → `design/state/task_store` へ差分永続化（`internal/chat/handler.go`）
+3. Autopilot が以下を実行（追加）
+   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:633`、`app.go:601`）
+   - 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証
+4. ExecutionOrchestrator がジョブを処理して `Executor` を起動し、`agent-runner` を実行する（`internal/orchestrator/execution_orchestrator.go:256`、`internal/orchestrator/executor.go:63`）
+
+補足: `StartExecution()` は “already running” を返し得る（`internal/orchestrator/execution_orchestrator.go:82-85`）。Autopilot 側は **冪等**に扱う。
+
+#### 5.2 自然言語での介入（最小セット）
+
+Autopilot は以下の制御語を LLM を経由せず解釈する（決定論・安全側）:
+
+- 「止めて/停止」→ `StopExecution()`
+- 「一旦止めて/一時停止」→ `PauseExecution()`
+- 「続けて/再開」→ `ResumeExecution()`
+- 「状況/ステータス」→ `GetExecutionState()` + タスクサマリ提示
+
+それ以外の入力は meta に渡して `plan_patch`（再計画/整理）を行い、計画更新後は 5.1 の自動実行フローに接続する。
+
+#### 5.3 人間への質問（MVP: plan_patch 由来）
+
+課題: Core の `ask_human` は未対応（`internal/core/runner.go:317-320`）。よって MVP は plan_patch に質問を含める。
+
+案:
+
+- `plan_patch` の payload に `questions[]` を追加し、ChatHandler がチャットに表示する。
+- blocking な質問が残っている間は Autopilot が `PauseExecution()` し、回答を受けたら再度 `plan_patch` を走らせて計画を更新する。
+
+質問の永続化は Backlog と統合する:
+
+- 質問は `BacklogTypeQuestion` として保存し、未解決を IDE に見せる。
+- 回答は `ResolveBacklogItem(id, resolution)` に保存し（`app.go:563`）、次回の plan_patch コンテキストに含める。
+
+### 6. API - イベント（追加・整理）
+
+#### 6.1 既存 API（利用する）
+
+- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:601`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
+- `SendChatMessage`（`app.go:532`）
+- `GetBacklogItems/ResolveBacklogItem`（`app.go:645`、`app.go:673`）
+
+#### 6.2 既存イベント（利用する）
+
+- `chat:progress`（`internal/orchestrator/events.go:36`）
+- `execution:stateChange`（`internal/orchestrator/events.go:33`）
+- `task:created` / `task:stateChange`（`internal/orchestrator/events.go:32`）
+- `backlog:added`（`internal/orchestrator/events.go:38`）
+
+#### 6.3 追加イベント（提案）
+
+Autopilot の挙動が見えるように `chat:progress` に以下の step を追加する:
+
+- `AutopilotStartingExecution`
+- `AutopilotScheduling`
+- `AutopilotPausedForQuestion`
+
+（既存の `ChatProgressEvent` の枠で表現可能: `internal/orchestrator/events.go:58`）
+
+### 7. データ（分類-グルーピングと Autopilot の相互作用）
+
+分類設計は `docs/design/task-execution-and-visual-grouping.md` に従う。
+
+Autopilot が前提とする最低要件:
+
+- `ListTasks()` が `phaseName/milestone/wbsLevel/dependencies` を返す（WBS/Graph のグルーピングが壊れない）
+- 失敗や質問の状態が IDE に表示される（Backlog/Chat で可視化）
+
+### 8. 実装チェックリスト（PRD と同期）
+
+- PRD の “チャットだけで計画→実行へ遷移” を満たす（`PRD.md` の 7.2 に対応）
+- `SendChatMessage` の完了後に `StartExecution + ScheduleReadyTasks` を実行し、実行開始の導線を不要にする
+- 失敗時の Backlog を “質問” としても扱えるようにし、会話に出す
+- `ListTasks` の返却値を修正して WBS/Graph の分類が成立するようにする
+
+<a id="design-task-execution-and-visual-grouping"></a>
+
+## Task Execution And Visual Grouping
+
+**Source**: `design/task-execution-and-visual-grouping.md`
+
+
+最終更新: 2025-12-17
+
+### 1. 背景 - 問題
+
+#### 1.1 「タスクは作られるが実行されない」
+
+- `ExecutionOrchestrator` は `StartExecution()` を呼ぶまで `IDLE` のまま（`internal/orchestrator/execution_orchestrator.go:79`）。
+- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
+- 【補足】UI からの明示的な開始/停止はフォールバック（強制介入）であり、通常フローの必須操作にはしない（3 章）。
+
+#### 1.2 「タスクがフラットで、分類-可視化が雑になる」
+
+- Frontend の WBS ツリーは `milestone -> phase -> task` でツリー化する設計（`frontend/ide/src/stores/wbsStore.ts:161-240`）。
+- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:279`）。
+  - これにより UI では `phaseName/milestone` が空扱いにならず、WBS が 1 グループに潰れにくい。
+- `design/state` 側も、TaskState.Kind が全タスクで `"implementation"` 固定になっており（`internal/chat/handler.go:579-596`）、作業種別（仕様/ドキュメント/設計/実装/検証など）という分類軸を表現できない。
+
+### 2. ゴール - 非ゴール
+
+#### 2.1 ゴール
+
+1. **Planning → Execution の遷移を明示**し、「いつまでタスク生成が続くのか分からない」を解消する。
+2. **複数軸（Facet）での可視化**を可能にする。
+   - 例: `phaseName`, `milestone`, `workType`, `domain/component`, `status`, `text search`
+3. 既存ワークスペースの `design/state/tasks` の互換性を壊さない。
+
+#### 2.2 非ゴール（当面）
+
+- 高度なクエリ言語やサーバーサイド検索インデックス。
+- リモート実行/分散ワーカープール最適化。
+
+### 3. 設計方針（結論）
+
+- **分類メタデータ（Facet）は `design/` を正**とし、`state/` と `TaskStore(tasks/*.jsonl)` は表示/実行のために同期する。
+- **UI は “Group By” と “Filters” を同じ Facet 概念で扱う**（WBS も Graph も同一フィルタで絞り込み可能にする）。
+- 実行は **「チャット駆動（Autopilot）」を基本**とし、UI の実行ボタンはフォールバック（停止・一時停止等の非常用）として扱う。
+
+### 4. データモデル（Facet）
+
+#### 4.1 Facet の定義（最小）
+
+| フィールド | 例 | 用途 |
+| --- | --- | --- |
+| `phaseName` | `概念設計/実装設計/実装/検証` | フェーズ別グルーピング |
+| `milestone` | `M1-Feature-Design` | 機能/エピック単位のまとまり |
+| `wbsLevel` | `1/2/3` | 粗い工程区分 |
+| `workType` | `spec/docs/design/implementation/test` | 「仕様/ドキュメント/設計/実装/検証」軸 |
+| `domain` | `orchestrator/frontend/meta/...` | 機能カテゴリ（コンポーネント） |
+| `tags[]` | `["ux","refactor"]` | 任意ラベル |
+
+#### 4.2 永続化先
+
+#### A. `design/nodes-*.json`（推奨: 正）
+
+- `persistence.NodeDesign` に以下を追加する想定:
+  - `phase_name`, `milestone`, `wbs_level`, `work_type`, `domain`, `tags`
+
+#### B. `state/tasks.json`（実行-表示用の複製）
+
+- `persistence.TaskState.Inputs`（柔軟）に `facet.*` を複製する（例: `inputs["facet.phase_name"] = "実装"`）。
+- これにより Scheduler/Executor が **design を読まなくても最低限の分類**を参照できる。
+
+#### C. `tasks-*.jsonl`（IDE 表示の後方互換）
+
+- `orchestrator.Task` にも同等の Facet を持たせ、IDE の一覧/Graph/WBS 表示で利用する。
+
+### 5. Facet の生成規則（優先順位）
+
+1. **明示指定（将来）**: Meta plan_patch が `work_type/domain/tags` を返す場合、それを正とする。
+2. **推定（当面）**: 既存フィールドから決定論で推定する。
+   - `phaseName == "概念設計"` → `workType=spec`（ただしタイトル/説明に「ドキュメント/README」が強く含まれる場合は `docs`）
+   - `phaseName == "実装設計"` → `workType=design`
+   - `phaseName == "実装"` → `workType=implementation`
+   - `phaseName == "検証"` または「テスト」が強く含まれる → `workType=test`
+   - `domain` は `suggestedImpl.filePaths` のパス接頭辞（例: `internal/orchestrator/...`）から推定する（推定不能なら空）。
+
+### 6. Planning → Execution（実行制御）
+
+#### 6.1 UI 導線（フォールバック）
+
+- 実行制御（Start/Pause/Resume/Stop）は、**ユーザーが強制介入するためのフォールバック**として UI に提供する。
+  - 配置候補: Toolbar 右端、または TaskBar に “Run/Pause/Stop” を追加。
+
+#### 6.2 Chat Autopilot（基本）
+
+- ユーザーは「計画して」「実行して」などの役割分担を要求されない。
+- Chat の「タスク永続化」完了後に以下を実行する:
+  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:601`）
+  2. 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証（2 秒ポーリング待ちを削減）
+
+#### 6.3 自然言語での介入（必須）
+
+- ユーザーはチャットで自然に介入できる（例: 「止めて」「一旦止めて」「続けて」「状況教えて」）。
+- 実装は 2 系統を許容する:
+  - **決定論（安全側）**: 明確な制御語（stop/pause/resume/status）だけは LLM を経由せず即時に `StopExecution/PauseExecution/ResumeExecution/GetExecutionState` にマップする。
+  - **Meta 主導（柔軟）**: それ以外は Meta-agent に渡し、計画更新（plan_patch）や優先度付けを含めて判断させる。
+
+#### 6.4 人間への質問（Backlog → Chat）
+
+- Meta-agent が人間に確認すべき事項は **チャットに質問として出る**ことを基本 UX とする。
+- 既存のバックログ通知は `backlog:added` としてイベント化済み（`internal/orchestrator/events.go:38`、`internal/orchestrator/execution_orchestrator.go:646`）。
+- 設計方針:
+  - `BacklogTypeQuestion` を活用し、質問は Backlog に永続化しつつ、チャットにも「質問メッセージ」として表示する。
+  - 未解決の質問がある間は、実行を `PAUSED` にして待つ（ユーザー回答後に自動再開）。
+  - 回答は `ResolveBacklogItem` で保存し（`app.go:563`）、回答内容は次回の Meta plan_patch/実行コンテキストに含める。
+
+#### 6.4.1 質問の生成源（2案）
+
+- **案A: 計画時（plan_patch）に質問を返す**
+  - `plan_patch` レスポンスに `questions[]`（blocking/optional）を追加し、ChatHandler が質問をチャットに表示して待つ。
+  - メリット: 実装が単純。タスク実行前に不明点を回収できる。
+- **案B: 実行時（agent-runner の next_action）で `ask_human` を扱う**
+  - 現状の AgentRunner Core は `run_worker/mark_complete` 以外を Unknown として即 `FAILED` 扱いにしている（`internal/core/runner.go:317-320`）。
+  - `ask_human` を正式に扱うには、`NextActionResponse` に質問ペイロードを追加し、Runner が「質問→中断→再試行（回答を Inputs に入れて再実行）」を実装する必要がある。
+
+### 7. Backend API - UI 反映
+
+#### 7.1 `ListTasks()` の責務
+
+- IDE が必要とする `phaseName/milestone/wbsLevel/dependencies` と Facet を必ず返す。
+- 実装方式は 2 案:
+  - **案1（最短）**: TaskStore（`tasks/*.jsonl`）から読み出す（既に Phase/Milestone を持つ）
+  - **案2（正攻法）**: `design/nodes` + `state/tasks` を join して DTO を組み立てる（Facet の正を `design` に置く）
+
+#### 7.2 フロント（可視化）
+
+- `facetStore`（derived）で以下を提供:
+  - `availableFacets`: milestone/phase/workType/domain の集合と件数
+  - `activeFilters`: 選択中の条件
+  - `groupBy`: 現在の grouping 軸（例: milestone→phase, workType→domain など）
+- `UnifiedFlowCanvas` は `taskList`（フィルタ済み）を受け取れるので、Graph 側は `taskList` を差し替えることで絞り込みできる（`frontend/ide/src/lib/flow/UnifiedFlowCanvas.svelte:42-75`）。
+- WBS 側は `wbsStore` の入力（tasks）をフィルタ済みにした派生ストアを使う。
+
+### 8. 移行（既存ワークスペース）
+
+- 既存の `design/nodes` に新フィールドが無い場合は空として扱う（Go の JSON Unmarshal では unknown/missing フィールドは安全に扱える）。
+- 互換のため、最初の段階では TaskStore に存在する `phaseName/milestone/wbsLevel/dependencies` を読み、`design/state` へ補完する「オンデマンド補正」を提供する（明示的マイグレーションは不要）。
+
+### 9. 実装ステップ（最短ルート）
+
+1. **ListTasks の修正**: `phaseName/milestone/dependencies/wbsLevel` を返す（案1で即効性優先）。
+2. **Chat Autopilot**: `SendChatMessage` 完了後に `StartExecution + ScheduleReadyTasks` を呼び、チャットだけで「計画→実行」に遷移させる。
+3. **質問 UX**: `backlog:added` をチャットにブリッジし、質問（BacklogTypeQuestion）を会話として扱う。
+4. **Kind/WorkType**: `internal/chat/handler.go` の TaskState.Kind をフェーズに応じて設定し、Facet を `state/tasks.json` に複製。
+5. **Facet UI**: group-by + filter を追加し、Graph/WBS の両方に適用。
+
 <a id="design-data-flow"></a>
 
 ## Data Flow
@@ -5296,302 +5596,4 @@ Error: Request timeout
 - [Gemini API モデル一覧](https://ai.google.dev/gemini-api/docs/models)
 - [Gemini CLI 設定ドキュメント](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md)
 - [Google Codelabs - Gemini CLI ハンズオン](https://codelabs.developers.google.com/gemini-cli-hands-on)
-
-<a id="design-chat-autopilot"></a>
-
-## Chat Autopilot
-
-**Source**: `design/chat-autopilot.md`
-
-
-最終更新: 2025-12-17
-
-### 1. 目的
-
-ユーザーが「計画して」「実行して」などの操作/役割分担を意識せず、**自然な会話だけ**で開発が前進する状態を作る。
-
-本設計は以下を満たす:
-
-- チャット入力を起点に、Meta-agent が計画/実行/再計画を柔軟に判断し、必要なら自走でタスクを実行する。
-- 不明点が出たら、エージェントがチャットで質問し、人間の回答を取り込んで継続する。
-- IDE の実行ボタン（Start/Pause/Stop）はフォールバック（強制介入）であり、必須操作にしない。
-
-### 2. 以前のギャップ（一次ソース） ※解消済み
-
-#### 2.1 チャットは「分解→保存」で止まる
-
-- `ChatHandler.HandleMessage` は `Meta.PlanPatch` → 永続化（create/update/delete/move の適用）まで実行し、そこで完了する（`internal/chat/handler.go`）。
-- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
-
-#### 2.2 “人間に質問する” が実行ループに無い
-
-- AgentRunner Core の `Runner` は Meta の `next_action` を `run_worker/mark_complete` しか扱わず、その他は unknown として `FAILED` で終了する（`internal/core/runner.go:317-320`）。
-- つまり `ask_human` を実行ループに入れるには Core 側の実装拡張が必要。
-
-#### 2.3 可視化グルーピングが崩れる
-
-- Frontend は `milestone -> phase -> task` を前提に WBS を構築する（`frontend/ide/src/stores/wbsStore.ts:161`）。
-- 【解消】`ListTasks()` は `NodeDesign` 由来の `phaseName/milestone/wbsLevel/dependencies` を返す（`app.go:279`、`app.go:400`）。
-
-### 3. 設計方針（結論）
-
-1. **Chat Autopilot をバックエンドに実装**し、チャットの完了時点で実行ループ起動とスケジューリングを行う。
-2. 自然言語の “介入” を許容するが、危険操作（停止/再開/対象変更）は **決定論で解釈**できる範囲を先に持つ（誤作動を避ける）。
-3. 人間への質問はまず **plan_patch 由来の質問**（計画時の未確定事項）として実装し、将来的に Core の `ask_human` 対応へ拡張する。
-4. 分類/可視化（facet）は `design/` を正として、IDE の表示は `ListTasks()` が必要な情報を必ず返す。
-
-### 4. コンポーネント
-
-#### 4.1 Chat Autopilot（新規）
-
-バックエンド側に導入する論理コンポーネント（実装は `app.go` または `internal/chat` に配置）。
-
-責務:
-
-- チャット入力の解釈（制御語の検出 + それ以外は meta へ）
-- `Meta.PlanPatch` 実行と永続化（既存の `ChatHandler` を利用）
-- 計画が更新されたら **実行開始/スケジューリング**を自動で行う
-- 未解決の質問があれば停止して待つ
-
-#### 4.2 ExecutionOrchestrator（既存）
-
-- 実行ループは `Start()` を呼ぶと 2 秒ポーリングでキューを処理する（`internal/orchestrator/execution_orchestrator.go:79`）。
-- Ready タスクの enqueue は `Scheduler.ScheduleReadyTasks()` が担う（`internal/orchestrator/execution_orchestrator.go:245`、`internal/orchestrator/scheduler.go:112`）。
-
-#### 4.3 Backlog（既存・拡張）
-
-- バックログは永続化され、`backlog:added` を IDE に通知できる（`internal/orchestrator/execution_orchestrator.go:646`、`frontend/ide/src/stores/backlogStore.ts:97`）。
-- `BacklogTypeQuestion` が定義済み（`internal/orchestrator/backlog.go:21`）だが、現状の生成経路は主に failure 由来。
-
-### 5. 主要フロー
-
-#### 5.1 チャット入力 → 計画生成 → 自動実行開始（Autopilot 基本）
-
-1. IDE → `SendChatMessage(sessionId, message)`
-2. ChatHandler が `Meta.PlanPatch` → `design/state/task_store` へ差分永続化（`internal/chat/handler.go`）
-3. Autopilot が以下を実行（追加）
-   - `GetExecutionState()` が `IDLE` なら `StartExecution()`（`app.go:633`、`app.go:601`）
-   - 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証
-4. ExecutionOrchestrator がジョブを処理して `Executor` を起動し、`agent-runner` を実行する（`internal/orchestrator/execution_orchestrator.go:256`、`internal/orchestrator/executor.go:63`）
-
-補足: `StartExecution()` は “already running” を返し得る（`internal/orchestrator/execution_orchestrator.go:82-85`）。Autopilot 側は **冪等**に扱う。
-
-#### 5.2 自然言語での介入（最小セット）
-
-Autopilot は以下の制御語を LLM を経由せず解釈する（決定論・安全側）:
-
-- 「止めて/停止」→ `StopExecution()`
-- 「一旦止めて/一時停止」→ `PauseExecution()`
-- 「続けて/再開」→ `ResumeExecution()`
-- 「状況/ステータス」→ `GetExecutionState()` + タスクサマリ提示
-
-それ以外の入力は meta に渡して `plan_patch`（再計画/整理）を行い、計画更新後は 5.1 の自動実行フローに接続する。
-
-#### 5.3 人間への質問（MVP: plan_patch 由来）
-
-課題: Core の `ask_human` は未対応（`internal/core/runner.go:317-320`）。よって MVP は plan_patch に質問を含める。
-
-案:
-
-- `plan_patch` の payload に `questions[]` を追加し、ChatHandler がチャットに表示する。
-- blocking な質問が残っている間は Autopilot が `PauseExecution()` し、回答を受けたら再度 `plan_patch` を走らせて計画を更新する。
-
-質問の永続化は Backlog と統合する:
-
-- 質問は `BacklogTypeQuestion` として保存し、未解決を IDE に見せる。
-- 回答は `ResolveBacklogItem(id, resolution)` に保存し（`app.go:563`）、次回の plan_patch コンテキストに含める。
-
-### 6. API - イベント（追加・整理）
-
-#### 6.1 既存 API（利用する）
-
-- `StartExecution/PauseExecution/ResumeExecution/StopExecution/GetExecutionState`（`app.go:601`、`frontend/ide/wailsjs/go/main/App.d.ts:54`）
-- `SendChatMessage`（`app.go:532`）
-- `GetBacklogItems/ResolveBacklogItem`（`app.go:645`、`app.go:673`）
-
-#### 6.2 既存イベント（利用する）
-
-- `chat:progress`（`internal/orchestrator/events.go:36`）
-- `execution:stateChange`（`internal/orchestrator/events.go:33`）
-- `task:created` / `task:stateChange`（`internal/orchestrator/events.go:32`）
-- `backlog:added`（`internal/orchestrator/events.go:38`）
-
-#### 6.3 追加イベント（提案）
-
-Autopilot の挙動が見えるように `chat:progress` に以下の step を追加する:
-
-- `AutopilotStartingExecution`
-- `AutopilotScheduling`
-- `AutopilotPausedForQuestion`
-
-（既存の `ChatProgressEvent` の枠で表現可能: `internal/orchestrator/events.go:58`）
-
-### 7. データ（分類-グルーピングと Autopilot の相互作用）
-
-分類設計は `docs/design/task-execution-and-visual-grouping.md` に従う。
-
-Autopilot が前提とする最低要件:
-
-- `ListTasks()` が `phaseName/milestone/wbsLevel/dependencies` を返す（WBS/Graph のグルーピングが壊れない）
-- 失敗や質問の状態が IDE に表示される（Backlog/Chat で可視化）
-
-### 8. 実装チェックリスト（PRD と同期）
-
-- PRD の “チャットだけで計画→実行へ遷移” を満たす（`PRD.md` の 7.2 に対応）
-- `SendChatMessage` の完了後に `StartExecution + ScheduleReadyTasks` を実行し、実行開始の導線を不要にする
-- 失敗時の Backlog を “質問” としても扱えるようにし、会話に出す
-- `ListTasks` の返却値を修正して WBS/Graph の分類が成立するようにする
-
-<a id="design-task-execution-and-visual-grouping"></a>
-
-## Task Execution And Visual Grouping
-
-**Source**: `design/task-execution-and-visual-grouping.md`
-
-
-最終更新: 2025-12-17
-
-### 1. 背景 - 問題
-
-#### 1.1 「タスクは作られるが実行されない」
-
-- `ExecutionOrchestrator` は `StartExecution()` を呼ぶまで `IDLE` のまま（`internal/orchestrator/execution_orchestrator.go:79`）。
-- 【解消】`SendChatMessage` 完了後に Chat Autopilot が `StartExecution()` を冪等に呼び、直後に `Scheduler.ScheduleReadyTasks()` を 1 回実行して自走を開始する（`app.go:532`、`app.go:546`）。
-- 【補足】UI からの明示的な開始/停止はフォールバック（強制介入）であり、通常フローの必須操作にはしない（3 章）。
-
-#### 1.2 「タスクがフラットで、分類-可視化が雑になる」
-
-- Frontend の WBS ツリーは `milestone -> phase -> task` でツリー化する設計（`frontend/ide/src/stores/wbsStore.ts:161-240`）。
-- backend の `ListTasks()` は `design/wbs.json` + `design/nodes/*.json` + `state/tasks.json` を join して `dependencies/phaseName/milestone/wbsLevel` を返す（`app.go:279`）。
-  - これにより UI では `phaseName/milestone` が空扱いにならず、WBS が 1 グループに潰れにくい。
-- `design/state` 側も、TaskState.Kind が全タスクで `"implementation"` 固定になっており（`internal/chat/handler.go:579-596`）、作業種別（仕様/ドキュメント/設計/実装/検証など）という分類軸を表現できない。
-
-### 2. ゴール - 非ゴール
-
-#### 2.1 ゴール
-
-1. **Planning → Execution の遷移を明示**し、「いつまでタスク生成が続くのか分からない」を解消する。
-2. **複数軸（Facet）での可視化**を可能にする。
-   - 例: `phaseName`, `milestone`, `workType`, `domain/component`, `status`, `text search`
-3. 既存ワークスペースの `design/state/tasks` の互換性を壊さない。
-
-#### 2.2 非ゴール（当面）
-
-- 高度なクエリ言語やサーバーサイド検索インデックス。
-- リモート実行/分散ワーカープール最適化。
-
-### 3. 設計方針（結論）
-
-- **分類メタデータ（Facet）は `design/` を正**とし、`state/` と `TaskStore(tasks/*.jsonl)` は表示/実行のために同期する。
-- **UI は “Group By” と “Filters” を同じ Facet 概念で扱う**（WBS も Graph も同一フィルタで絞り込み可能にする）。
-- 実行は **「チャット駆動（Autopilot）」を基本**とし、UI の実行ボタンはフォールバック（停止・一時停止等の非常用）として扱う。
-
-### 4. データモデル（Facet）
-
-#### 4.1 Facet の定義（最小）
-
-| フィールド | 例 | 用途 |
-| --- | --- | --- |
-| `phaseName` | `概念設計/実装設計/実装/検証` | フェーズ別グルーピング |
-| `milestone` | `M1-Feature-Design` | 機能/エピック単位のまとまり |
-| `wbsLevel` | `1/2/3` | 粗い工程区分 |
-| `workType` | `spec/docs/design/implementation/test` | 「仕様/ドキュメント/設計/実装/検証」軸 |
-| `domain` | `orchestrator/frontend/meta/...` | 機能カテゴリ（コンポーネント） |
-| `tags[]` | `["ux","refactor"]` | 任意ラベル |
-
-#### 4.2 永続化先
-
-#### A. `design/nodes-*.json`（推奨: 正）
-
-- `persistence.NodeDesign` に以下を追加する想定:
-  - `phase_name`, `milestone`, `wbs_level`, `work_type`, `domain`, `tags`
-
-#### B. `state/tasks.json`（実行-表示用の複製）
-
-- `persistence.TaskState.Inputs`（柔軟）に `facet.*` を複製する（例: `inputs["facet.phase_name"] = "実装"`）。
-- これにより Scheduler/Executor が **design を読まなくても最低限の分類**を参照できる。
-
-#### C. `tasks-*.jsonl`（IDE 表示の後方互換）
-
-- `orchestrator.Task` にも同等の Facet を持たせ、IDE の一覧/Graph/WBS 表示で利用する。
-
-### 5. Facet の生成規則（優先順位）
-
-1. **明示指定（将来）**: Meta plan_patch が `work_type/domain/tags` を返す場合、それを正とする。
-2. **推定（当面）**: 既存フィールドから決定論で推定する。
-   - `phaseName == "概念設計"` → `workType=spec`（ただしタイトル/説明に「ドキュメント/README」が強く含まれる場合は `docs`）
-   - `phaseName == "実装設計"` → `workType=design`
-   - `phaseName == "実装"` → `workType=implementation`
-   - `phaseName == "検証"` または「テスト」が強く含まれる → `workType=test`
-   - `domain` は `suggestedImpl.filePaths` のパス接頭辞（例: `internal/orchestrator/...`）から推定する（推定不能なら空）。
-
-### 6. Planning → Execution（実行制御）
-
-#### 6.1 UI 導線（フォールバック）
-
-- 実行制御（Start/Pause/Resume/Stop）は、**ユーザーが強制介入するためのフォールバック**として UI に提供する。
-  - 配置候補: Toolbar 右端、または TaskBar に “Run/Pause/Stop” を追加。
-
-#### 6.2 Chat Autopilot（基本）
-
-- ユーザーは「計画して」「実行して」などの役割分担を要求されない。
-- Chat の「タスク永続化」完了後に以下を実行する:
-  1. `ExecutionOrchestrator` が `IDLE` なら `StartExecution()`（`internal/orchestrator/execution_orchestrator.go:79`、`app.go:601`）
-  2. 直後に `Scheduler.ScheduleReadyTasks()` を 1 回呼び、開始直後から進むことを保証（2 秒ポーリング待ちを削減）
-
-#### 6.3 自然言語での介入（必須）
-
-- ユーザーはチャットで自然に介入できる（例: 「止めて」「一旦止めて」「続けて」「状況教えて」）。
-- 実装は 2 系統を許容する:
-  - **決定論（安全側）**: 明確な制御語（stop/pause/resume/status）だけは LLM を経由せず即時に `StopExecution/PauseExecution/ResumeExecution/GetExecutionState` にマップする。
-  - **Meta 主導（柔軟）**: それ以外は Meta-agent に渡し、計画更新（plan_patch）や優先度付けを含めて判断させる。
-
-#### 6.4 人間への質問（Backlog → Chat）
-
-- Meta-agent が人間に確認すべき事項は **チャットに質問として出る**ことを基本 UX とする。
-- 既存のバックログ通知は `backlog:added` としてイベント化済み（`internal/orchestrator/events.go:38`、`internal/orchestrator/execution_orchestrator.go:646`）。
-- 設計方針:
-  - `BacklogTypeQuestion` を活用し、質問は Backlog に永続化しつつ、チャットにも「質問メッセージ」として表示する。
-  - 未解決の質問がある間は、実行を `PAUSED` にして待つ（ユーザー回答後に自動再開）。
-  - 回答は `ResolveBacklogItem` で保存し（`app.go:563`）、回答内容は次回の Meta plan_patch/実行コンテキストに含める。
-
-#### 6.4.1 質問の生成源（2案）
-
-- **案A: 計画時（plan_patch）に質問を返す**
-  - `plan_patch` レスポンスに `questions[]`（blocking/optional）を追加し、ChatHandler が質問をチャットに表示して待つ。
-  - メリット: 実装が単純。タスク実行前に不明点を回収できる。
-- **案B: 実行時（agent-runner の next_action）で `ask_human` を扱う**
-  - 現状の AgentRunner Core は `run_worker/mark_complete` 以外を Unknown として即 `FAILED` 扱いにしている（`internal/core/runner.go:317-320`）。
-  - `ask_human` を正式に扱うには、`NextActionResponse` に質問ペイロードを追加し、Runner が「質問→中断→再試行（回答を Inputs に入れて再実行）」を実装する必要がある。
-
-### 7. Backend API - UI 反映
-
-#### 7.1 `ListTasks()` の責務
-
-- IDE が必要とする `phaseName/milestone/wbsLevel/dependencies` と Facet を必ず返す。
-- 実装方式は 2 案:
-  - **案1（最短）**: TaskStore（`tasks/*.jsonl`）から読み出す（既に Phase/Milestone を持つ）
-  - **案2（正攻法）**: `design/nodes` + `state/tasks` を join して DTO を組み立てる（Facet の正を `design` に置く）
-
-#### 7.2 フロント（可視化）
-
-- `facetStore`（derived）で以下を提供:
-  - `availableFacets`: milestone/phase/workType/domain の集合と件数
-  - `activeFilters`: 選択中の条件
-  - `groupBy`: 現在の grouping 軸（例: milestone→phase, workType→domain など）
-- `UnifiedFlowCanvas` は `taskList`（フィルタ済み）を受け取れるので、Graph 側は `taskList` を差し替えることで絞り込みできる（`frontend/ide/src/lib/flow/UnifiedFlowCanvas.svelte:42-75`）。
-- WBS 側は `wbsStore` の入力（tasks）をフィルタ済みにした派生ストアを使う。
-
-### 8. 移行（既存ワークスペース）
-
-- 既存の `design/nodes` に新フィールドが無い場合は空として扱う（Go の JSON Unmarshal では unknown/missing フィールドは安全に扱える）。
-- 互換のため、最初の段階では TaskStore に存在する `phaseName/milestone/wbsLevel/dependencies` を読み、`design/state` へ補完する「オンデマンド補正」を提供する（明示的マイグレーションは不要）。
-
-### 9. 実装ステップ（最短ルート）
-
-1. **ListTasks の修正**: `phaseName/milestone/dependencies/wbsLevel` を返す（案1で即効性優先）。
-2. **Chat Autopilot**: `SendChatMessage` 完了後に `StartExecution + ScheduleReadyTasks` を呼び、チャットだけで「計画→実行」に遷移させる。
-3. **質問 UX**: `backlog:added` をチャットにブリッジし、質問（BacklogTypeQuestion）を会話として扱う。
-4. **Kind/WorkType**: `internal/chat/handler.go` の TaskState.Kind をフェーズに応じて設定し、Facet を `state/tasks.json` に複製。
-5. **Facet UI**: group-by + filter を追加し、Graph/WBS の両方に適用。
 
