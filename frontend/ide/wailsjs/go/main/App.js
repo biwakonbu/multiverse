@@ -42,6 +42,10 @@ export function GetPoolSummaries() {
   return window['go']['main']['App']['GetPoolSummaries']();
 }
 
+export function GetToolingConfigJSON() {
+  return window['go']['main']['App']['GetToolingConfigJSON']();
+}
+
 export function GetWorkspace(arg1) {
   return window['go']['main']['App']['GetWorkspace'](arg1);
 }
@@ -92,6 +96,10 @@ export function SendChatMessage(arg1, arg2) {
 
 export function SetLLMConfig(arg1) {
   return window['go']['main']['App']['SetLLMConfig'](arg1);
+}
+
+export function SetToolingConfigJSON(arg1) {
+  return window['go']['main']['App']['SetToolingConfigJSON'](arg1);
 }
 
 export function StartExecution() {

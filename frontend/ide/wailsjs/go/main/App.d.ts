@@ -25,6 +25,8 @@ export function GetLLMConfig():Promise<main.LLMConfigDTO>;
 
 export function GetPoolSummaries():Promise<Array<orchestrator.PoolSummary>>;
 
+export function GetToolingConfigJSON():Promise<string>;
+
 export function GetWorkspace(arg1:string):Promise<ide.Workspace>;
 
 export function ListAttempts(arg1:string):Promise<Array<orchestrator.Attempt>>;
@@ -50,6 +52,8 @@ export function SelectWorkspace():Promise<string>;
 export function SendChatMessage(arg1:string,arg2:string):Promise<main.ChatResponseDTO>;
 
 export function SetLLMConfig(arg1:main.LLMConfigDTO):Promise<void>;
+
+export function SetToolingConfigJSON(arg1:string):Promise<void>;
 
 export function StartExecution():Promise<void>;
 
