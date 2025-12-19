@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"github.com/biwakonbu/agent-runner/internal/logging"
+	"github.com/biwakonbu/agent-runner/pkg/config"
 	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 )
 
 // TaskExecutor defines the interface for executing tasks
@@ -27,6 +29,7 @@ type TaskExecutor interface {
 type Executor struct {
 	AgentRunnerPath string // Path to agent-runner binary
 	ProjectRoot     string // Root directory of the project
+	ToolingConfig   *config.ToolingConfig
 	logger          *slog.Logger
 	events          EventEmitter // Event emitter for streaming logs
 }
@@ -49,6 +52,11 @@ func (e *Executor) SetEventEmitter(emitter EventEmitter) {
 // SetLogger sets a custom logger for the executor
 func (e *Executor) SetLogger(logger *slog.Logger) {
 	e.logger = logging.WithComponent(logger, "orchestrator-executor")
+}
+
+// SetToolingConfig は生成する task YAML に tooling 設定を反映する。
+func (e *Executor) SetToolingConfig(cfg *config.ToolingConfig) {
+	e.ToolingConfig = cfg
 }
 
 // ExecuteTask runs the agent-runner for a given task.
@@ -343,6 +351,16 @@ func (e *Executor) generateTaskYAML(task *Task) string {
 		}
 	}
 
+	toolingYAML := ""
+	if e.ToolingConfig != nil {
+		toolingBytes, err := yaml.Marshal(map[string]interface{}{
+			"tooling": e.ToolingConfig,
+		})
+		if err == nil {
+			toolingYAML = indentYAML(string(toolingBytes), 2)
+		}
+	}
+
 	return fmt.Sprintf(`version: "1"
 task:
   id: %s
@@ -357,9 +375,9 @@ task:
     text: |
 %srunner:
   max_loops: %d
-  worker:
+%s  worker:
     kind: %q
-`, task.ID, task.Title, task.Description, task.WBSLevel, task.PhaseName, dependenciesYAML, suggestedImplYAML, promptTextIndented, runnerMaxLoops, workerKind)
+`, task.ID, task.Title, task.Description, task.WBSLevel, task.PhaseName, dependenciesYAML, suggestedImplYAML, promptTextIndented, runnerMaxLoops, toolingYAML, workerKind)
 }
 
 func quoteList(items []string) string {
@@ -368,6 +386,20 @@ func quoteList(items []string) string {
 		quoted[i] = fmt.Sprintf("%q", item)
 	}
 	return strings.Join(quoted, ", ")
+}
+
+func indentYAML(input string, spaces int) string {
+	if input == "" {
+		return ""
+	}
+	pad := strings.Repeat(" ", spaces)
+	lines := strings.Split(strings.TrimSuffix(input, "\n"), "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = pad + line
+		}
+	}
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func (e *Executor) handleStructuredLog(taskID, taskTitle string, entry map[string]interface{}, onArtifacts func([]string)) {
@@ -479,6 +511,32 @@ func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
 		}
 	}
 
+	if isGeminiWorkerKind(workerKind) {
+		if os.Getenv("GEMINI_API_KEY") == "" && os.Getenv("GOOGLE_API_KEY") == "" {
+			vertexEnabled := os.Getenv("GOOGLE_GENAI_USE_VERTEXAI") != "" && os.Getenv("GOOGLE_CLOUD_PROJECT") != ""
+			if !vertexEnabled {
+				home, err := os.UserHomeDir()
+				if err == nil {
+					envPath := filepath.Join(home, ".gemini", ".env")
+					if _, err := os.Stat(envPath); err == nil {
+						return nil
+					}
+				}
+
+				if e.events != nil {
+					e.events.Emit(EventProcessMetaUpdate, ProcessMetaUpdateEvent{
+						TaskID:    task.ID,
+						TaskTitle: task.Title,
+						State:     "ERROR",
+						Detail:    "Gemini Session Missing: Please set GEMINI_API_KEY/GOOGLE_API_KEY or ~/.gemini/.env",
+						Timestamp: time.Now(),
+					})
+				}
+				return fmt.Errorf("Gemini CLI session not found. Please set GEMINI_API_KEY/GOOGLE_API_KEY or ~/.gemini/.env")
+			}
+		}
+	}
+
 	if isClaudeWorkerKind(workerKind) {
 		// CLAUDECODE.md: Check for Claude CLI authentication
 		// Claude CLI stores auth in ~/.config/claude (see CLAUDECODE.md section 2.3)
@@ -518,4 +576,8 @@ func (e *Executor) verifyPreFlight(_ context.Context, task *Task) error {
 
 func isClaudeWorkerKind(kind string) bool {
 	return kind == "claude-code" || kind == "claude-code-cli"
+}
+
+func isGeminiWorkerKind(kind string) bool {
+	return kind == "gemini-cli"
 }

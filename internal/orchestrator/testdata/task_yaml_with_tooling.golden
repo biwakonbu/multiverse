@@ -1,0 +1,38 @@
+version: "1"
+task:
+  id: task-tooling-golden
+  title: "Tooling YAML Golden"
+  repo: "."
+  description: "Verify tooling YAML block"
+  wbs_level: 1
+  phase_name: "Planning"
+  dependencies: ["task-dep-1"]
+
+  prd:
+    text: |
+      Execute task: Tooling YAML Golden
+      
+      Description:
+      Verify tooling YAML block
+      
+      Acceptance Criteria:
+      - AC-1
+      - AC-2
+runner:
+  max_loops: 5
+  tooling:
+      active_profile: golden
+      profiles:
+          - id: golden
+            name: Golden
+            categories:
+              worker:
+                  strategy: round_robin
+                  candidates:
+                      - tool: mock
+                        model: alpha
+                        weight: 1
+                  fallback_on_rate_limit: true
+                  cooldown_sec: 90
+  worker:
+    kind: "codex-cli"

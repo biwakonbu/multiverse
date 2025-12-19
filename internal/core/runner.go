@@ -11,6 +11,7 @@ import (
 
 	"github.com/biwakonbu/agent-runner/internal/logging"
 	"github.com/biwakonbu/agent-runner/internal/meta"
+	"github.com/biwakonbu/agent-runner/internal/tooling"
 	"github.com/biwakonbu/agent-runner/pkg/config"
 	"gopkg.in/yaml.v3"
 )
@@ -178,6 +179,11 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 		maxLoops = 10 // Default value
 	}
 	logger.Info("starting execution loop", slog.Int("max_loops", maxLoops))
+	var toolSelector *tooling.Selector
+	if r.Config.Runner.Tooling != nil {
+		toolSelector = tooling.NewSelector(r.Config.Runner.Tooling)
+	}
+
 	for i := 0; i < maxLoops; i++ {
 		logger.Info("execution loop iteration", slog.Int("loop", i+1), slog.Int("max", maxLoops))
 		// Prepare summary
@@ -292,29 +298,82 @@ func (r *Runner) Run(ctx context.Context) (*TaskContext, error) {
 			// Execute Worker
 			logger.Info("executing worker", slog.String("event_type", "worker:running"), slog.String("command", action.WorkerCall.Prompt), slog.Int("prompt_length", len(action.WorkerCall.Prompt)))
 			logger.Debug("worker prompt", slog.String("prompt", action.WorkerCall.Prompt))
-			workerStart := time.Now()
-			res, err := r.Worker.RunWorker(ctx, action.WorkerCall, r.Config.Runner.Worker.Env)
-			if err != nil {
-				logger.Error("worker execution failed", slog.Any("error", err), logging.LogDuration(workerStart))
-				// Worker execution failed (system error), record it but maybe continue?
-				// For now, let's record error in result and continue loop, Meta might retry.
-				res = &WorkerRunResult{
-					StartedAt:  time.Now(),
-					FinishedAt: time.Now(),
-					Error:      err,
-					Summary:    "Worker execution failed: " + err.Error(),
+			baseCall := action.WorkerCall
+			attempts := 0
+			maxAttempts := 1
+			forceMode := false
+
+			if toolSelector != nil {
+				if forced, ok := toolSelector.ForceCandidate(); ok {
+					forceMode = true
+					baseCall = applyWorkerCandidate(baseCall, forced)
+					logger.Info("worker tooling forced",
+						slog.String("tool", forced.Tool),
+						slog.String("model", forced.Model),
+					)
+				} else if cfg, ok := toolSelector.Category(tooling.CategoryWorker); ok && len(cfg.Candidates) > 0 {
+					maxAttempts = len(cfg.Candidates)
 				}
-			} else {
-				logger.Info("worker execution completed",
-					slog.String("event_type", "worker:completed"),
-					slog.Int("exit_code", res.ExitCode),
-					slog.Int("output_length", len(res.RawOutput)),
-					slog.Any("artifacts", res.Artifacts),
-					logging.LogDuration(workerStart),
-				)
-				logger.Debug("worker output", slog.String("output", res.RawOutput))
 			}
-			taskCtx.WorkerRuns = append(taskCtx.WorkerRuns, *res)
+
+			for {
+				workerCall := baseCall
+				var candidate config.ToolCandidate
+				usedTooling := false
+
+				if toolSelector != nil && !forceMode {
+					if selected, ok := toolSelector.Select(tooling.CategoryWorker); ok {
+						candidate = selected
+						workerCall = applyWorkerCandidate(baseCall, candidate)
+						usedTooling = true
+						logger.Info("worker tooling selected",
+							slog.String("tool", candidate.Tool),
+							slog.String("model", candidate.Model),
+						)
+					}
+				}
+
+				workerStart := time.Now()
+				res, err := r.Worker.RunWorker(ctx, workerCall, r.Config.Runner.Worker.Env)
+				if err != nil {
+					logger.Error("worker execution failed", slog.Any("error", err), logging.LogDuration(workerStart))
+					// Worker execution failed (system error), record it but maybe continue?
+					// For now, let's record error in result and continue loop, Meta might retry.
+					res = &WorkerRunResult{
+						StartedAt:  time.Now(),
+						FinishedAt: time.Now(),
+						Error:      err,
+						Summary:    "Worker execution failed: " + err.Error(),
+					}
+				} else {
+					logger.Info("worker execution completed",
+						slog.String("event_type", "worker:completed"),
+						slog.Int("exit_code", res.ExitCode),
+						slog.Int("output_length", len(res.RawOutput)),
+						slog.Any("artifacts", res.Artifacts),
+						logging.LogDuration(workerStart),
+					)
+					logger.Debug("worker output", slog.String("output", res.RawOutput))
+				}
+				taskCtx.WorkerRuns = append(taskCtx.WorkerRuns, *res)
+
+				rateLimited := false
+				if err != nil {
+					rateLimited = tooling.IsRateLimitError(err)
+				} else if res != nil && res.Error != nil {
+					rateLimited = tooling.IsRateLimitError(res.Error)
+				}
+				if usedTooling && !forceMode && rateLimited && toolSelector.ShouldFallbackOnRateLimit(tooling.CategoryWorker) && attempts+1 < maxAttempts {
+					toolSelector.MarkRateLimited(tooling.CategoryWorker, candidate, toolSelector.CooldownSec(tooling.CategoryWorker))
+					logger.Warn("worker rate limited; retrying with another tooling candidate",
+						slog.String("tool", candidate.Tool),
+						slog.String("model", candidate.Model),
+					)
+					attempts++
+					continue
+				}
+				break
+			}
 		} else {
 			// Unknown action or abort
 			taskCtx.State = StateFailed
@@ -395,4 +454,55 @@ func (r *Runner) runTestCommand(ctx context.Context, taskCtx *TaskContext) error
 	r.Logger.Info("test command passed")
 
 	return nil
+}
+
+func applyWorkerCandidate(call meta.WorkerCall, candidate config.ToolCandidate) meta.WorkerCall {
+	updated := call
+	if candidate.Tool != "" {
+		updated.WorkerType = candidate.Tool
+	}
+	if candidate.Model != "" {
+		updated.Model = candidate.Model
+	}
+	if candidate.CLIPath != "" {
+		updated.CLIPath = candidate.CLIPath
+	}
+	if len(candidate.Flags) > 0 {
+		updated.Flags = append([]string{}, candidate.Flags...)
+	}
+	if len(candidate.Env) > 0 {
+		updated.Env = mergeStringMap(updated.Env, candidate.Env)
+	}
+	if len(candidate.ToolSpecific) > 0 {
+		updated.ToolSpecific = mergeToolSpecific(updated.ToolSpecific, candidate.ToolSpecific)
+	}
+	return updated
+}
+
+func mergeStringMap(base, override map[string]string) map[string]string {
+	if len(base) == 0 && len(override) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(base)+len(override))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range override {
+		out[k] = v
+	}
+	return out
+}
+
+func mergeToolSpecific(base, override map[string]interface{}) map[string]interface{} {
+	if len(base) == 0 && len(override) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{}, len(base)+len(override))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range override {
+		out[k] = v
+	}
+	return out
 }

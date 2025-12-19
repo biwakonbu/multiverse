@@ -30,6 +30,10 @@ func isClaudeWorkerKind(kind string) bool {
 	return kind == "claude-code" || kind == "claude-code-cli"
 }
 
+func isGeminiWorkerKind(kind string) bool {
+	return kind == "gemini-cli"
+}
+
 func NewExecutor(cfg config.WorkerConfig, repoPath string) (*Executor, error) {
 	sb, err := NewSandboxManager()
 	if err != nil {
@@ -72,7 +76,15 @@ func (e *Executor) RunWorker(ctx context.Context, call meta.WorkerCall, env map[
 
 	// QH-007: Explicitly propagate Codex/Claude session tokens from Host to Container
 	// AgentRunner inherits these from Orchestrator (Host), but Docker container needs explicit injection.
-	for _, key := range []string{"CODEX_SESSION_TOKEN", "CODEX_API_KEY", "ANTHROPIC_API_KEY"} {
+	for _, key := range []string{
+		"CODEX_SESSION_TOKEN",
+		"CODEX_API_KEY",
+		"ANTHROPIC_API_KEY",
+		"GEMINI_API_KEY",
+		"GOOGLE_API_KEY",
+		"GOOGLE_GENAI_USE_VERTEXAI",
+		"GOOGLE_CLOUD_PROJECT",
+	} {
 		if val := os.Getenv(key); val != "" {
 			if reqEnv == nil {
 				reqEnv = make(map[string]string)
@@ -205,7 +217,15 @@ func (e *Executor) Start(ctx context.Context) error {
 		return fmt.Errorf("container already started (ID: %s)", e.containerID)
 	}
 
-	if isClaudeWorkerKind(e.Config.Kind) {
+	if isGeminiWorkerKind(e.Config.Kind) {
+		if err := e.verifyGeminiSession(ctx); err != nil {
+			logger.Error("gemini session verification failed",
+				slog.Any("error", err),
+				slog.String("hint", "GEMINI_API_KEY か GOOGLE_API_KEY を設定してください"),
+			)
+			return fmt.Errorf("gemini CLI session missing: %w", err)
+		}
+	} else if isClaudeWorkerKind(e.Config.Kind) {
 		if err := e.verifyClaudeSession(ctx); err != nil {
 			logger.Error("claude session verification failed",
 				slog.Any("error", err),
@@ -227,6 +247,8 @@ func (e *Executor) Start(ctx context.Context) error {
 	if image == "" {
 		if isClaudeWorkerKind(e.Config.Kind) {
 			image = "ghcr.io/biwakonbu/agent-runner-claude:latest"
+		} else if isGeminiWorkerKind(e.Config.Kind) {
+			image = "ghcr.io/biwakonbu/agent-runner-gemini:latest"
 		} else {
 			image = "ghcr.io/biwakonbu/agent-runner-codex:latest"
 		}
@@ -345,6 +367,35 @@ func (e *Executor) verifyClaudeSession(ctx context.Context) error {
 	// CLI exists but no auth file found.
 	// Since we rely on mounting the auth directory, we strictly need the directory.
 	return fmt.Errorf("claude authentication directory not found. Please run `claude login`. (claude version: %s)", strings.TrimSpace(string(output)))
+}
+
+// verifyGeminiSession checks for Gemini CLI session existence
+func (e *Executor) verifyGeminiSession(ctx context.Context) error {
+	// 1. ~/.gemini/.env の存在確認
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		geminiEnvPath := filepath.Join(homeDir, ".gemini", ".env")
+		if _, err := os.Stat(geminiEnvPath); err == nil {
+			return nil
+		}
+	}
+
+	// 2. GEMINI_API_KEY / GOOGLE_API_KEY / Vertex 環境変数の確認
+	if os.Getenv("GEMINI_API_KEY") != "" || os.Getenv("GOOGLE_API_KEY") != "" {
+		return nil
+	}
+	if os.Getenv("GOOGLE_GENAI_USE_VERTEXAI") != "" && os.Getenv("GOOGLE_CLOUD_PROJECT") != "" {
+		return nil
+	}
+
+	// 3. gemini --version で CLI が利用可能か確認
+	cmd := exec.CommandContext(ctx, "gemini", "--version")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("gemini CLI not found or not authenticated: %w (出力: %s)", err, string(output))
+	}
+
+	return fmt.Errorf("gemini CLI 認証が検出できません。GEMINI_API_KEY/GOOGLE_API_KEY または ~/.gemini/.env を設定してください。出力: %s", strings.TrimSpace(string(output)))
 }
 
 // Stop stops the persistent container

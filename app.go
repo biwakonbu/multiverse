@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +15,7 @@ import (
 	"github.com/biwakonbu/agent-runner/internal/orchestrator"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator/ipc"
 	"github.com/biwakonbu/agent-runner/internal/orchestrator/persistence"
+	"github.com/biwakonbu/agent-runner/pkg/config"
 	"github.com/google/uuid"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -23,12 +25,14 @@ type App struct {
 	ctx                   context.Context
 	workspaceStore        *ide.WorkspaceStore
 	llmConfigStore        *ide.LLMConfigStore
+	toolingConfigStore    *ide.ToolingConfigStore
 	repo                  persistence.WorkspaceRepository
 	scheduler             *orchestrator.Scheduler
 	chatHandler           *chat.Handler
 	currentWS             *ide.Workspace
 	currentWSID           string
 	executionOrchestrator *orchestrator.ExecutionOrchestrator
+	taskExecutor          *orchestrator.Executor
 	backlogStore          *orchestrator.BacklogStore
 	eventEmitter          orchestrator.EventEmitter
 }
@@ -50,8 +54,9 @@ func NewApp() *App {
 	}
 	multiverseDir := fmt.Sprintf("%s/.multiverse", homeDir)
 	return &App{
-		workspaceStore: ide.NewWorkspaceStore(filepath.Join(multiverseDir, "workspaces")),
-		llmConfigStore: ide.NewLLMConfigStore(multiverseDir),
+		workspaceStore:     ide.NewWorkspaceStore(filepath.Join(multiverseDir, "workspaces")),
+		llmConfigStore:     ide.NewLLMConfigStore(multiverseDir),
+		toolingConfigStore: ide.NewToolingConfigStore(multiverseDir),
 	}
 }
 
@@ -65,7 +70,7 @@ func (a *App) startup(ctx context.Context) {
 // 優先度:
 // 1. LLMConfigStore の設定（codex-cli, mock 等）
 // 2. 環境変数でのオーバーライド（後方互換性のため）
-func (a *App) newMetaClientFromConfig() *meta.Client {
+func (a *App) newMetaClientFromConfig() chat.MetaClient {
 	config, err := a.llmConfigStore.GetEffectiveConfig()
 	if err != nil {
 		runtime.LogErrorf(a.ctx, "Failed to load LLM config, falling back to default: %v", err)
@@ -74,6 +79,19 @@ func (a *App) newMetaClientFromConfig() *meta.Client {
 
 	kind := config.Kind
 	if kind == "" {
+		kind = "openai-chat"
+	}
+
+	knownKinds := map[string]struct{}{
+		"mock":            {},
+		"codex-cli":       {},
+		"claude-code":     {},
+		"claude-code-cli": {},
+		"gemini-cli":      {},
+		"openai-chat":     {},
+	}
+	if _, ok := knownKinds[kind]; !ok {
+		runtime.LogErrorf(a.ctx, "Unknown LLM kind '%s', falling back to openai-chat", kind)
 		kind = "openai-chat"
 	}
 
@@ -93,19 +111,18 @@ func (a *App) newMetaClientFromConfig() *meta.Client {
 		}
 	}
 
-	switch kind {
-	case "mock":
-		return meta.NewMockClient()
-	case "codex-cli":
-		return meta.NewClient("codex-cli", "", config.Model, config.SystemPrompt)
-	case "openai-chat":
-		// 後方互換性のため残す（HTTP ベース）
-		return meta.NewClient("openai-chat", apiKey, config.Model, config.SystemPrompt)
-	default:
-		// 未知の種類の時も openai-chat にフォールバックする。
-		runtime.LogErrorf(a.ctx, "Unknown LLM kind '%s', falling back to openai-chat", kind)
-		return meta.NewClient("openai-chat", apiKey, config.Model, config.SystemPrompt)
+	baseClient := meta.NewClient(kind, apiKey, config.Model, config.SystemPrompt)
+
+	toolingCfg, err := a.toolingConfigStore.Load()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to load tooling config: %v", err)
+		toolingCfg = ide.DefaultToolingConfig()
 	}
+	if toolingCfg != nil && len(toolingCfg.Profiles) > 0 {
+		return meta.NewToolingClient(toolingCfg, apiKey, baseClient, config.SystemPrompt)
+	}
+
+	return baseClient
 }
 
 // SelectWorkspace opens a directory selection dialog and loads the workspace.
@@ -163,6 +180,14 @@ func (a *App) SelectWorkspace() string {
 	executor := orchestrator.NewExecutor(agentRunnerPath, ws.ProjectRoot)
 	a.eventEmitter = orchestrator.NewWailsEventEmitter(a.ctx)
 	executor.SetEventEmitter(a.eventEmitter)
+	a.taskExecutor = executor
+
+	toolingCfg, err := a.toolingConfigStore.Load()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to load tooling config: %v", err)
+		toolingCfg = ide.DefaultToolingConfig()
+	}
+	executor.SetToolingConfig(toolingCfg)
 
 	a.scheduler = orchestrator.NewScheduler(a.repo, queue, a.eventEmitter)
 
@@ -244,6 +269,14 @@ func (a *App) OpenWorkspaceByID(id string) string {
 	executor := orchestrator.NewExecutor(agentRunnerPath, ws.ProjectRoot) // Removed a.taskStore from here
 	a.eventEmitter = orchestrator.NewWailsEventEmitter(a.ctx)
 	executor.SetEventEmitter(a.eventEmitter)
+	a.taskExecutor = executor
+
+	toolingCfg, err := a.toolingConfigStore.Load()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to load tooling config: %v", err)
+		toolingCfg = ide.DefaultToolingConfig()
+	}
+	executor.SetToolingConfig(toolingCfg)
 
 	a.scheduler = orchestrator.NewScheduler(a.repo, queue, a.eventEmitter) // Use a.repo here
 
@@ -733,6 +766,52 @@ func (a *App) SetLLMConfig(dto LLMConfigDTO) error {
 		sessionStore := chat.NewChatSessionStore(wsDir)
 		metaClient := a.newMetaClientFromConfig()
 		taskStore := orchestrator.NewTaskStore(wsDir) // Temp
+		a.chatHandler = chat.NewHandler(metaClient, taskStore, sessionStore, a.currentWSID, a.currentWS.ProjectRoot, a.repo, a.eventEmitter)
+	}
+
+	return nil
+}
+
+// ============================================================================
+// Tooling Config API
+// ============================================================================
+
+// GetToolingConfigJSON は tooling 設定（JSON）を返す
+func (a *App) GetToolingConfigJSON() string {
+	cfg, err := a.toolingConfigStore.Load()
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to load tooling config: %v", err)
+		cfg = ide.DefaultToolingConfig()
+	}
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		runtime.LogErrorf(a.ctx, "Failed to marshal tooling config: %v", err)
+		return "{}"
+	}
+	return string(data)
+}
+
+// SetToolingConfigJSON は tooling 設定（JSON）を保存する
+func (a *App) SetToolingConfigJSON(raw string) error {
+	var cfg config.ToolingConfig
+	if err := json.Unmarshal([]byte(raw), &cfg); err != nil {
+		return fmt.Errorf("invalid tooling config json: %w", err)
+	}
+	if err := a.toolingConfigStore.Save(&cfg); err != nil {
+		return err
+	}
+
+	if a.taskExecutor != nil {
+		a.taskExecutor.SetToolingConfig(&cfg)
+	}
+
+	// 現在のワークスペースがあれば Meta/Chat を再初期化して即時反映
+	if a.currentWS != nil && a.repo != nil && a.currentWSID != "" {
+		wsDir := a.workspaceStore.GetWorkspaceDir(a.currentWSID)
+		sessionStore := chat.NewChatSessionStore(wsDir)
+		metaClient := a.newMetaClientFromConfig()
+		taskStore := orchestrator.NewTaskStore(wsDir)
 		a.chatHandler = chat.NewHandler(metaClient, taskStore, sessionStore, a.currentWSID, a.currentWS.ProjectRoot, a.repo, a.eventEmitter)
 	}
 

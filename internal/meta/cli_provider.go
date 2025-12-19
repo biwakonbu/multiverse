@@ -16,32 +16,55 @@ import (
 // DefaultMetaAgentTimeout is 10 minutes for Meta processing
 const DefaultMetaAgentTimeout = 10 * time.Minute
 
-// CLIProvider supports generic LLM CLIs (codex, claude) using agenttools
+// CLIProvider は generic な LLM CLI（codex/claude/gemini）を agenttools 経由で扱う。
 type CLIProvider struct {
 	kind         string // "codex-cli", "claude-cli" or just "claude"
 	cliPath      string // executable name or path
 	model        string
 	systemPrompt string
+	flags        []string
+	env          map[string]string
+	toolSpecific map[string]interface{}
 	logger       *slog.Logger
 }
 
 // Ensure CLIProvider implements Provider interface
 var _ Provider = (*CLIProvider)(nil)
 
-// NewCLIProvider creates a new CLI provider
+// CLIProviderOptions は CLI 実行の上書き設定を保持する。
+type CLIProviderOptions struct {
+	CLIPath      string
+	Flags        []string
+	Env          map[string]string
+	ToolSpecific map[string]interface{}
+}
+
+// NewCLIProvider は CLI プロバイダを作成する。
 func NewCLIProvider(kind, model, systemPrompt string) *CLIProvider {
+	return NewCLIProviderWithOptions(kind, model, systemPrompt, CLIProviderOptions{})
+}
+
+// NewCLIProviderWithOptions は上書き設定付きの CLI プロバイダを作成する。
+func NewCLIProviderWithOptions(kind, model, systemPrompt string, opts CLIProviderOptions) *CLIProvider {
 	// Determine CLI path based on kind
-	cliPath := "codex"
-	if strings.Contains(kind, "claude") {
-		cliPath = "claude"
+	cliPath := strings.TrimSpace(opts.CLIPath)
+	if cliPath == "" {
+		cliPath = "codex"
+		if strings.Contains(kind, "claude") {
+			cliPath = "claude"
+		} else if strings.Contains(kind, "gemini") {
+			cliPath = "gemini"
+		}
 	}
 
 	// Default models if empty
 	if model == "" {
 		if strings.Contains(kind, "claude") {
 			model = agenttools.DefaultClaudeModel
+		} else if strings.Contains(kind, "gemini") {
+			model = agenttools.DefaultGeminiModel
 		} else {
-			model = "gpt-5.2" // fallback for codex
+			model = agenttools.DefaultMetaModel
 		}
 	}
 
@@ -50,6 +73,9 @@ func NewCLIProvider(kind, model, systemPrompt string) *CLIProvider {
 		cliPath:      cliPath,
 		model:        model,
 		systemPrompt: systemPrompt,
+		flags:        append([]string{}, opts.Flags...),
+		env:          cloneStringMap(opts.Env),
+		toolSpecific: cloneToolSpecific(opts.ToolSpecific),
 		logger:       logging.WithComponent(slog.Default(), "meta-cli-"+kind),
 	}
 }
@@ -101,9 +127,7 @@ func (p *CLIProvider) callExec(ctx context.Context, systemPrompt, userPrompt str
 		ReasoningEffort: agenttools.DefaultReasoningEffort,
 		Timeout:         DefaultMetaAgentTimeout,
 		UseStdin:        true,
-		ToolSpecific: map[string]interface{}{
-			"docker_mode": false,
-		},
+		ToolSpecific:    mergeToolSpecific(map[string]interface{}{"docker_mode": false}, p.toolSpecific),
 	}
 
 	// Determine provider kind for agenttools
@@ -112,18 +136,24 @@ func (p *CLIProvider) callExec(ctx context.Context, systemPrompt, userPrompt str
 	agentToolKind := "codex-cli"
 	if strings.Contains(p.kind, "claude") {
 		agentToolKind = "claude-code"
+	} else if strings.Contains(p.kind, "gemini") {
+		agentToolKind = "gemini-cli"
 	}
 
 	providerConfig := agenttools.ProviderConfig{
-		Kind:    agentToolKind,
-		Model:   p.model,
-		CLIPath: p.cliPath,
+		Kind:     agentToolKind,
+		Model:    p.model,
+		CLIPath:  p.cliPath,
+		Flags:    p.flags,
+		ExtraEnv: p.env,
 	}
 
 	// Create tool provider
 	var toolProvider agenttools.AgentToolProvider
 	if agentToolKind == "claude-code" {
 		toolProvider = agenttools.NewClaudeProvider(providerConfig)
+	} else if agentToolKind == "gemini-cli" {
+		toolProvider = agenttools.NewGeminiProvider(providerConfig)
 	} else {
 		toolProvider = agenttools.NewCodexProvider(providerConfig)
 	}
@@ -158,6 +188,42 @@ func (p *CLIProvider) callExec(ctx context.Context, systemPrompt, userPrompt str
 	)
 
 	return response, nil
+}
+
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func cloneToolSpecific(in map[string]interface{}) map[string]interface{} {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{}, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func mergeToolSpecific(base, override map[string]interface{}) map[string]interface{} {
+	if len(base) == 0 && len(override) == 0 {
+		return nil
+	}
+	out := cloneToolSpecific(base)
+	if out == nil {
+		out = make(map[string]interface{}, len(override))
+	}
+	for k, v := range override {
+		out[k] = v
+	}
+	return out
 }
 
 // Decompose delegates to callExec and extracts response

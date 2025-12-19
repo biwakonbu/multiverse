@@ -29,6 +29,7 @@
   import BacklogPanel from "./lib/backlog/BacklogPanel.svelte";
   import TaskBar from "./lib/hud/TaskBar.svelte";
   import ProcessWindow from "./lib/hud/ProcessWindow.svelte";
+  import ToolingSettingsWindow from "./lib/settings/ToolingSettingsWindow.svelte";
   import { windowStore } from "./stores/windowStore";
   import ToastContainer from "./lib/components/ToastContainer.svelte";
 
@@ -160,6 +161,7 @@
     <!-- Window System -->
     <FloatingChatWindow />
     <ProcessWindow resources={$processResources} />
+    <ToolingSettingsWindow />
 
     <!-- TaskBar (Dock) -->
     <TaskBar />

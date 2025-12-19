@@ -14,7 +14,7 @@ import (
 //   - --output-format <format>: 出力形式 (json, text, stream-json)
 //   - --yolo: ツール呼び出しを自動承認
 //   - --sandbox: Docker コンテナ内で実行
-const DefaultGeminiModel = "gemini-2.5-pro"
+const DefaultGeminiModel = "gemini-3-flash-preview"
 
 // GeminiProvider builds ExecPlan for Gemini CLI.
 // Assumes the use of Google's open-source Gemini CLI or compatible interface.
@@ -44,7 +44,7 @@ func (p *GeminiProvider) Capabilities() Capability {
 		Kind:          p.Kind(),
 		DefaultModel:  nonEmpty(p.model, DefaultGeminiModel),
 		SupportsStdin: true,
-		Notes:         "Generic Gemini CLI wrapper. Assumes `gemini [prompt] --model [model]` interface.",
+		Notes:         "Generic Gemini CLI wrapper. Assumes `gemini -p [prompt] --model [model]` interface.",
 	}
 }
 
@@ -72,8 +72,14 @@ func (p *GeminiProvider) Build(_ context.Context, req Request) (ExecPlan, error)
 	if v, ok := req.ToolSpecific["json_output"].(bool); ok {
 		jsonOutput = v
 	}
-	if jsonOutput {
-		args = append(args, "--json")
+
+	// Auto-accept tool calls (non-interactive execution)
+	autoAccept := true
+	if v, ok := req.ToolSpecific["auto_accept"].(bool); ok {
+		autoAccept = v
+	}
+	if v, ok := req.ToolSpecific["yolo"].(bool); ok {
+		autoAccept = v
 	}
 
 	// Model specification
@@ -90,6 +96,13 @@ func (p *GeminiProvider) Build(_ context.Context, req Request) (ExecPlan, error)
 		args = append(args, "--max-output-tokens", strconv.Itoa(*req.MaxTokens))
 	}
 
+	if jsonOutput {
+		args = append(args, "--output-format", "json")
+	}
+	if autoAccept {
+		args = append(args, "--yolo")
+	}
+
 	// Extra flags
 	args = append(args, p.flags...)
 	args = append(args, req.Flags...)
@@ -104,15 +117,10 @@ func (p *GeminiProvider) Build(_ context.Context, req Request) (ExecPlan, error)
 
 	// Prompt handling
 	if req.UseStdin {
-		// Some CLIs might need a specific flag to read from stdin, or just read if no args.
-		// We assume standard behavior: explicitly pass "-" or just pipe.
-		// Here we assume NO flag is needed if handled via pipe, but let's see.
-		// Often "-" is a convention.
-		// For now, appending "-" to args to be explicit.
-		plan.Args = append(plan.Args, "-")
+		plan.Args = append(plan.Args, "-p", "-")
 		plan.Stdin = req.Prompt
 	} else {
-		plan.Args = append(plan.Args, req.Prompt)
+		plan.Args = append(plan.Args, "-p", req.Prompt)
 	}
 
 	return plan, nil

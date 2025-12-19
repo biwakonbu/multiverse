@@ -112,11 +112,34 @@ func (s *SandboxManager) StartContainer(ctx context.Context, image string, repoP
 				ReadOnly: true,
 			})
 		}
+
+		// Mount Gemini CLI config if it exists (e.g. ~/.gemini/.env, settings.json)
+		geminiConfigPath := filepath.Join(homeDir, ".gemini")
+		if _, err := os.Stat(geminiConfigPath); err == nil {
+			mounts = append(mounts, mount.Mount{
+				Type:     mount.TypeBind,
+				Source:   geminiConfigPath,
+				Target:   "/root/.gemini",
+				ReadOnly: true,
+			})
+		}
 	}
 
 	// If auth.json doesn't exist, check for CODEX_API_KEY env var
 	if codexAPIKey := os.Getenv("CODEX_API_KEY"); codexAPIKey != "" {
 		envSlice = append(envSlice, fmt.Sprintf("CODEX_API_KEY=%s", codexAPIKey))
+	}
+	if geminiAPIKey := os.Getenv("GEMINI_API_KEY"); geminiAPIKey != "" {
+		envSlice = append(envSlice, fmt.Sprintf("GEMINI_API_KEY=%s", geminiAPIKey))
+	}
+	if googleAPIKey := os.Getenv("GOOGLE_API_KEY"); googleAPIKey != "" {
+		envSlice = append(envSlice, fmt.Sprintf("GOOGLE_API_KEY=%s", googleAPIKey))
+	}
+	if vertexFlag := os.Getenv("GOOGLE_GENAI_USE_VERTEXAI"); vertexFlag != "" {
+		envSlice = append(envSlice, fmt.Sprintf("GOOGLE_GENAI_USE_VERTEXAI=%s", vertexFlag))
+	}
+	if projectID := os.Getenv("GOOGLE_CLOUD_PROJECT"); projectID != "" {
+		envSlice = append(envSlice, fmt.Sprintf("GOOGLE_CLOUD_PROJECT=%s", projectID))
 	}
 
 	resp, err := s.cli.ContainerCreate(ctx, &container.Config{

@@ -22,7 +22,8 @@ Gemini CLI は Google が提供するオープンソースの AI エージェン
 
 | モデル ID | 特徴 | 用途 |
 |-----------|------|------|
-| `gemini-3-pro-preview` | 最新のマルチモーダル、1M入力/65k出力 | **デフォルト・高度なタスク** |
+| `gemini-3-flash-preview` | 最新のマルチモーダル、低レイテンシ | **デフォルト・日常的なタスク** |
+| `gemini-3-pro-preview` | 最新のマルチモーダル、1M入力/65k出力 | 高度なタスク |
 | `gemini-2.5-pro` | 高度な推論、STEM 分析、安定版 | 複雑なコード生成・分析 |
 | `gemini-2.5-flash` | 価格・性能バランス、安定版 | 日常的な開発作業 |
 | `gemini-2.5-flash-lite` | 超高速・低コスト | 大量リクエスト処理 |
@@ -31,7 +32,8 @@ Gemini CLI は Google が提供するオープンソースの AI エージェン
 
 | モデル ID | 特徴 | 注意事項 |
 |-----------|------|----------|
-| `gemini-3-pro-preview` | 最新のマルチモーダル（**デフォルト**） | 2週間前通知で変更の可能性 |
+| `gemini-3-flash-preview` | 最新のマルチモーダル（**デフォルト**） | 2週間前通知で変更の可能性 |
+| `gemini-3-pro-preview` | 最新のマルチモーダル | プレビュー版 |
 | `gemini-2.5-flash-preview-09-2025` | Flash のプレビュー版 | プレビュー版 |
 
 ### 特殊モデル
@@ -64,7 +66,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 ```bash
 GEMINI_API_KEY=your-api-key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 ```
 
 ## CLI オプション
@@ -79,7 +81,7 @@ gemini
 gemini -p "コードをレビューして"
 
 # モデル指定
-gemini -m gemini-2.5-pro
+gemini -m gemini-3-pro-preview
 
 # JSON 出力
 gemini -p "質問" --output-format json
@@ -96,6 +98,7 @@ gemini --include-directories ../lib,../docs
 | `-p` | プロンプトモード（非インタラクティブ） |
 | `--output-format` | 出力形式（`json`, `stream-json`） |
 | `--include-directories` | コンテキストに含めるディレクトリ |
+| `--yolo` | ツール呼び出しを自動承認 |
 
 ## 設定ファイル（settings.json）
 
@@ -218,7 +221,7 @@ gemini /init
 runner:
   worker:
     kind: "gemini-cli"
-    model: "gemini-2.5-flash"  # または gemini-2.5-pro
+    model: "gemini-3-flash-preview"  # または gemini-3-pro-preview
     max_run_time_sec: 300
     env:
       GEMINI_API_KEY: "env:GEMINI_API_KEY"
@@ -229,7 +232,7 @@ runner:
 ```go
 cfg := agenttools.ProviderConfig{
     CLIPath:  "gemini",
-    Model:    "gemini-2.5-flash",
+    Model:    "gemini-3-flash-preview",
     ExtraEnv: map[string]string{
         "GEMINI_API_KEY": os.Getenv("GEMINI_API_KEY"),
     },
@@ -244,7 +247,8 @@ provider := agenttools.NewGeminiProvider(cfg)
 
 | シナリオ | 推奨モデル | 理由 |
 |----------|-----------|------|
-| 高度なタスク・デフォルト | `gemini-3-pro-preview` | 最新のマルチモーダル能力 |
+| 日常的なタスク・デフォルト | `gemini-3-flash-preview` | 低レイテンシ・最新世代 |
+| 高度なタスク | `gemini-3-pro-preview` | 最新のマルチモーダル能力 |
 | 安定性重視のコード生成 | `gemini-2.5-pro` | 高度な推論能力・安定版 |
 | 日常的なコード生成 | `gemini-2.5-flash` | バランスが良く安定・低コスト |
 | 大量のファイル処理 | `gemini-2.5-flash-lite` | 低コスト・高速 |

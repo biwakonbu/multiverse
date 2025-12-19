@@ -58,7 +58,11 @@ func Run(ctx context.Context, stdin io.Reader, _, _ io.Writer, logger *slog.Logg
 	metaModel := cli.ResolveMetaModel(flags.MetaModel, cfg.Runner.Meta.Model)
 	logger.Info("resolved meta model", "model", metaModel)
 
-	metaClient := meta.NewClient(cfg.Runner.Meta.Kind, apiKey, metaModel, cfg.Runner.Meta.SystemPrompt)
+	baseMetaClient := meta.NewClient(cfg.Runner.Meta.Kind, apiKey, metaModel, cfg.Runner.Meta.SystemPrompt)
+	var metaClient core.MetaClient = baseMetaClient
+	if cfg.Runner.Tooling != nil {
+		metaClient = meta.NewToolingClient(cfg.Runner.Tooling, apiKey, baseMetaClient, cfg.Runner.Meta.SystemPrompt)
+	}
 
 	workerExecutor, err := worker.NewExecutor(cfg.Runner.Worker, cfg.Task.Repo)
 	if err != nil {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { windowStore, type WindowId } from "../../stores/windowStore";
   import { unresolvedCount } from "../../stores/backlogStore";
-  import { MessageSquare, Cpu, ListTodo, ClipboardList } from "lucide-svelte";
+  import { MessageSquare, Cpu, ListTodo, ClipboardList, Sliders } from "lucide-svelte";
 
   function toggle(id: WindowId) {
     windowStore.toggle(id);
@@ -57,6 +57,22 @@
         {/if}
       </div>
       {#if $windowStore.backlog.isOpen}
+        <div class="active-glow"></div>
+      {/if}
+    </button>
+
+    <!-- Settings Toggle -->
+    <button
+      class="taskbar-item"
+      class:active={$windowStore.settings.isOpen}
+      onclick={() => toggle("settings")}
+      title="Tooling Settings"
+      aria-label="Toggle Tooling Settings"
+    >
+      <div class="icon-wrapper">
+        <Sliders size={20} absoluteStrokeWidth class="icon" />
+      </div>
+      {#if $windowStore.settings.isOpen}
         <div class="active-glow"></div>
       {/if}
     </button>

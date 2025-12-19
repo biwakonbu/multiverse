@@ -4,3 +4,4 @@
 
 export * from './wails';
 export * from './logger';
+export * from './toolSettings';

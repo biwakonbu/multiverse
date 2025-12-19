@@ -310,8 +310,17 @@ func TestGeminiProvider_Build(t *testing.T) {
 	}
 
 	args := strings.Join(plan.Args, " ")
-	if !strings.Contains(args, "--model gemini-2.5-pro") {
+	if !strings.Contains(args, "--model gemini-3-flash-preview") {
 		t.Errorf("Default model missing, got: %s", args)
+	}
+	if !strings.Contains(args, "--output-format json") {
+		t.Errorf("Default JSON output missing, got: %s", args)
+	}
+	if !strings.Contains(args, "--yolo") {
+		t.Errorf("Auto-accept missing, got: %s", args)
+	}
+	if !strings.Contains(args, "-p") {
+		t.Errorf("Prompt flag missing, got: %s", args)
 	}
 	if !strings.HasSuffix(args, "hello gemini") {
 		t.Errorf("Prompt should be last arg, got: %s", args)
@@ -349,8 +358,11 @@ func TestGeminiProvider_Build_Options(t *testing.T) {
 	if !strings.Contains(args, "--max-output-tokens 2048") {
 		t.Errorf("Max tokens failed, got: %s", args)
 	}
-	if !strings.Contains(args, "--json") {
+	if !strings.Contains(args, "--output-format json") {
 		t.Errorf("JSON output failed, got: %s", args)
+	}
+	if !strings.Contains(args, "--yolo") {
+		t.Errorf("Auto-accept failed, got: %s", args)
 	}
 
 	if plan.Stdin != "test" {

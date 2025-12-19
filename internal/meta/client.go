@@ -19,10 +19,12 @@ type Client struct {
 }
 
 // NewClient creates a new Meta client.
-// It prioritizes CLI providers (codex, claude) over HTTP providers if configured or defaulted.
+// It prioritizes CLI providers (codex, claude, gemini) over HTTP providers if configured or defaulted.
 func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	if model == "" {
-		model = agenttools.DefaultMetaModel // Meta-agent default model
+		if kind == "" || kind == "openai-chat" || strings.Contains(kind, "codex") {
+			model = agenttools.DefaultMetaModel // Meta-agent default model
+		}
 	}
 	c := &Client{
 		kind:         kind,
@@ -36,7 +38,7 @@ func NewClient(kind, apiKey, model, systemPrompt string) *Client {
 	switch {
 	case kind == "mock":
 		c.provider = NewMockClient().provider
-	case strings.Contains(kind, "codex") || strings.Contains(kind, "claude"):
+	case strings.Contains(kind, "codex") || strings.Contains(kind, "claude") || strings.Contains(kind, "gemini"):
 		// CLI based providers
 		cliProvider := NewCLIProvider(kind, model, systemPrompt)
 		cliProvider.SetLogger(c.logger)

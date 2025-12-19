@@ -28,7 +28,7 @@ Docker コンテナが外部サンドボックスとして機能するため、C
 | CLI ツール | 無効化フラグ | 備考 |
 |-----------|-------------|------|
 | Codex CLI | `--dangerously-bypass-approvals-and-sandbox` | 0.65.0 で確認 |
-| Gemini CLI | （TBD: 実装時に調査） | |
+| Gemini CLI | （該当フラグなし: `--sandbox` を使用しない） | `--yolo` で承認を自動化 |
 | Claude Code | （該当フラグなし: 現実装は `-p`） | `internal/agenttools/claude.go` |
 | Cursor CLI | （TBD: 実装時に調査） | |
 

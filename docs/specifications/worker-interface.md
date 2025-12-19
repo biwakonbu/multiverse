@@ -18,12 +18,13 @@ Worker Executor は以下の責務を持ちます：
 
 ### 2.1 v1 サポート Worker
 
-v1 では `codex-cli` と `claude-code` をサポートします。
+v1 では `codex-cli` / `claude-code` / `gemini-cli` をサポートします。
 
 | Worker 種別 | 説明                               | Docker イメージ             |
 | ----------- | ---------------------------------- | --------------------------- |
 | `codex-cli` | Codex CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-codex:latest` |
 | `claude-code` | Claude Code CLI コーディングエージェント（互換: `claude-code-cli`） | `ghcr.io/biwakonbu/agent-runner-claude:latest` |
+| `gemini-cli` | Gemini CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-gemini:latest` |
 
 （バックログ）追加 Worker（例: `cursor-cli` 等）のサポートは `ISSUE.md` の Deferred（「追加 Worker 種別のサポート」）を正とする。
 
@@ -85,7 +86,7 @@ type WorkerRunResult struct {
 
 | 項目                   | 設定                                                    |
 | ---------------------- | ------------------------------------------------------- |
-| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`） |
+| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`、`gemini-cli` は `ghcr.io/biwakonbu/agent-runner-gemini:latest`） |
 | **カスタマイズ**       | Task YAML の `runner.worker.docker_image` で上書き可能  |
 | **自動 Pull**          | イメージが存在しない場合、自動的に `docker pull` を実行 |
 
@@ -96,6 +97,7 @@ type WorkerRunResult struct {
 | `/workspace/project`     | プロジェクトルート | ホストの `task.repo`          |
 | `/root/.codex/auth.json` | Codex 認証情報     | ホストの `~/.codex/auth.json` |
 | `/root/.config/claude`   | Claude Code 認証情報 | ホストの `~/.config/claude` |
+| `/root/.gemini`          | Gemini CLI 設定/認証 | ホストの `~/.gemini` |
 
 ### 4.3 マウント仕様
 
@@ -131,6 +133,14 @@ v1 実装では、以下の順序で Codex 認証情報を自動的に検出・�
 -v ~/.config/claude:/root/.config/claude:ro
 ```
 
+#### 4.3.4 Gemini CLI 設定マウント（自動）
+
+`~/.gemini` が存在する場合、ReadOnly でマウントします：
+
+```bash
+-v ~/.gemini:/root/.gemini:ro
+```
+
 ### 4.4 環境変数
 
 #### 4.4.1 環境変数の注入
@@ -142,8 +152,11 @@ runner:
   worker:
     env:
       CODEX_API_KEY: "env:CODEX_API_KEY" # ホスト環境変数を参照
+      GEMINI_API_KEY: "env:GEMINI_API_KEY"
       CUSTOM_VAR: "literal-value" # リテラル値
 ```
+
+Gemini CLI は `GEMINI_API_KEY` / `GOOGLE_API_KEY` / `GOOGLE_GENAI_USE_VERTEXAI` / `GOOGLE_CLOUD_PROJECT` を利用できる。
 
 #### 4.4.2 `env:` プレフィックス
 

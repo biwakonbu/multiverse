@@ -280,4 +280,13 @@
   --mv-node-width-small: 180px;
   --mv-node-width-medium: 240px;
   --mv-node-width-large: 320px;
+
+  /* トグルスイッチ */
+  --mv-toggle-track-width: 46px;
+  --mv-toggle-track-height: 26px;
+  --mv-toggle-thumb-size: 20px;
+  --mv-toggle-thumb-offset: 4px;
+
+  /* テキストエリア */
+  --mv-textarea-min-height: 260px;
 }

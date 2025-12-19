@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type WindowId = 'chat' | 'process' | 'wbs' | 'backlog';
+export type WindowId = 'chat' | 'process' | 'wbs' | 'backlog' | 'settings';
 
 export interface WindowState {
   id: WindowId;
@@ -39,6 +39,13 @@ const DEFAULT_WINDOWS: Record<WindowId, Omit<WindowState, 'zIndex'>> = {
     isOpen: false,
     position: { x: 50, y: 100 },
     size: { width: 350, height: 500 }
+  },
+  settings: {
+    id: 'settings',
+    title: 'Tooling Settings',
+    isOpen: false,
+    position: { x: 120, y: 80 },
+    size: { width: 720, height: 640 }
   }
 };
 
@@ -48,6 +55,7 @@ function createWindowStore() {
     process: { ...DEFAULT_WINDOWS.process, zIndex: 101 },
     wbs: { ...DEFAULT_WINDOWS.wbs, zIndex: 102 },
     backlog: { ...DEFAULT_WINDOWS.backlog, zIndex: 103 },
+    settings: { ...DEFAULT_WINDOWS.settings, zIndex: 104 },
   });
 
   let maxZIndex = 110;
