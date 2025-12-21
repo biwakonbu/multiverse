@@ -231,6 +231,303 @@
     });
   }
 
+  function handleEditProfileChange(event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    editProfileId = target.value;
+    profileIdError = "";
+  }
+
+  function ensureProfiles(cfg: ToolingConfig) {
+    if (!cfg.profiles) {
+      cfg.profiles = [];
+    }
+  }
+
+  function cloneProfile(profile?: ToolingProfile): ToolingProfile {
+    if (!profile) {
+      return { id: "", name: "", categories: {} };
+    }
+    return JSON.parse(JSON.stringify(profile)) as ToolingProfile;
+  }
+
+  function nextCustomIdentity(existing: ToolingProfile[]) {
+    const existingIDs = new Set(existing.map(profile => profile.id ?? ""));
+    let index = 1;
+    let id = `custom-${index}`;
+    while (existingIDs.has(id)) {
+      index += 1;
+      id = `custom-${index}`;
+    }
+    return { id, name: `Custom ${index}` };
+  }
+
+  function nextCopyIdentity(base: ToolingProfile, existing: ToolingProfile[]) {
+    const existingIDs = new Set(existing.map(profile => profile.id ?? ""));
+    const existingNames = new Set(existing.map(profile => profile.name ?? ""));
+    const baseID = (base.id ?? "profile").trim() || "profile";
+    const baseName = (base.name ?? base.id ?? "Profile").trim() || "Profile";
+    let id = `${baseID}-copy`;
+    let index = 2;
+    while (existingIDs.has(id)) {
+      id = `${baseID}-copy-${index}`;
+      index += 1;
+    }
+    let name = `${baseName} Copy`;
+    let nameIndex = 2;
+    while (existingNames.has(name)) {
+      name = `${baseName} Copy ${nameIndex}`;
+      nameIndex += 1;
+    }
+    return { id, name };
+  }
+
+  function createProfileFromDefault() {
+    let newID = "";
+    updateConfig((cfg) => {
+      ensureProfiles(cfg);
+      const base = cfg.profiles?.find(profile => profile.id === "balanced") ?? cfg.profiles?.[0];
+      const clone = cloneProfile(base);
+      const identity = nextCustomIdentity(cfg.profiles ?? []);
+      clone.id = identity.id;
+      clone.name = identity.name;
+      if (!clone.categories) {
+        clone.categories = {};
+      }
+      cfg.profiles?.push(clone);
+      cfg.activeProfile = identity.id;
+      newID = identity.id;
+    });
+    if (newID) {
+      editProfileId = newID;
+    }
+  }
+
+  function duplicateProfile() {
+    if (!editingProfile) {
+      return;
+    }
+    let newID = "";
+    updateConfig((cfg) => {
+      ensureProfiles(cfg);
+      const base = cfg.profiles?.find(profile => profile.id === editingProfile.id);
+      if (!base) {
+        return;
+      }
+      const clone = cloneProfile(base);
+      const identity = nextCopyIdentity(base, cfg.profiles ?? []);
+      clone.id = identity.id;
+      clone.name = identity.name;
+      cfg.profiles?.push(clone);
+      newID = identity.id;
+    });
+    if (newID) {
+      editProfileId = newID;
+    }
+  }
+
+  function deleteProfile() {
+    if (!editingProfile?.id) {
+      return;
+    }
+    if (!window.confirm(`Delete profile "${editingProfile.name ?? editingProfile.id}"?`)) {
+      return;
+    }
+    const deleteID = editingProfile.id;
+    updateConfig((cfg) => {
+      ensureProfiles(cfg);
+      cfg.profiles = (cfg.profiles ?? []).filter(profile => (profile.id ?? "") !== deleteID);
+      if (cfg.activeProfile === deleteID) {
+        cfg.activeProfile = cfg.profiles[0]?.id ?? "";
+      }
+    });
+  }
+
+  function handleProfileNameInput(event: Event) {
+    if (!editingProfile?.id) {
+      return;
+    }
+    const target = event.currentTarget as HTMLInputElement;
+    updateConfig((cfg) => {
+      const profile = cfg.profiles?.find(p => (p.id ?? "") === editingProfile.id);
+      if (profile) {
+        profile.name = target.value;
+      }
+    });
+  }
+
+  function changeProfileId() {
+    if (!editingProfile?.id) {
+      return;
+    }
+    const currentID = editingProfile.id;
+    const nextID = window.prompt("New profile ID", currentID)?.trim() ?? "";
+    if (!nextID || nextID === currentID) {
+      return;
+    }
+    if (profiles.some(profile => (profile.id ?? "") === nextID)) {
+      profileIdError = "Profile ID already exists.";
+      return;
+    }
+    profileIdError = "";
+    updateConfig((cfg) => {
+      const profile = cfg.profiles?.find(p => (p.id ?? "") === currentID);
+      if (profile) {
+        profile.id = nextID;
+      }
+      if (cfg.activeProfile === currentID) {
+        cfg.activeProfile = nextID;
+      }
+    });
+    editProfileId = nextID;
+  }
+
+  function addCategory() {
+    if (!editingProfile?.id) {
+      return;
+    }
+    const name = newCategoryName.trim();
+    if (!name) {
+      return;
+    }
+    updateConfig((cfg) => {
+      const profile = cfg.profiles?.find(p => (p.id ?? "") === editingProfile.id);
+      if (!profile) {
+        return;
+      }
+      if (!profile.categories) {
+        profile.categories = {};
+      }
+      if (!profile.categories[name]) {
+        profile.categories[name] = {
+          strategy: "weighted",
+          fallbackOnRateLimit: true,
+          cooldownSec: 120,
+          candidates: [],
+        };
+      }
+    });
+    newCategoryName = "";
+  }
+
+  function removeCategory(categoryName: string) {
+    if (!editingProfile?.id) {
+      return;
+    }
+    if (!window.confirm(`Delete category "${categoryName}"?`)) {
+      return;
+    }
+    updateConfig((cfg) => {
+      const profile = cfg.profiles?.find(p => (p.id ?? "") === editingProfile.id);
+      if (!profile?.categories) {
+        return;
+      }
+      delete profile.categories[categoryName];
+    });
+  }
+
+  function updateCategory(categoryName: string, update: (category: ToolCategoryConfig) => void) {
+    if (!editingProfile?.id) {
+      return;
+    }
+    updateConfig((cfg) => {
+      const profile = cfg.profiles?.find(p => (p.id ?? "") === editingProfile.id);
+      if (!profile) {
+        return;
+      }
+      if (!profile.categories) {
+        profile.categories = {};
+      }
+      const category = profile.categories[categoryName] ?? {
+        strategy: "weighted",
+        fallbackOnRateLimit: true,
+        cooldownSec: 120,
+        candidates: [],
+      };
+      update(category);
+      profile.categories[categoryName] = category;
+    });
+  }
+
+  function updateCandidate(categoryName: string, index: number, update: (candidate: ToolCandidate) => void) {
+    updateCategory(categoryName, (category) => {
+      const candidates = category.candidates ?? [];
+      if (!candidates[index]) {
+        candidates[index] = { tool: "", model: "", weight: 0 };
+      }
+      update(candidates[index]);
+      category.candidates = candidates;
+    });
+  }
+
+  function addCandidate(categoryName: string) {
+    updateCategory(categoryName, (category) => {
+      const candidates = category.candidates ?? [];
+      candidates.push({
+        tool: availableTools[0]?.id ?? "",
+        model: "",
+        weight: 10,
+      });
+      category.candidates = candidates;
+    });
+  }
+
+  function removeCandidate(categoryName: string, index: number) {
+    updateCategory(categoryName, (category) => {
+      const candidates = category.candidates ?? [];
+      category.candidates = candidates.filter((_, idx) => idx !== index);
+    });
+  }
+
+  async function handleCandidateToolChange(categoryName: string, index: number, event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    const nextTool = target.value;
+    await ensureModelsForTool(nextTool);
+    updateCandidate(categoryName, index, (candidate) => {
+      candidate.tool = nextTool;
+      const supportedModels = modelsForTool(nextTool);
+      if (candidate.model && !supportedModels.some(model => model.id === candidate.model)) {
+        candidate.model = "";
+      }
+    });
+  }
+
+  function handleCandidateModelChange(categoryName: string, index: number, event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    updateCandidate(categoryName, index, (candidate) => {
+      candidate.model = target.value;
+    });
+  }
+
+  function handleCandidateWeightChange(categoryName: string, index: number, event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    const value = Number(target.value);
+    updateCandidate(categoryName, index, (candidate) => {
+      candidate.weight = Number.isFinite(value) ? Math.max(0, value) : 0;
+    });
+  }
+
+  function handleCategoryStrategyChange(categoryName: string, event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    updateCategory(categoryName, (category) => {
+      category.strategy = target.value;
+    });
+  }
+
+  function handleCategoryFallbackChange(categoryName: string, event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    updateCategory(categoryName, (category) => {
+      category.fallbackOnRateLimit = target.value === "true";
+    });
+  }
+
+  function handleCategoryCooldownChange(categoryName: string, event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    const value = Number(target.value);
+    updateCategory(categoryName, (category) => {
+      category.cooldownSec = Number.isFinite(value) ? Math.max(0, value) : 0;
+    });
+  }
+
   function setForceEnabled(enabled: boolean) {
     updateConfig((cfg) => {
       if (!cfg.force) {
@@ -246,6 +543,7 @@
 
     // モデル一覧をフィルタリング
     await updateFilteredModels(newTool);
+    await ensureModelsForTool(newTool);
 
     // 現在選択中のモデルがサポートされていない場合はリセット
     const isModelSupported = filteredModels.some(m => m.id === forceModel);
@@ -334,9 +632,9 @@
       <div class="content-section">
         <div class="section-header">
           <div class="header-glow"></div>
-          <h3 class="section-title">Profile Selection</h3>
+          <h3 class="section-title">Profiles & Categories</h3>
           <p class="section-subtitle">
-            Switch between weighted tool configurations by category.
+            Create custom profiles and edit category-level tool weights.
           </p>
         </div>
 
@@ -371,8 +669,290 @@
           <div class="empty-state">
             <Code2 size={32} class="empty-icon" />
             <p class="empty-text">
-              No profiles configured yet. Add profiles in the Advanced tab.
+              No profiles configured yet. Create a profile from the default.
             </p>
+            <Button
+              variant="crystal"
+              size="small"
+              label="Create from Default"
+              onclick={createProfileFromDefault}
+            />
+          </div>
+        {:else}
+          <div class="profile-editor">
+            <div class="profile-editor-header">
+              <div>
+                <h4 class="profile-editor-title">Profile Builder</h4>
+                <p class="profile-editor-subtitle">
+                  Manage profiles, categories, and candidate weights without JSON.
+                </p>
+              </div>
+              <div class="profile-editor-actions">
+                <Button
+                  variant="crystal"
+                  size="small"
+                  label="New from Default"
+                  onclick={createProfileFromDefault}
+                />
+                <Button
+                  variant="ghost"
+                  size="small"
+                  label="Duplicate"
+                  onclick={duplicateProfile}
+                  disabled={!editingProfile}
+                />
+                <Button
+                  variant="ghost"
+                  size="small"
+                  label="Delete"
+                  onclick={deleteProfile}
+                  disabled={profiles.length <= 1}
+                />
+              </div>
+            </div>
+
+            <div class="profile-meta-grid">
+              <div class="crystal-field">
+                <label class="field-label" for="edit-profile">
+                  <span class="label-text">Editing Profile</span>
+                  <span class="label-hint">Select a profile to edit</span>
+                </label>
+                <div class="select-wrapper">
+                  <select
+                    id="edit-profile"
+                    class="crystal-select"
+                    value={editProfileId}
+                    onchange={handleEditProfileChange}
+                  >
+                    {#each profiles as profile}
+                      <option value={profile.id ?? ""}>
+                        {profile.name ?? profile.id ?? "Unnamed"}
+                      </option>
+                    {/each}
+                  </select>
+                  <div class="select-arrow"></div>
+                </div>
+              </div>
+
+              <div class="crystal-field">
+                <label class="field-label" for="profile-name">
+                  <span class="label-text">Profile Name</span>
+                  <span class="label-hint">Displayed in the profile selector</span>
+                </label>
+                <input
+                  id="profile-name"
+                  class="crystal-input"
+                  type="text"
+                  value={editingProfile?.name ?? ""}
+                  placeholder="Custom profile"
+                  oninput={handleProfileNameInput}
+                  disabled={!editingProfile}
+                />
+              </div>
+
+              <div class="crystal-field">
+                <label class="field-label">
+                  <span class="label-text">Profile ID</span>
+                  <span class="label-hint">Unique identifier for this profile</span>
+                </label>
+                <div class="profile-id-row">
+                  <span class="profile-id">{editingProfile?.id ?? "-"}</span>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    label="Change ID"
+                    onclick={changeProfileId}
+                    disabled={!editingProfile}
+                  />
+                </div>
+                {#if profileIdError}
+                  <div class="field-error">{profileIdError}</div>
+                {/if}
+              </div>
+            </div>
+
+            <div class="category-editor">
+              <div class="category-editor-header">
+                <div>
+                  <h4 class="category-editor-title">Categories</h4>
+                  <p class="category-editor-subtitle">
+                    Tune strategy, cooldown, and candidate weights per category.
+                  </p>
+                </div>
+                <div class="category-actions">
+                  <input
+                    class="crystal-input category-name-input"
+                    type="text"
+                    placeholder="category name"
+                    value={newCategoryName}
+                    oninput={(event) => (newCategoryName = (event.currentTarget as HTMLInputElement).value)}
+                    disabled={!editingProfile}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    label="Add Category"
+                    onclick={addCategory}
+                    disabled={!newCategoryName.trim() || !editingProfile}
+                  />
+                </div>
+              </div>
+
+              {#if editingCategories.length === 0}
+                <div class="empty-state compact">
+                  <Code2 size={28} class="empty-icon" />
+                  <p class="empty-text">No categories yet. Add your first category.</p>
+                </div>
+              {:else}
+                {#each editingCategories as [categoryName, category]}
+                  <div class="category-card">
+                    <div class="category-card-header">
+                      <div class="category-title">
+                        <span class="category-name">{categoryName}</span>
+                        <span class="category-badge">{category.strategy ?? "weighted"}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        label="Delete"
+                        onclick={() => removeCategory(categoryName)}
+                      />
+                    </div>
+
+                    <div class="category-fields">
+                      <div class="crystal-field">
+                        <label class="field-label">
+                          <span class="label-text">Strategy</span>
+                        </label>
+                        <div class="select-wrapper">
+                          <select
+                            class="crystal-select"
+                            value={category.strategy ?? "weighted"}
+                            onchange={(event) => handleCategoryStrategyChange(categoryName, event)}
+                          >
+                            <option value="weighted">weighted</option>
+                            <option value="round_robin">round_robin</option>
+                          </select>
+                          <div class="select-arrow"></div>
+                        </div>
+                      </div>
+
+                      <div class="crystal-field">
+                        <label class="field-label">
+                          <span class="label-text">Fallback on Rate Limit</span>
+                        </label>
+                        <div class="select-wrapper">
+                          <select
+                            class="crystal-select"
+                            value={(category.fallbackOnRateLimit ?? true) ? "true" : "false"}
+                            onchange={(event) => handleCategoryFallbackChange(categoryName, event)}
+                          >
+                            <option value="true">Enabled</option>
+                            <option value="false">Disabled</option>
+                          </select>
+                          <div class="select-arrow"></div>
+                        </div>
+                      </div>
+
+                      <div class="crystal-field">
+                        <label class="field-label">
+                          <span class="label-text">Cooldown (sec)</span>
+                        </label>
+                        <input
+                          class="crystal-input"
+                          type="number"
+                          min="0"
+                          value={category.cooldownSec ?? 0}
+                          oninput={(event) => handleCategoryCooldownChange(categoryName, event)}
+                        />
+                      </div>
+                    </div>
+
+                    <div class="candidate-block">
+                      <div class="candidate-header">
+                        <span class="candidate-title">Candidates</span>
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          label="Add Candidate"
+                          onclick={() => addCandidate(categoryName)}
+                        />
+                      </div>
+
+                      {#if (category.candidates ?? []).length === 0}
+                        <div class="empty-state compact">
+                          <p class="empty-text">No candidates yet. Add tool/model pairs.</p>
+                        </div>
+                      {:else}
+                        {#each category.candidates ?? [] as candidate, index}
+                          <div class="candidate-row">
+                            <div class="crystal-field">
+                              <label class="field-label">
+                                <span class="label-text">Tool</span>
+                              </label>
+                              <div class="select-wrapper">
+                                <select
+                                  class="crystal-select"
+                                  value={candidate.tool ?? ""}
+                                  onchange={(event) => handleCandidateToolChange(categoryName, index, event)}
+                                >
+                                  <option value="">Select a tool...</option>
+                                  {#each availableTools as tool}
+                                    <option value={tool.id}>{tool.name}</option>
+                                  {/each}
+                                </select>
+                                <div class="select-arrow"></div>
+                              </div>
+                            </div>
+
+                            <div class="crystal-field">
+                              <label class="field-label">
+                                <span class="label-text">Model</span>
+                              </label>
+                              <div class="select-wrapper">
+                                <select
+                                  class="crystal-select"
+                                  value={candidate.model ?? ""}
+                                  onchange={(event) => handleCandidateModelChange(categoryName, index, event)}
+                                  disabled={!candidate.tool}
+                                >
+                                  {#each modelsForTool(candidate.tool ?? "") as model}
+                                    <option value={model.id}>{model.name}</option>
+                                  {/each}
+                                </select>
+                                <div class="select-arrow"></div>
+                              </div>
+                            </div>
+
+                            <div class="crystal-field">
+                              <label class="field-label">
+                                <span class="label-text">Weight</span>
+                              </label>
+                              <input
+                                class="crystal-input"
+                                type="number"
+                                min="0"
+                                value={candidate.weight ?? 0}
+                                oninput={(event) => handleCandidateWeightChange(categoryName, index, event)}
+                              />
+                            </div>
+
+                            <div class="candidate-actions">
+                              <Button
+                                variant="ghost"
+                                size="small"
+                                label="Remove"
+                                onclick={() => removeCandidate(categoryName, index)}
+                              />
+                            </div>
+                          </div>
+                        {/each}
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              {/if}
+            </div>
           </div>
         {/if}
       </div>
@@ -877,6 +1457,234 @@
     margin: 0;
     font-size: var(--mv-font-size-sm);
     color: var(--mv-color-text-muted);
+  }
+
+  .empty-state.compact {
+    padding: var(--mv-spacing-md);
+    gap: var(--mv-spacing-xs);
+  }
+
+  /* ========================================
+     Profile Builder
+     ======================================== */
+  .profile-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-lg);
+    padding: var(--mv-spacing-md);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-radius: var(--mv-radius-md);
+  }
+
+  .profile-editor-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--mv-spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .profile-editor-title {
+    margin: 0 0 var(--mv-spacing-xxs);
+    font-size: var(--mv-font-size-md);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-primary);
+    letter-spacing: var(--mv-letter-spacing-wide);
+  }
+
+  .profile-editor-subtitle {
+    margin: 0;
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
+  }
+
+  .profile-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .profile-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--mv-spacing-md);
+  }
+
+  .crystal-input {
+    width: 100%;
+    height: var(--mv-input-height-md);
+    padding: 0 var(--mv-spacing-md);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
+    border-radius: var(--mv-radius-md);
+    color: var(--mv-color-text-primary);
+    font-family: var(--mv-font-sans);
+    font-size: var(--mv-font-size-sm);
+    transition: all 0.2s ease;
+  }
+
+  .crystal-input:hover:not(:disabled) {
+    border-color: var(--mv-glass-border-hover);
+    background: var(--mv-glass-bg-darker);
+  }
+
+  .crystal-input:focus {
+    outline: none;
+    border-color: var(--mv-primitive-frost-2);
+    box-shadow: var(--mv-shadow-glow-subtle);
+  }
+
+  .crystal-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .profile-id-row {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .profile-id {
+    padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
+    background: var(--mv-glass-bg-darker);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-radius: var(--mv-radius-sm);
+    font-family: var(--mv-font-mono);
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
+  }
+
+  .field-error {
+    margin-top: var(--mv-spacing-xxs);
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-primitive-pastel-red);
+  }
+
+  .category-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-md);
+  }
+
+  .category-editor-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--mv-spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .category-editor-title {
+    margin: 0 0 var(--mv-spacing-xxs);
+    font-size: var(--mv-font-size-md);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-primary);
+  }
+
+  .category-editor-subtitle {
+    margin: 0;
+    font-size: var(--mv-font-size-xs);
+    color: var(--mv-color-text-muted);
+  }
+
+  .category-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .category-name-input {
+    min-width: var(--mv-empty-state-width);
+  }
+
+  .category-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-md);
+    padding: var(--mv-spacing-md);
+    background: var(--mv-glass-bg-darker);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
+    border-radius: var(--mv-radius-md);
+  }
+
+  .category-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mv-spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .category-title {
+    display: flex;
+    align-items: center;
+    gap: var(--mv-spacing-xs);
+  }
+
+  .category-name {
+    font-size: var(--mv-font-size-md);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-primary);
+  }
+
+  .category-badge {
+    padding: var(--mv-spacing-xxxs) var(--mv-spacing-xs);
+    border-radius: var(--mv-radius-full);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    font-size: var(--mv-font-size-xxs);
+    color: var(--mv-color-text-muted);
+    letter-spacing: var(--mv-letter-spacing-wide);
+  }
+
+  .category-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--mv-spacing-md);
+  }
+
+  .candidate-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mv-spacing-sm);
+  }
+
+  .candidate-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mv-spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .candidate-title {
+    font-size: var(--mv-font-size-sm);
+    font-weight: var(--mv-font-weight-semibold);
+    color: var(--mv-color-text-secondary);
+    letter-spacing: var(--mv-letter-spacing-wide);
+  }
+
+  .candidate-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--mv-spacing-sm);
+    align-items: end;
+    padding: var(--mv-spacing-sm);
+    background: var(--mv-glass-bg-dark);
+    border: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-radius: var(--mv-radius-md);
+  }
+
+  .candidate-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: var(--mv-spacing-xxs);
   }
 
   /* ========================================

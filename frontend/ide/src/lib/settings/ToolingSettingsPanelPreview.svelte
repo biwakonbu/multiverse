@@ -1185,13 +1185,13 @@
   }
 
   .active-badge {
-    padding: 2px 6px;
+    padding: var(--mv-spacing-xxxs) var(--mv-spacing-xs);
     background: var(--mv-primitive-frost-2);
     border-radius: var(--mv-radius-full);
-    font-size: 10px;
+    font-size: var(--mv-font-size-xxs);
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-primitive-polar-night-0);
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
     text-transform: uppercase;
   }
 
@@ -1300,7 +1300,7 @@
 
   .inline-input:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--mv-primitive-frost-2);
+    box-shadow: 0 0 0 var(--mv-focus-ring-width) var(--mv-primitive-frost-2);
   }
 
   .error-text {
@@ -1319,8 +1319,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--mv-icon-size-xl);
+    height: var(--mv-icon-size-xl);
     background: var(--mv-glass-bg-dark);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
     border-radius: var(--mv-radius-md);
@@ -1341,13 +1341,13 @@
   }
 
   .icon-btn.small {
-    width: 24px;
-    height: 24px;
+    width: var(--mv-icon-size-lg);
+    height: var(--mv-icon-size-lg);
   }
 
   .icon-btn.tiny {
-    width: 20px;
-    height: 20px;
+    width: var(--mv-icon-size-md);
+    height: var(--mv-icon-size-md);
     border: none;
     background: transparent;
   }
@@ -1389,7 +1389,7 @@
   }
 
   .add-category-input {
-    width: 180px;
+    width: var(--mv-node-width-small);
     padding: var(--mv-spacing-xs) var(--mv-spacing-sm);
     background: var(--mv-glass-bg-dark);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
@@ -1495,7 +1495,7 @@
     font-weight: var(--mv-font-weight-medium);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
   }
 
   .setting-select {
@@ -1520,7 +1520,7 @@
   }
 
   .setting-input {
-    width: 80px;
+    width: var(--mv-space-20);
     padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     background: var(--mv-glass-bg-dark);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
@@ -1557,7 +1557,7 @@
     font-weight: var(--mv-font-weight-semibold);
     color: var(--mv-color-text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
   }
 
   .no-candidates {
@@ -1580,12 +1580,12 @@
     font-weight: var(--mv-font-weight-medium);
     color: var(--mv-color-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: var(--mv-letter-spacing-wide);
     border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
   }
 
   .candidates-table th:last-child {
-    width: 32px;
+    width: var(--mv-icon-size-xl);
   }
 
   .candidates-table td {
@@ -1619,7 +1619,7 @@
   }
 
   .table-input {
-    width: 60px;
+    width: var(--mv-chat-timestamp-width);
     padding: var(--mv-spacing-xxs) var(--mv-spacing-xs);
     background: var(--mv-glass-bg-dark);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
@@ -1956,7 +1956,7 @@
   .json-editor {
     flex: 1;
     width: 100%;
-    min-height: 300px;
+    min-height: var(--mv-textarea-json-min-height);
     padding: var(--mv-spacing-md);
     background: transparent;
     border: none;
