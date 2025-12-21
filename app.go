@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/biwakonbu/agent-runner/internal/agenttools"
 	"github.com/biwakonbu/agent-runner/internal/chat"
 	"github.com/biwakonbu/agent-runner/internal/ide"
 	"github.com/biwakonbu/agent-runner/internal/meta"
@@ -82,15 +83,8 @@ func (a *App) newMetaClientFromConfig() chat.MetaClient {
 		kind = "openai-chat"
 	}
 
-	knownKinds := map[string]struct{}{
-		"mock":            {},
-		"codex-cli":       {},
-		"claude-code":     {},
-		"claude-code-cli": {},
-		"gemini-cli":      {},
-		"openai-chat":     {},
-	}
-	if _, ok := knownKinds[kind]; !ok {
+	// agenttools.IsValidToolKind で有効性を検証
+	if !agenttools.IsValidToolKind(kind) {
 		runtime.LogErrorf(a.ctx, "Unknown LLM kind '%s', falling back to openai-chat", kind)
 		kind = "openai-chat"
 	}
@@ -816,6 +810,75 @@ func (a *App) SetToolingConfigJSON(raw string) error {
 	}
 
 	return nil
+}
+
+// ============================================================================
+// Available Tools & Models API
+// ============================================================================
+
+// ToolOptionDTO はツール選択肢のフロントエンド向けデータ
+type ToolOptionDTO struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// ModelOptionDTO はモデル選択肢のフロントエンド向けデータ
+type ModelOptionDTO struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Group string `json:"group"`
+}
+
+// GetAvailableTools は利用可能なツール（プロバイダー）の一覧を返す
+// agenttools.KnownTools から取得（型安全）
+func (a *App) GetAvailableTools() []ToolOptionDTO {
+	tools := make([]ToolOptionDTO, 0, len(agenttools.KnownTools))
+	for _, t := range agenttools.KnownTools {
+		tools = append(tools, ToolOptionDTO{
+			ID:          string(t.Kind),
+			Name:        t.Name,
+			Description: t.Description,
+		})
+	}
+	return tools
+}
+
+// GetAvailableModels は利用可能なモデルの一覧を返す
+// agenttools.KnownModels から取得（型安全）
+func (a *App) GetAvailableModels() []ModelOptionDTO {
+	models := make([]ModelOptionDTO, 0, len(agenttools.KnownModels))
+	for _, m := range agenttools.KnownModels {
+		models = append(models, ModelOptionDTO{
+			ID:    m.ID,
+			Name:  m.Name,
+			Group: string(m.Group),
+		})
+	}
+	return models
+}
+
+// GetModelsForTool は指定されたツールでサポートされるモデル一覧を返す
+func (a *App) GetModelsForTool(toolID string) []ModelOptionDTO {
+	models := agenttools.GetModelsForTool(toolID)
+	if models == nil {
+		return []ModelOptionDTO{}
+	}
+
+	result := make([]ModelOptionDTO, 0, len(models))
+	for _, m := range models {
+		result = append(result, ModelOptionDTO{
+			ID:    m.ID,
+			Name:  m.Name,
+			Group: string(m.Group),
+		})
+	}
+	return result
+}
+
+// ValidateToolModelCombination はツールとモデルの組み合わせが有効かどうかを返す
+func (a *App) ValidateToolModelCombination(toolID, modelID string) bool {
+	return agenttools.IsValidToolModelCombination(toolID, modelID)
 }
 
 // TestLLMConnection は LLM 接続をテストする（CLI セッション検証）

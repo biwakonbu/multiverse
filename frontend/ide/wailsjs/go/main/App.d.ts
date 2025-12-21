@@ -13,7 +13,11 @@ export function DeleteBacklogItem(arg1:string):Promise<void>;
 
 export function GetAllBacklogItems():Promise<Array<orchestrator.BacklogItem>>;
 
+export function GetAvailableModels():Promise<Array<main.ModelOptionDTO>>;
+
 export function GetAvailablePools():Promise<Array<orchestrator.Pool>>;
+
+export function GetAvailableTools():Promise<Array<main.ToolOptionDTO>>;
 
 export function GetBacklogItems():Promise<Array<orchestrator.BacklogItem>>;
 
@@ -22,6 +26,8 @@ export function GetChatHistory(arg1:string):Promise<Array<chat.ChatMessage>>;
 export function GetExecutionState():Promise<string>;
 
 export function GetLLMConfig():Promise<main.LLMConfigDTO>;
+
+export function GetModelsForTool(arg1:string):Promise<Array<main.ModelOptionDTO>>;
 
 export function GetPoolSummaries():Promise<Array<orchestrator.PoolSummary>>;
 
@@ -60,3 +66,5 @@ export function StartExecution():Promise<void>;
 export function StopExecution():Promise<void>;
 
 export function TestLLMConnection():Promise<string>;
+
+export function ValidateToolModelCombination(arg1:string,arg2:string):Promise<boolean>;

@@ -9,7 +9,7 @@ import (
 
 // DefaultCodexModel は Codex CLI のデフォルトモデル（Worker 用）
 // NOTE: モデル ID は OpenAI/Codex CLI の仕様に依存するため、必要に応じて LLMConfig で上書き可能。
-const DefaultCodexModel = "gpt-5.1-codex"
+const DefaultCodexModel = "gpt-5.2-codex"
 
 // DefaultMetaModel は Meta-agent 用のデフォルトモデル
 const DefaultMetaModel = "gpt-5.2"
@@ -106,7 +106,7 @@ func (p *CodexProvider) Build(_ context.Context, req Request) (ExecPlan, error) 
 		args = append(args, "--json")
 	}
 
-	// モデル指定（デフォルト: gpt-5.1-codex）
+	// モデル指定（デフォルト: gpt-5.2-codex）
 	model := nonEmpty(req.Model, p.model, DefaultCodexModel)
 	model = ResolveOpenAIModelID(model)
 	args = append(args, "-m", model)

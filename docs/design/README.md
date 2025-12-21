@@ -60,6 +60,17 @@ Go 言語での実装ガイドを提供します。
   - 質問（Backlog）を会話に統合する方針
   - 既存 Orchestrator/Runner との整合
 
+### [tooling-selection.md](tooling-selection.md)
+
+Tooling (ツール/モデル選択) の設計を説明します。
+
+- **対象読者**: アーキテクト、実装者
+- **内容**:
+  - ToolingConfig の構造
+  - 選択アルゴリズムとフォールバック
+  - IDE/Orchestrator/AgentRunner の統合点
+  - 既知の制約とテスト
+
 ## 設計の読み方
 
 1. [architecture.md](architecture.md) でシステム全体像を把握

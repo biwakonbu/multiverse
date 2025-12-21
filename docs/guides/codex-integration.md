@@ -6,7 +6,7 @@
 
 - https://platform.openai.com/docs/pricing
 
-このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.1-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
+このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.2-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
 必要に応じて `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`）も利用できます（実装: `internal/agenttools/openai_models.go`）。
 
 ## 前提条件

@@ -47,7 +47,7 @@ var KnownOpenAIModels = []OpenAIModelInfo{
 		PricingSourceURL: OpenAIPricingDocURL,
 	},
 	{
-		ID:               "gpt-5.1-codex",
+		ID:               "gpt-5.2-codex",
 		Use:              "worker",
 		Notes:            "Codex CLI（Worker 実行）向けのデフォルト。",
 		PricingSourceURL: OpenAIPricingDocURL,

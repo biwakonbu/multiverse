@@ -29,7 +29,7 @@ func TestAgentToolProviders(t *testing.T) {
 				Mode:   "exec",
 			},
 			wantCmd:   "codex",
-			wantArgs:  []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "-C", "/workspace/project", "--json", "-m", "gpt-5.1-codex", "-c", "reasoning_effort=medium", "hello"},
+			wantArgs:  []string{"exec", "--dangerously-bypass-approvals-and-sandbox", "-C", "/workspace/project", "--json", "-m", "gpt-5.2-codex", "-c", "reasoning_effort=medium", "hello"},
 			wantStdin: false,
 		},
 		{

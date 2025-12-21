@@ -38,7 +38,7 @@ Meta-agent も `codex-cli` を選択可能（`openai-chat` は `OPENAI_API_KEY` 
 	  --dangerously-bypass-approvals-and-sandbox \
 	  -C /workspace/project \
 	  --json \
-	  -m gpt-5.1-codex \
+	  -m gpt-5.2-codex \
 	  -c reasoning_effort=medium \
 	  "プロンプト..."
 ```
@@ -61,13 +61,13 @@ Meta-agent も `codex-cli` を選択可能（`openai-chat` は `OPENAI_API_KEY` 
 | `--dangerously-bypass-approvals-and-sandbox` | サンドボックス・承認を無効化 | Docker が外部サンドボックスとして機能 |
 | `-C <DIR>` | 作業ディレクトリ | デフォルト: `/workspace/project` |
 | `--json` | JSONL 出力 | 機械可読形式で結果を取得 |
-| `-m <MODEL>` | モデル指定 | デフォルト: `gpt-5.1-codex` |
+| `-m <MODEL>` | モデル指定 | デフォルト: `gpt-5.2-codex` |
 
 ### モデル設定
 
 | 用途 | モデル ID | 設定箇所 |
 |------|----------|---------|
-| Worker タスク実行 | `gpt-5.1-codex` | `agenttools.DefaultCodexModel` |
+| Worker タスク実行 | `gpt-5.2-codex` | `agenttools.DefaultCodexModel` |
 | Meta-agent（計画・思考） | `gpt-5.2` | `agenttools.DefaultMetaModel` |
 | 高速実行（必要時） | `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`） | `internal/agenttools/openai_models.go` |
 
@@ -88,7 +88,7 @@ Meta-agent も `codex-cli` を選択可能（`openai-chat` は `OPENAI_API_KEY` 
 	  --dangerously-bypass-approvals-and-sandbox \
 	  -C /workspace/project \
 	  --json \
-	  -m gpt-5.1-codex \
+	  -m gpt-5.2-codex \
 	  -
 ```
 

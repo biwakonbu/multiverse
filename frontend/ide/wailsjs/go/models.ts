@@ -224,6 +224,38 @@ export namespace main {
 	        this.hasApiKey = source["hasApiKey"];
 	    }
 	}
+	export class ModelOptionDTO {
+	    id: string;
+	    name: string;
+	    group: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ModelOptionDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.group = source["group"];
+	    }
+	}
+	export class ToolOptionDTO {
+	    id: string;
+	    name: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ToolOptionDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.description = source["description"];
+	    }
+	}
 
 }
 

@@ -79,7 +79,7 @@ func DefaultToolingConfig() *config.ToolingConfig {
 						FallbackOnRateLimit: true,
 						CooldownSec:         120,
 						Candidates: []config.ToolCandidate{
-							{Tool: "codex-cli", Model: "gpt-5.1-codex", Weight: 60},
+							{Tool: "codex-cli", Model: "gpt-5.2-codex", Weight: 60},
 							{Tool: "claude-code", Model: "claude-haiku-4-5-20251001", Weight: 25},
 							{Tool: "gemini-cli", Model: "gemini-3-flash-preview", Weight: 15},
 						},
@@ -135,7 +135,7 @@ func DefaultToolingConfig() *config.ToolingConfig {
 						FallbackOnRateLimit: true,
 						CooldownSec:         120,
 						Candidates: []config.ToolCandidate{
-							{Tool: "codex-cli", Model: "gpt-5.1-codex", Weight: 70},
+							{Tool: "codex-cli", Model: "gpt-5.2-codex", Weight: 70},
 							{Tool: "gemini-cli", Model: "gemini-3-flash-preview", Weight: 20},
 							{Tool: "claude-code", Model: "claude-haiku-4-5-20251001", Weight: 10},
 						},

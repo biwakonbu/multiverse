@@ -88,8 +88,8 @@ func TestCodexProvider_Build_DefaultFlags(t *testing.T) {
 	}
 
 	// デフォルトモデル
-	if !strings.Contains(args, "-m gpt-5.1-codex") {
-		t.Errorf("Args should contain '-m gpt-5.1-codex', got: %s", args)
+	if !strings.Contains(args, "-m gpt-5.2-codex") {
+		t.Errorf("Args should contain '-m gpt-5.2-codex', got: %s", args)
 	}
 
 	// デフォルト思考の深さ

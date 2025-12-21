@@ -1,7 +1,7 @@
 
 # Complete Documentation
 
-Generated: 2025-12-19 14:07:12
+Generated: 2025-12-20 00:45:53
 
 This document consolidates all documentation from the docs/ directory for LLM context.
 
@@ -1188,12 +1188,13 @@ Worker Executor は以下の責務を持ちます：
 
 #### 2.1 v1 サポート Worker
 
-v1 では `codex-cli` と `claude-code` をサポートします。
+v1 では `codex-cli` / `claude-code` / `gemini-cli` をサポートします。
 
 | Worker 種別 | 説明                               | Docker イメージ             |
 | ----------- | ---------------------------------- | --------------------------- |
 | `codex-cli` | Codex CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-codex:latest` |
 | `claude-code` | Claude Code CLI コーディングエージェント（互換: `claude-code-cli`） | `ghcr.io/biwakonbu/agent-runner-claude:latest` |
+| `gemini-cli` | Gemini CLI コーディングエージェント | `ghcr.io/biwakonbu/agent-runner-gemini:latest` |
 
 （バックログ）追加 Worker（例: `cursor-cli` 等）のサポートは `ISSUE.md` の Deferred（「追加 Worker 種別のサポート」）を正とする。
 
@@ -1255,7 +1256,7 @@ type WorkerRunResult struct {
 
 | 項目                   | 設定                                                    |
 | ---------------------- | ------------------------------------------------------- |
-| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`） |
+| **デフォルトイメージ** | Worker kind により分岐（例: `codex-cli` は `ghcr.io/biwakonbu/agent-runner-codex:latest`、`claude-code` は `ghcr.io/biwakonbu/agent-runner-claude:latest`、`gemini-cli` は `ghcr.io/biwakonbu/agent-runner-gemini:latest`） |
 | **カスタマイズ**       | Task YAML の `runner.worker.docker_image` で上書き可能  |
 | **自動 Pull**          | イメージが存在しない場合、自動的に `docker pull` を実行 |
 
@@ -1266,6 +1267,7 @@ type WorkerRunResult struct {
 | `/workspace/project`     | プロジェクトルート | ホストの `task.repo`          |
 | `/root/.codex/auth.json` | Codex 認証情報     | ホストの `~/.codex/auth.json` |
 | `/root/.config/claude`   | Claude Code 認証情報 | ホストの `~/.config/claude` |
+| `/root/.gemini`          | Gemini CLI 設定/認証 | ホストの `~/.gemini` |
 
 #### 4.3 マウント仕様
 
@@ -1301,6 +1303,14 @@ v1 実装では、以下の順序で Codex 認証情報を自動的に検出・�
 -v ~/.config/claude:/root/.config/claude:ro
 ```
 
+#### 4.3.4 Gemini CLI 設定マウント（自動）
+
+`~/.gemini` が存在する場合、ReadOnly でマウントします：
+
+```bash
+-v ~/.gemini:/root/.gemini:ro
+```
+
 #### 4.4 環境変数
 
 #### 4.4.1 環境変数の注入
@@ -1312,8 +1322,11 @@ runner:
   worker:
     env:
       CODEX_API_KEY: "env:CODEX_API_KEY" # ホスト環境変数を参照
+      GEMINI_API_KEY: "env:GEMINI_API_KEY"
       CUSTOM_VAR: "literal-value" # リテラル値
 ```
+
+Gemini CLI は `GEMINI_API_KEY` / `GOOGLE_API_KEY` / `GOOGLE_GENAI_USE_VERTEXAI` / `GOOGLE_CLOUD_PROJECT` を利用できる。
 
 #### 4.4.2 `env:` プレフィックス
 
@@ -2006,6 +2019,17 @@ Go 言語での実装ガイドを提供します。
   - 質問（Backlog）を会話に統合する方針
   - 既存 Orchestrator/Runner との整合
 
+#### [tooling-selection.md](tooling-selection.md)
+
+Tooling (ツール/モデル選択) の設計を説明します。
+
+- **対象読者**: アーキテクト、実装者
+- **内容**:
+  - ToolingConfig の構造
+  - 選択アルゴリズムとフォールバック
+  - IDE/Orchestrator/AgentRunner の統合点
+  - 既知の制約とテスト
+
 ### 設計の読み方
 
 1. [architecture.md](architecture.md) でシステム全体像を把握
@@ -2175,7 +2199,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
   - Codex CLI 0.65.0 対応。exec モードのみサポート（chat サブコマンドは存在しない）。
   - Docker 内実行: `--dangerously-bypass-approvals-and-sandbox` でサンドボックス・承認を無効化。
   - フラグ体系: `-C`（作業ディレクトリ）、`--json`（JSONL 出力）、`-m`（モデル）、`-c`（設定オーバーライド）。
-  - デフォルト値: モデル `gpt-5.1-codex`（Worker 用）/ `gpt-5.2`（Meta 用）、思考の深さ `medium`。
+  - デフォルト値: モデル `gpt-5.2-codex`（Worker 用）/ `gpt-5.2`（Meta 用）、思考の深さ `medium`。
   - **注意**: IDE の Meta-agent はデフォルト `openai-chat` ですが、`OPENAI_API_KEY` 未設定かつ `codex` が利用可能な場合は `codex-cli` に自動フォールバックします（`app.go` の `newMetaClientFromConfig()` 参照）。
   - stdin 対応: PROMPT に `-` を指定して stdin から読み取り。
   - **ToolSpecific オプション**: `docker_mode`（Docker 内実行フラグ制御）、`json_output`（JSON 出力制御）
@@ -2203,7 +2227,7 @@ Worker 実行と Meta 生成の両方で同じ抽象を再利用し、特定 CLI
 | 用途                     | モデル ID       | 設定箇所                       |
 | ------------------------ | --------------- | ------------------------------ |
 | Meta-agent（計画・思考） | `gpt-5.2`       | `internal/meta/client.go`      |
-| Worker タスク実行        | `gpt-5.1-codex` | `internal/agenttools/codex.go` |
+| Worker タスク実行        | `gpt-5.2-codex` | `internal/agenttools/codex.go` |
 | Worker タスク実行（高速） | `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`） | `internal/agenttools/openai_models.go` |
 | Worker タスク実行（Claude Code） | `claude-haiku-4-5-20251001` | `internal/agenttools/claude.go` |
 
@@ -4302,7 +4326,7 @@ Docker コンテナが外部サンドボックスとして機能するため、C
 | CLI ツール | 無効化フラグ | 備考 |
 |-----------|-------------|------|
 | Codex CLI | `--dangerously-bypass-approvals-and-sandbox` | 0.65.0 で確認 |
-| Gemini CLI | （TBD: 実装時に調査） | |
+| Gemini CLI | （該当フラグなし: `--sandbox` を使用しない） | `--yolo` で承認を自動化 |
 | Claude Code | （該当フラグなし: 現実装は `-p`） | `internal/agenttools/claude.go` |
 | Cursor CLI | （TBD: 実装時に調査） | |
 
@@ -4741,9 +4765,11 @@ docs/cli-agents/
 │   ├── CLAUDE.md       # AI 向けナレッジ
 │   └── version-X.X.X.md # バージョン固有仕様
 ├── claude-code/        # Claude Code
+├── gemini/             # Gemini CLI
+│   └── CLAUDE.md       # AI 向けナレッジ
 ```
 
-未対応 CLI（例: Gemini/Cursor）の追加は `ISSUE.md`（Deferred: 「追加 Worker 種別のサポート」）を正とする。
+未対応 CLI（例: Cursor）の追加は `ISSUE.md`（Deferred: 「追加 Worker 種別のサポート」）を正とする。
 
 ### 共通原則
 
@@ -4778,6 +4804,7 @@ docs/cli-agents/
 |-----------|----------|---------------|
 | Codex CLI | ✅ 対応済み | 0.65.0 |
 | Claude Code | ✅ 対応済み | - |
+| Gemini CLI | ✅ 対応済み | 最新安定版（固定なし） |
 
 ### 関連ドキュメント
 
@@ -5052,7 +5079,7 @@ Codex 統合テストを実行する場合は [codex-integration.md](codex-integ
 
 - https://platform.openai.com/docs/pricing
 
-このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.1-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
+このプロジェクトのデフォルトは `gpt-5.2`（Meta-agent）と `gpt-5.2-codex`（Worker）です（実装: `internal/agenttools/codex.go`）。
 必要に応じて `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`）も利用できます（実装: `internal/agenttools/openai_models.go`）。
 
 ### 前提条件
@@ -5216,7 +5243,7 @@ AgentRunner はローカルの CLI セッションを利用してタスクを実
 #### このプロジェクトのデフォルト-推奨モデル
 
 - Meta-agent: `gpt-5.2`（実装: `internal/agenttools/codex.go`）
-- Worker: `gpt-5.1-codex`（実装: `internal/agenttools/codex.go`）
+- Worker: `gpt-5.2-codex`（実装: `internal/agenttools/codex.go`）
 - Worker（高速）: `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`、実装: `internal/agenttools/openai_models.go`）
 
 #### 2. Claude Code
@@ -5288,7 +5315,8 @@ Gemini CLI は Google が提供するオープンソースの AI エージェン
 
 | モデル ID | 特徴 | 用途 |
 |-----------|------|------|
-| `gemini-3-pro-preview` | 最新のマルチモーダル、1M入力/65k出力 | **デフォルト・高度なタスク** |
+| `gemini-3-flash-preview` | 最新のマルチモーダル、低レイテンシ | **デフォルト・日常的なタスク** |
+| `gemini-3-pro-preview` | 最新のマルチモーダル、1M入力/65k出力 | 高度なタスク |
 | `gemini-2.5-pro` | 高度な推論、STEM 分析、安定版 | 複雑なコード生成・分析 |
 | `gemini-2.5-flash` | 価格・性能バランス、安定版 | 日常的な開発作業 |
 | `gemini-2.5-flash-lite` | 超高速・低コスト | 大量リクエスト処理 |
@@ -5297,7 +5325,8 @@ Gemini CLI は Google が提供するオープンソースの AI エージェン
 
 | モデル ID | 特徴 | 注意事項 |
 |-----------|------|----------|
-| `gemini-3-pro-preview` | 最新のマルチモーダル（**デフォルト**） | 2週間前通知で変更の可能性 |
+| `gemini-3-flash-preview` | 最新のマルチモーダル（**デフォルト**） | 2週間前通知で変更の可能性 |
+| `gemini-3-pro-preview` | 最新のマルチモーダル | プレビュー版 |
 | `gemini-2.5-flash-preview-09-2025` | Flash のプレビュー版 | プレビュー版 |
 
 #### 特殊モデル
@@ -5330,7 +5359,7 @@ export GOOGLE_CLOUD_PROJECT="your-project-id"
 
 ```bash
 GEMINI_API_KEY=your-api-key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3-flash-preview
 ```
 
 ### CLI オプション
@@ -5345,7 +5374,7 @@ gemini
 gemini -p "コードをレビューして"
 
 # モデル指定
-gemini -m gemini-2.5-pro
+gemini -m gemini-3-pro-preview
 
 # JSON 出力
 gemini -p "質問" --output-format json
@@ -5362,6 +5391,7 @@ gemini --include-directories ../lib,../docs
 | `-p` | プロンプトモード（非インタラクティブ） |
 | `--output-format` | 出力形式（`json`, `stream-json`） |
 | `--include-directories` | コンテキストに含めるディレクトリ |
+| `--yolo` | ツール呼び出しを自動承認 |
 
 ### 設定ファイル（settings.json）
 
@@ -5484,7 +5514,7 @@ gemini /init
 runner:
   worker:
     kind: "gemini-cli"
-    model: "gemini-2.5-flash"  # または gemini-2.5-pro
+    model: "gemini-3-flash-preview"  # または gemini-3-pro-preview
     max_run_time_sec: 300
     env:
       GEMINI_API_KEY: "env:GEMINI_API_KEY"
@@ -5495,7 +5525,7 @@ runner:
 ```go
 cfg := agenttools.ProviderConfig{
     CLIPath:  "gemini",
-    Model:    "gemini-2.5-flash",
+    Model:    "gemini-3-flash-preview",
     ExtraEnv: map[string]string{
         "GEMINI_API_KEY": os.Getenv("GEMINI_API_KEY"),
     },
@@ -5510,7 +5540,8 @@ provider := agenttools.NewGeminiProvider(cfg)
 
 | シナリオ | 推奨モデル | 理由 |
 |----------|-----------|------|
-| 高度なタスク・デフォルト | `gemini-3-pro-preview` | 最新のマルチモーダル能力 |
+| 日常的なタスク・デフォルト | `gemini-3-flash-preview` | 低レイテンシ・最新世代 |
+| 高度なタスク | `gemini-3-pro-preview` | 最新のマルチモーダル能力 |
 | 安定性重視のコード生成 | `gemini-2.5-pro` | 高度な推論能力・安定版 |
 | 日常的なコード生成 | `gemini-2.5-flash` | バランスが良く安定・低コスト |
 | 大量のファイル処理 | `gemini-2.5-flash-lite` | 低コスト・高速 |
@@ -5596,4 +5627,201 @@ Error: Request timeout
 - [Gemini API モデル一覧](https://ai.google.dev/gemini-api/docs/models)
 - [Gemini CLI 設定ドキュメント](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/configuration.md)
 - [Google Codelabs - Gemini CLI ハンズオン](https://codelabs.developers.google.com/gemini-cli-hands-on)
+
+<a id="design-tooling-selection"></a>
+
+## Tooling Selection
+
+**Source**: `design/tooling-selection.md`
+
+
+### 概要
+
+本ドキュメントは、Meta/Worker の実行ツール・モデルをカテゴリ別に選択できる "Tooling" 設計をまとめる。
+IDE から詳細設定を編集し、AgentRunner と Orchestrator に反映することを目的とする。
+
+前提: 各 CLI (Codex CLI / Claude Code / Gemini CLI) は最新安定版の利用を想定する。
+具体バージョンは運用で固定し、各ガイドに従う (例: `docs/guides/gemini-cli.md`)。
+
+### 目的
+
+- すべてのカテゴリ (meta/task/plan/execution/worker) で詳細なツール・モデル選択を可能にする。
+- 率 (weight) による候補配分と、Rate Limit 時の自動切替を提供する。
+- 強制モードで "全カテゴリを指定ツール・モデルで実行" を可能にする。
+- IDE から設定を調整し、永続化する。
+
+### 主要概念
+
+#### Tooling Config
+
+- `runner.tooling` として Task YAML に埋め込む。
+- IDE 側は `~/.multiverse/config/tooling.json` に保存する。
+
+一次ソース:
+- `pkg/config/tooling.go`
+- `pkg/config/config.go`
+- `internal/ide/tooling_config.go`
+- `internal/orchestrator/executor.go`
+
+#### Profile
+
+- `profiles[]` の 1 つを `activeProfile` で選択する。
+- `profiles[0]` を暗黙のデフォルトにする。
+
+一次ソース: `internal/tooling/selector.go`
+
+#### Category
+
+- `meta`, `plan`, `task`, `execution`, `worker` の 5 種。
+- 未定義のカテゴリは `meta` の設定へフォールバックする。
+
+一次ソース: `internal/tooling/selector.go`
+
+#### Candidate
+
+- `tool` + `model` の組を候補とする。
+- optional: `cliPath`, `flags`, `env`, `toolSpecific`, `systemPrompt` を上書き可能。
+
+一次ソース:
+- `pkg/config/tooling.go`
+- `internal/meta/cli_provider.go`
+- `internal/core/runner.go`
+
+#### Force Mode
+
+- `force.enabled=true` の場合、全カテゴリでこの候補を使用する。
+
+一次ソース: `internal/tooling/selector.go`
+
+### 選択アルゴリズム
+
+#### ルール
+
+1. `force.enabled` が true の場合は Force Candidate を返す。
+2. 指定カテゴリの候補が存在する場合は `strategy` に従う。
+3. カテゴリ未定義の場合は `meta` 設定へフォールバック。
+4. Rate Limit 判定時に `fallback_on_rate_limit=true` なら候補をクールダウンし再選択。
+
+一次ソース:
+- `internal/tooling/selector.go`
+- `internal/tooling/rate_limit.go`
+- `internal/meta/tooling_client.go`
+- `internal/core/runner.go`
+
+#### availability 判定
+
+- `openai-chat` は `OPENAI_API_KEY` の有無で判定。
+- CLI 系は `exec.LookPath` で存在判定。
+
+一次ソース: `internal/tooling/selector.go`
+
+### デフォルトプロファイル
+
+IDE 既定値は `balanced`。
+`balanced` / `fast` の 2 プロファイルを用意する。
+
+一次ソース: `internal/ide/tooling_config.go`
+
+#### balanced
+
+- Meta/Plan/Task/Execution: Codex/Claude/Gemini を重みで配分
+- Worker: Codex を主軸、Claude/Gemini を補助
+
+#### fast
+
+- Meta/Plan/Task/Execution: 低レイテンシ寄りの配分
+- Worker: Codex + Gemini Flash を中心
+
+### 統合ポイント
+
+#### Meta (IDE - AgentRunner)
+
+- IDE: `newMetaClientFromConfig()` が ToolingConfig を読み込み、ToolingClient を組成する。
+- AgentRunner: `cmd/agent-runner` が Task YAML の `runner.tooling` を読み、ToolingClient を使用する。
+
+一次ソース:
+- `app.go`
+- `cmd/agent-runner/main.go`
+- `internal/meta/tooling_client.go`
+
+#### Worker (AgentRunner)
+
+- `internal/core/runner.go` が `worker` カテゴリの候補を選択し、`WorkerCall` を上書きする。
+
+一次ソース: `internal/core/runner.go`
+
+#### Orchestrator
+
+- `Executor.generateTaskYAML()` が `runner.tooling` を YAML に埋め込む。
+
+一次ソース: `internal/orchestrator/executor.go`
+
+#### IDE UI
+
+- TaskBar から Tooling Settings を開く。
+- JSON 直接編集 + Force Mode + Active Profile を操作する。
+
+一次ソース:
+- `frontend/ide/src/lib/settings/ToolingSettingsPanel.svelte`
+- `frontend/ide/src/lib/settings/ToolingSettingsWindow.svelte`
+- `frontend/ide/src/lib/hud/TaskBar.svelte`
+
+### 設定例 (JSON)
+
+```json
+{
+  "activeProfile": "balanced",
+  "profiles": [
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "categories": {
+        "meta": {
+          "strategy": "weighted",
+          "fallbackOnRateLimit": true,
+          "cooldownSec": 120,
+          "candidates": [
+            { "tool": "codex-cli", "model": "gpt-5.2", "weight": 40 },
+            { "tool": "claude-code", "model": "claude-sonnet-4-5-20250929", "weight": 30 },
+            { "tool": "gemini-cli", "model": "gemini-3-pro-preview", "weight": 20 },
+            { "tool": "openai-chat", "model": "gpt-5.2", "weight": 10 }
+          ]
+        },
+        "worker": {
+          "strategy": "weighted",
+          "fallbackOnRateLimit": true,
+          "cooldownSec": 120,
+          "candidates": [
+            { "tool": "codex-cli", "model": "gpt-5.2-codex", "weight": 60 },
+            { "tool": "claude-code", "model": "claude-haiku-4-5-20251001", "weight": 25 },
+            { "tool": "gemini-cli", "model": "gemini-3-flash-preview", "weight": 15 }
+          ]
+        }
+      }
+    }
+  ],
+  "force": {
+    "enabled": false,
+    "tool": "",
+    "model": ""
+  }
+}
+```
+
+### 既知の制約
+
+- Rate Limit 判定は文字列ベースの簡易判定であり、精度は限定的。
+  さらなるエラー型判定の追加は今後の改善余地がある。
+
+一次ソース: `internal/tooling/rate_limit.go`
+
+### テスト
+
+- Selector の基本動作: `internal/tooling/selector_test.go`
+- ToolingClient のフォールバック動作: `internal/meta/tooling_client_test.go`
+- ToolingConfig 永続化: `internal/ide/tooling_config_test.go`
+- Orchestrator の YAML 生成 (golden): `internal/orchestrator/executor_tooling_golden_test.go`
+
+ゴールデンファイル:
+- `internal/orchestrator/testdata/task_yaml_with_tooling.golden`
 

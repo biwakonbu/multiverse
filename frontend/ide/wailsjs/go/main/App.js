@@ -18,8 +18,16 @@ export function GetAllBacklogItems() {
   return window['go']['main']['App']['GetAllBacklogItems']();
 }
 
+export function GetAvailableModels() {
+  return window['go']['main']['App']['GetAvailableModels']();
+}
+
 export function GetAvailablePools() {
   return window['go']['main']['App']['GetAvailablePools']();
+}
+
+export function GetAvailableTools() {
+  return window['go']['main']['App']['GetAvailableTools']();
 }
 
 export function GetBacklogItems() {
@@ -36,6 +44,10 @@ export function GetExecutionState() {
 
 export function GetLLMConfig() {
   return window['go']['main']['App']['GetLLMConfig']();
+}
+
+export function GetModelsForTool(arg1) {
+  return window['go']['main']['App']['GetModelsForTool'](arg1);
 }
 
 export function GetPoolSummaries() {
@@ -112,4 +124,8 @@ export function StopExecution() {
 
 export function TestLLMConnection() {
   return window['go']['main']['App']['TestLLMConnection']();
+}
+
+export function ValidateToolModelCombination(arg1, arg2) {
+  return window['go']['main']['App']['ValidateToolModelCombination'](arg1, arg2);
 }

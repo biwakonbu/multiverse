@@ -40,8 +40,8 @@ func main() {
 	// Create application with options
 	err = wails.Run(&options.App{
 		Title:  "Multiverse",
-		Width:  1440,
-		Height: 900,
+		Width:  1920,
+		Height: 1080,
 		// Mac platform specific options
 		Mac: &mac.Options{
 			TitleBar: mac.TitleBarHiddenInset(),

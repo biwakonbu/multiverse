@@ -1,16 +1,15 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import Button from "../../design-system/components/Button.svelte";
   import {
-    getToolingConfigJSON,
-    setToolingConfigJSON,
-    getAvailableTools,
-    getAvailableModels,
-    getModelsForTool,
-    type ToolOption,
-    type ModelOption,
-  } from "../../services/toolSettings";
-  import { Cpu, Zap, Code2, Check, AlertCircle, RefreshCw, Power, PowerOff } from "lucide-svelte";
+    Cpu,
+    Zap,
+    Code2,
+    Check,
+    AlertCircle,
+    RefreshCw,
+    Power,
+    PowerOff,
+  } from "lucide-svelte";
 
   type ToolingProfile = {
     id?: string;
@@ -27,11 +26,41 @@
     };
   };
 
-  // Go側から取得する利用可能なツールとモデル
-  let availableTools = $state<ToolOption[]>([]);
-  let availableModels = $state<ModelOption[]>([]);
-  // 選択中のツールでサポートされるモデル（フィルタリング済み）
-  let filteredModels = $state<ModelOption[]>([]);
+  // Props
+  interface Props {
+    initialConfig?: ToolingConfig;
+  }
+
+  let { initialConfig = {} }: Props = $props();
+
+  // 利用可能なツール
+  const availableTools = [
+    { id: "codex-cli", name: "Codex CLI", description: "OpenAI Codex" },
+    { id: "claude-code", name: "Claude Code", description: "Anthropic Claude" },
+    { id: "gemini-cli", name: "Gemini CLI", description: "Google Gemini" },
+  ];
+
+  // 利用可能なモデル（ツールごとにグループ化）
+  const availableModels = [
+    { id: "", name: "Default", group: "Auto" },
+    { id: "gpt-4.1", name: "GPT-4.1", group: "OpenAI" },
+    { id: "gpt-4.1-mini", name: "GPT-4.1 Mini", group: "OpenAI" },
+    { id: "gpt-4.5-preview", name: "GPT-4.5 Preview", group: "OpenAI" },
+    { id: "o3", name: "o3", group: "OpenAI" },
+    { id: "o4-mini", name: "o4-mini", group: "OpenAI" },
+    {
+      id: "claude-sonnet-4-20250514",
+      name: "Claude Sonnet 4",
+      group: "Anthropic",
+    },
+    {
+      id: "claude-opus-4-20250514",
+      name: "Claude Opus 4",
+      group: "Anthropic",
+    },
+    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", group: "Google" },
+    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", group: "Google" },
+  ];
 
   // タブ管理
   const tabs = [
@@ -40,68 +69,28 @@
     { id: "advanced", label: "Advanced", icon: Code2 },
   ] as const;
   type TabId = (typeof tabs)[number]["id"];
-  let activeTab = $state<TabId>("profiles");
 
+  // $derived で props からの初期値を反映
+  let activeTab = $state<TabId>(initialConfig.force?.enabled ? "force" : "profiles");
   let rawJSON = $state("");
   let parseError = $state("");
   let statusMessage = $state("");
   let statusTone = $state<"ok" | "error" | "">("");
-
   let activeProfile = $state("");
   let profiles = $state<ToolingProfile[]>([]);
   let forceEnabled = $state(false);
   let forceTool = $state("");
   let forceModel = $state("");
 
-  onMount(() => {
-    void loadAll();
+  // initialConfig が変更されたら状態を更新
+  $effect(() => {
+    rawJSON = JSON.stringify(initialConfig, null, 2);
+    activeProfile = initialConfig.activeProfile ?? "";
+    profiles = initialConfig.profiles ?? [];
+    forceEnabled = initialConfig.force?.enabled ?? false;
+    forceTool = initialConfig.force?.tool ?? "";
+    forceModel = initialConfig.force?.model ?? "";
   });
-
-  async function loadAll() {
-    // ツールとモデルの一覧をGoから取得
-    try {
-      const [tools, models] = await Promise.all([
-        getAvailableTools(),
-        getAvailableModels(),
-      ]);
-      availableTools = tools;
-      availableModels = models;
-    } catch (err) {
-      console.error("Failed to load tools/models:", err);
-    }
-    // 設定を読み込み
-    await loadConfig();
-    // 初期状態でモデルをフィルタリング
-    await updateFilteredModels(forceTool);
-  }
-
-  // 選択中のツールに応じてモデル一覧をフィルタリング
-  async function updateFilteredModels(toolID: string) {
-    if (!toolID) {
-      // ツール未選択時は全モデルを表示
-      filteredModels = availableModels;
-      return;
-    }
-    try {
-      const models = await getModelsForTool(toolID);
-      filteredModels = models.length > 0 ? models : availableModels;
-    } catch (err) {
-      console.error("Failed to get models for tool:", err);
-      filteredModels = availableModels;
-    }
-  }
-
-  async function loadConfig() {
-    statusMessage = "";
-    statusTone = "";
-    try {
-      rawJSON = await getToolingConfigJSON();
-      syncFromRaw(rawJSON);
-    } catch (err) {
-      parseError = err instanceof Error ? err.message : String(err);
-      statusTone = "error";
-    }
-  }
 
   function parseConfig(raw: string): ToolingConfig | null {
     try {
@@ -159,25 +148,13 @@
     });
   }
 
-  async function handleForceTool(event: Event) {
+  function handleForceTool(event: Event) {
     const target = event.currentTarget as HTMLSelectElement;
-    const newTool = target.value;
-
-    // モデル一覧をフィルタリング
-    await updateFilteredModels(newTool);
-
-    // 現在選択中のモデルがサポートされていない場合はリセット
-    const isModelSupported = filteredModels.some(m => m.id === forceModel);
-
     updateConfig((cfg) => {
       if (!cfg.force) {
         cfg.force = {};
       }
-      cfg.force.tool = newTool;
-      // サポートされていないモデルはデフォルト（空）にリセット
-      if (!isModelSupported) {
-        cfg.force.model = "";
-      }
+      cfg.force.tool = target.value;
     });
   }
 
@@ -191,40 +168,34 @@
     });
   }
 
-  async function applyConfig() {
-    statusMessage = "";
-    statusTone = "";
+  function loadConfig() {
+    statusMessage = "Configuration reloaded.";
+    statusTone = "ok";
+  }
+
+  function applyConfig() {
     const cfg = parseConfig(rawJSON);
     if (!cfg) {
       parseError = "Invalid JSON.";
       statusTone = "error";
       return;
     }
-
-    try {
-      await setToolingConfigJSON(rawJSON);
-      statusMessage = "Settings saved successfully.";
-      statusTone = "ok";
-      parseError = "";
-      syncFromRaw(rawJSON);
-    } catch (err) {
-      statusMessage = err instanceof Error ? err.message : String(err);
-      statusTone = "error";
-    }
+    statusMessage = "Settings saved successfully.";
+    statusTone = "ok";
+    parseError = "";
   }
 
-  // フィルタリングされたモデルをグループ化（動的データに対応）
-  const modelGroups = $derived.by(() => {
-    const groups = new Map<string, ModelOption[]>();
-    // filteredModels が空の場合は availableModels を使用
-    const modelsToGroup = filteredModels.length > 0 ? filteredModels : availableModels;
-    for (const model of modelsToGroup) {
+  // モデルをグループ化
+  function getModelGroups() {
+    const groups = new Map<string, typeof availableModels>();
+    for (const model of availableModels) {
       const existing = groups.get(model.group) ?? [];
       existing.push(model);
       groups.set(model.group, existing);
     }
     return groups;
-  });
+  }
+  const modelGroups = getModelGroups();
 </script>
 
 <div class="settings-panel">
@@ -262,7 +233,9 @@
         <div class="crystal-field">
           <label class="field-label" for="tooling-profile">
             <span class="label-text">Active Profile</span>
-            <span class="label-hint">Select the configuration profile to use</span>
+            <span class="label-hint"
+              >Select the configuration profile to use</span
+            >
           </label>
           <div class="select-wrapper">
             <select
@@ -295,7 +268,6 @@
           </div>
         {/if}
       </div>
-
     {:else if activeTab === "force"}
       <!-- Force Mode タブ -->
       <div class="content-section">
@@ -384,15 +356,20 @@
           <div class="force-status">
             <Zap size={14} />
             <span>
-              Force mode active: Using <strong>{availableTools.find(t => t.id === forceTool)?.name ?? forceTool}</strong>
+              Force mode active: Using <strong
+                >{availableTools.find((t) => t.id === forceTool)?.name ??
+                  forceTool}</strong
+              >
               {#if forceModel}
-                with <strong>{availableModels.find(m => m.id === forceModel)?.name ?? forceModel}</strong>
+                with <strong
+                  >{availableModels.find((m) => m.id === forceModel)?.name ??
+                    forceModel}</strong
+                >
               {/if}
             </span>
           </div>
         {/if}
       </div>
-
     {:else if activeTab === "advanced"}
       <!-- Advanced タブ -->
       <div class="content-section">
@@ -400,7 +377,8 @@
           <div class="header-glow advanced"></div>
           <h3 class="section-title">Advanced Configuration</h3>
           <p class="section-subtitle">
-            Edit categories, weights, candidates, and fallback settings directly.
+            Edit categories, weights, candidates, and fallback settings
+            directly.
           </p>
         </div>
 
@@ -438,7 +416,11 @@
   <!-- フッターアクション -->
   <div class="panel-footer">
     {#if statusMessage}
-      <div class="status-message" class:success={statusTone === "ok"} class:error={statusTone === "error"}>
+      <div
+        class="status-message"
+        class:success={statusTone === "ok"}
+        class:error={statusTone === "error"}
+      >
         {#if statusTone === "ok"}
           <Check size={14} />
         {:else if statusTone === "error"}
@@ -450,7 +432,12 @@
 
     <div class="footer-actions">
       <Button variant="ghost" size="small" label="Reload" onclick={loadConfig} />
-      <Button variant="crystal" size="small" label="Apply" onclick={applyConfig} />
+      <Button
+        variant="crystal"
+        size="small"
+        label="Apply"
+        onclick={applyConfig}
+      />
     </div>
   </div>
 </div>
@@ -470,12 +457,9 @@
     display: flex;
     gap: var(--mv-spacing-xxs);
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
-    background: linear-gradient(
-      to bottom,
-      var(--mv-glass-bg-dark),
-      transparent
-    );
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    background: linear-gradient(to bottom, var(--mv-glass-bg-dark), transparent);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-subtle);
   }
 
   .tab-item {
@@ -541,7 +525,8 @@
   .section-header {
     position: relative;
     padding-bottom: var(--mv-spacing-md);
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-subtle);
   }
 
   .header-glow {
@@ -556,12 +541,20 @@
   }
 
   .header-glow.force {
-    background: linear-gradient(90deg, var(--mv-primitive-aurora-yellow), transparent);
+    background: linear-gradient(
+      90deg,
+      var(--mv-primitive-aurora-yellow),
+      transparent
+    );
     box-shadow: var(--mv-shadow-glow-yellow);
   }
 
   .header-glow.advanced {
-    background: linear-gradient(90deg, var(--mv-primitive-aurora-purple), transparent);
+    background: linear-gradient(
+      90deg,
+      var(--mv-primitive-aurora-purple),
+      transparent
+    );
     box-shadow: 0 0 8px var(--mv-primitive-aurora-purple);
   }
 
@@ -761,11 +754,7 @@
     align-items: center;
     gap: var(--mv-spacing-sm);
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
-    background: linear-gradient(
-      90deg,
-      rgba(163, 190, 140, 0.1),
-      transparent
-    );
+    background: linear-gradient(90deg, rgba(163, 190, 140, 0.1), transparent);
     border: var(--mv-border-width-thin) solid rgba(163, 190, 140, 0.3);
     border-radius: var(--mv-radius-md);
     color: var(--mv-primitive-aurora-green);
@@ -820,7 +809,8 @@
     justify-content: space-between;
     padding: var(--mv-spacing-xs) var(--mv-spacing-md);
     background: var(--mv-glass-bg-dark);
-    border-bottom: var(--mv-border-width-thin) solid var(--mv-glass-border-subtle);
+    border-bottom: var(--mv-border-width-thin) solid
+      var(--mv-glass-border-subtle);
   }
 
   .editor-label {

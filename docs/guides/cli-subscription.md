@@ -28,7 +28,7 @@ AgentRunner はローカルの CLI セッションを利用してタスクを実
 #### このプロジェクトのデフォルト/推奨モデル
 
 - Meta-agent: `gpt-5.2`（実装: `internal/agenttools/codex.go`）
-- Worker: `gpt-5.1-codex`（実装: `internal/agenttools/codex.go`）
+- Worker: `gpt-5.2-codex`（実装: `internal/agenttools/codex.go`）
 - Worker（高速）: `gpt-5.1-codex-mini`（ショートハンド: `5.1-codex-mini`、実装: `internal/agenttools/openai_models.go`）
 
 ### 2. Claude Code
