@@ -10,7 +10,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "ツーリング設定パネル。プロファイル選択、Force Mode、高度な設定（JSON編集）を提供します。",
+          "ツーリング設定パネル。プロファイル選択、Force Mode、高度な設定（JSON編集）を提供します。2カラムレイアウトでプロファイル管理が直感的に行えます。",
       },
     },
   },
@@ -47,7 +47,79 @@ export const WithProfiles: Story = {
   parameters: {
     docs: {
       description: {
-        story: "複数のプロファイルが設定されている状態。",
+        story: "複数のプロファイルが設定されている状態。左サイドバーでプロファイルを選択し、右側で編集できます。",
+      },
+    },
+  },
+};
+
+// カテゴリを含む完全な設定
+export const WithCategories: Story = {
+  args: {
+    initialConfig: {
+      activeProfile: "balanced",
+      profiles: [
+        {
+          id: "balanced",
+          name: "Balanced",
+          categories: {
+            coding: {
+              strategy: "weighted",
+              fallbackOnRateLimit: true,
+              cooldownSec: 120,
+              candidates: [
+                { tool: "claude-code", model: "claude-sonnet-4-20250514", weight: 50 },
+                { tool: "codex-cli", model: "gpt-4.1", weight: 30 },
+                { tool: "gemini-cli", model: "gemini-2.5-pro", weight: 20 },
+              ],
+            },
+            research: {
+              strategy: "round_robin",
+              fallbackOnRateLimit: true,
+              cooldownSec: 60,
+              candidates: [
+                { tool: "claude-code", model: "claude-opus-4-20250514", weight: 10 },
+                { tool: "gemini-cli", model: "gemini-2.5-flash", weight: 10 },
+              ],
+            },
+          },
+        },
+        {
+          id: "fast",
+          name: "Fast & Cheap",
+          categories: {
+            coding: {
+              strategy: "weighted",
+              fallbackOnRateLimit: true,
+              cooldownSec: 30,
+              candidates: [
+                { tool: "codex-cli", model: "gpt-4.1-mini", weight: 70 },
+                { tool: "gemini-cli", model: "gemini-2.5-flash", weight: 30 },
+              ],
+            },
+          },
+        },
+        {
+          id: "quality",
+          name: "High Quality",
+          categories: {
+            coding: {
+              strategy: "weighted",
+              fallbackOnRateLimit: false,
+              cooldownSec: 300,
+              candidates: [
+                { tool: "claude-code", model: "claude-opus-4-20250514", weight: 100 },
+              ],
+            },
+          },
+        },
+      ],
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "カテゴリと候補を含む完全な設定。アコーディオンを展開してカテゴリ設定を確認・編集できます。",
       },
     },
   },
@@ -93,18 +165,63 @@ export const ForceModeDisabled: Story = {
   },
 };
 
-// 完全な設定
+// 完全な設定（プロファイル + カテゴリ + Force Mode）
 export const FullConfig: Story = {
   args: {
     initialConfig: {
-      activeProfile: "coding",
+      activeProfile: "balanced",
       profiles: [
-        { id: "coding", name: "Coding" },
-        { id: "research", name: "Research" },
-        { id: "writing", name: "Writing" },
+        {
+          id: "balanced",
+          name: "Balanced",
+          categories: {
+            coding: {
+              strategy: "weighted",
+              fallbackOnRateLimit: true,
+              cooldownSec: 120,
+              candidates: [
+                { tool: "claude-code", model: "claude-sonnet-4-20250514", weight: 50 },
+                { tool: "codex-cli", model: "gpt-4.1", weight: 30 },
+                { tool: "gemini-cli", model: "gemini-2.5-pro", weight: 20 },
+              ],
+            },
+            research: {
+              strategy: "round_robin",
+              fallbackOnRateLimit: true,
+              cooldownSec: 60,
+              candidates: [
+                { tool: "claude-code", model: "claude-opus-4-20250514", weight: 10 },
+              ],
+            },
+            documentation: {
+              strategy: "weighted",
+              fallbackOnRateLimit: true,
+              cooldownSec: 180,
+              candidates: [
+                { tool: "gemini-cli", model: "gemini-2.5-pro", weight: 60 },
+                { tool: "claude-code", model: "claude-sonnet-4-20250514", weight: 40 },
+              ],
+            },
+          },
+        },
+        {
+          id: "fast",
+          name: "Fast & Cheap",
+          categories: {
+            coding: {
+              strategy: "weighted",
+              fallbackOnRateLimit: true,
+              cooldownSec: 30,
+              candidates: [
+                { tool: "codex-cli", model: "gpt-4.1-mini", weight: 70 },
+                { tool: "gemini-cli", model: "gemini-2.5-flash", weight: 30 },
+              ],
+            },
+          },
+        },
       ],
       force: {
-        enabled: true,
+        enabled: false,
         tool: "claude-code",
         model: "claude-sonnet-4-20250514",
       },
@@ -113,7 +230,7 @@ export const FullConfig: Story = {
   parameters: {
     docs: {
       description: {
-        story: "プロファイルとForce Modeの両方が設定されている状態。",
+        story: "プロファイル、カテゴリ、Force Modeの全ての設定が含まれている完全な状態。",
       },
     },
   },
