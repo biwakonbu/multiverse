@@ -12,9 +12,23 @@
   } from "../../services/toolSettings";
   import { Cpu, Zap, Code2, Check, AlertCircle, RefreshCw, Power, PowerOff } from "lucide-svelte";
 
+  type ToolCandidate = {
+    tool?: string;
+    model?: string;
+    weight?: number;
+  };
+
+  type ToolCategoryConfig = {
+    strategy?: string;
+    candidates?: ToolCandidate[];
+    fallbackOnRateLimit?: boolean;
+    cooldownSec?: number;
+  };
+
   type ToolingProfile = {
     id?: string;
     name?: string;
+    categories?: Record<string, ToolCategoryConfig>;
   };
 
   type ToolingConfig = {
@@ -52,6 +66,18 @@
   let forceEnabled = $state(false);
   let forceTool = $state("");
   let forceModel = $state("");
+  let editProfileId = $state("");
+  let newCategoryName = $state("");
+  let profileIdError = $state("");
+  let modelsByTool = $state<Record<string, ModelOption[]>>({});
+
+  const editingProfile = $derived.by(() => profiles.find(p => (p.id ?? "") === editProfileId));
+  const editingCategories = $derived.by(() => {
+    if (!editingProfile?.categories) {
+      return [] as Array<[string, ToolCategoryConfig]>;
+    }
+    return Object.entries(editingProfile.categories).sort(([a], [b]) => a.localeCompare(b));
+  });
 
   onMount(() => {
     void loadAll();
@@ -71,6 +97,7 @@
     }
     // 設定を読み込み
     await loadConfig();
+    await primeModelsFromConfig();
     // 初期状態でモデルをフィルタリング
     await updateFilteredModels(forceTool);
   }
@@ -88,6 +115,55 @@
     } catch (err) {
       console.error("Failed to get models for tool:", err);
       filteredModels = availableModels;
+    }
+  }
+
+  function modelsForTool(toolID: string): ModelOption[] {
+    if (!toolID) {
+      return availableModels;
+    }
+    return modelsByTool[toolID] ?? availableModels;
+  }
+
+  async function ensureModelsForTool(toolID: string) {
+    if (!toolID || modelsByTool[toolID]) {
+      return;
+    }
+    try {
+      const models = await getModelsForTool(toolID);
+      modelsByTool = {
+        ...modelsByTool,
+        [toolID]: models.length > 0 ? models : availableModels,
+      };
+    } catch (err) {
+      console.error("Failed to get models for tool:", err);
+      modelsByTool = {
+        ...modelsByTool,
+        [toolID]: availableModels,
+      };
+    }
+  }
+
+  async function primeModelsFromConfig() {
+    const cfg = parseConfig(rawJSON);
+    if (!cfg) {
+      return;
+    }
+    const toolIDs = new Set<string>();
+    if (cfg.force?.tool) {
+      toolIDs.add(cfg.force.tool);
+    }
+    for (const profile of cfg.profiles ?? []) {
+      for (const category of Object.values(profile.categories ?? {})) {
+        for (const candidate of category.candidates ?? []) {
+          if (candidate.tool) {
+            toolIDs.add(candidate.tool);
+          }
+        }
+      }
+    }
+    for (const toolID of toolIDs) {
+      await ensureModelsForTool(toolID);
     }
   }
 
@@ -123,6 +199,11 @@
     forceEnabled = cfg.force?.enabled ?? false;
     forceTool = cfg.force?.tool ?? "";
     forceModel = cfg.force?.model ?? "";
+    const nextEditId = profiles.some(p => (p.id ?? "") === editProfileId)
+      ? editProfileId
+      : (activeProfile || profiles[0]?.id || "");
+    editProfileId = nextEditId;
+    profileIdError = "";
   }
 
   function updateConfig(update: (cfg: ToolingConfig) => void) {
@@ -548,8 +629,8 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 60px;
-    height: 3px;
+    width: var(--mv-header-glow-width);
+    height: var(--mv-space-0-75);
     background: linear-gradient(90deg, var(--mv-primitive-frost-2), transparent);
     border-radius: var(--mv-radius-full);
     box-shadow: var(--mv-shadow-glow-frost-2);
@@ -562,7 +643,7 @@
 
   .header-glow.advanced {
     background: linear-gradient(90deg, var(--mv-primitive-aurora-purple), transparent);
-    box-shadow: 0 0 8px var(--mv-primitive-aurora-purple);
+    box-shadow: var(--mv-shadow-glow-purple);
   }
 
   .section-title {
@@ -649,13 +730,13 @@
   .select-arrow {
     position: absolute;
     right: var(--mv-spacing-md);
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 5px solid var(--mv-color-text-muted);
+    top: var(--mv-position-center);
+    transform: translateY(var(--mv-transform-center-x));
+    width: var(--mv-space-0);
+    height: var(--mv-space-0);
+    border-left: var(--mv-arrow-size) solid transparent;
+    border-right: var(--mv-arrow-size) solid transparent;
+    border-top: var(--mv-arrow-size) solid var(--mv-color-text-muted);
     pointer-events: none;
   }
 
@@ -666,13 +747,13 @@
     position: relative;
     display: inline-grid;
     grid-template-columns: 1fr 1fr;
-    padding: 3px;
+    padding: var(--mv-space-0-75);
     background: var(--mv-glass-bg-darker);
     border: var(--mv-border-width-thin) solid var(--mv-glass-border-light);
     border-radius: var(--mv-radius-lg);
-    gap: 2px;
-    min-width: 180px;
-    max-width: 220px;
+    gap: var(--mv-spacing-xxxs);
+    min-width: var(--mv-segmented-min-width);
+    max-width: var(--mv-segmented-max-width);
   }
 
   .segment {
@@ -704,34 +785,30 @@
 
   .segment-indicator {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: calc(50% - 3.5px);
-    height: calc(100% - 6px);
+    top: var(--mv-space-0-75);
+    left: var(--mv-space-0-75);
+    width: calc(var(--mv-position-center) - var(--mv-space-3-5));
+    height: calc(var(--mv-size-full) - var(--mv-space-1-5));
     background: linear-gradient(
       135deg,
-      rgba(191, 97, 106, 0.3),
-      rgba(191, 97, 106, 0.15)
+      var(--mv-glow-red),
+      var(--mv-glow-red-subtle)
     );
-    border: var(--mv-border-width-thin) solid rgba(191, 97, 106, 0.4);
+    border: var(--mv-border-width-thin) solid var(--mv-glow-red-strong);
     border-radius: var(--mv-radius-md);
-    box-shadow:
-      0 0 12px rgba(191, 97, 106, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: var(--mv-shadow-segment-indicator-off);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .segment-indicator.right {
-    left: calc(50% + 1px);
+    left: calc(var(--mv-position-center) + var(--mv-space-px));
     background: linear-gradient(
       135deg,
-      rgba(163, 190, 140, 0.3),
-      rgba(163, 190, 140, 0.15)
+      var(--mv-glow-green),
+      var(--mv-glow-green-subtle)
     );
-    border-color: rgba(163, 190, 140, 0.5);
-    box-shadow:
-      0 0 16px rgba(163, 190, 140, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    border-color: var(--mv-glow-green-border);
+    box-shadow: var(--mv-shadow-segment-indicator-on);
   }
 
   /* ========================================
@@ -763,10 +840,10 @@
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
     background: linear-gradient(
       90deg,
-      rgba(163, 190, 140, 0.1),
+      var(--mv-glow-green-light),
       transparent
     );
-    border: var(--mv-border-width-thin) solid rgba(163, 190, 140, 0.3);
+    border: var(--mv-border-width-thin) solid var(--mv-glow-green);
     border-radius: var(--mv-radius-md);
     color: var(--mv-primitive-aurora-green);
     font-size: var(--mv-font-size-sm);
@@ -839,8 +916,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: var(--mv-icon-size-lg);
+    height: var(--mv-icon-size-lg);
     background: transparent;
     border: none;
     border-radius: var(--mv-radius-sm);
@@ -855,8 +932,8 @@
   }
 
   .json-editor {
-    width: 100%;
-    min-height: 300px;
+    width: var(--mv-size-full);
+    min-height: var(--mv-textarea-json-min-height);
     padding: var(--mv-spacing-md);
     background: transparent;
     border: none;
@@ -876,7 +953,7 @@
     align-items: center;
     gap: var(--mv-spacing-xs);
     padding: var(--mv-spacing-sm) var(--mv-spacing-md);
-    background: rgba(191, 97, 106, 0.1);
+    background: var(--mv-glow-red-light);
     border-top: var(--mv-border-width-thin) solid var(--mv-primitive-aurora-red);
     color: var(--mv-primitive-pastel-red);
     font-size: var(--mv-font-size-sm);

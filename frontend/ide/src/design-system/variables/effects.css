@@ -88,6 +88,9 @@
   --mv-shadow-glow-accent-border: rgba(136, 192, 208, 0.4);
   --mv-shadow-glow-accent-strong: 0 0 4px rgba(136, 192, 208, 0.5);
   --mv-shadow-glow-frost-2: 0 0 8px var(--mv-primitive-frost-2);
+  --mv-shadow-glow-purple: 0 0 8px var(--mv-primitive-aurora-purple);
+  --mv-shadow-segment-indicator-off: 0 0 12px var(--mv-glow-red), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --mv-shadow-segment-indicator-on: 0 0 16px var(--mv-glow-green-strong), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   --mv-shadow-glow-frost-2-md: 0 0 12px var(--mv-glow-frost-2-mid);
   --mv-shadow-glow-red: 0 0 8px var(--mv-primitive-aurora-red);
   --mv-shadow-glow-red-lg: 0 0 16px var(--mv-primitive-aurora-red);
@@ -175,13 +178,17 @@
   --mv-glow-purple-strong: rgba(180, 142, 173, 0.4);
   --mv-glow-green: rgba(163, 190, 140, 0.3);
   --mv-glow-green-strong: rgba(163, 190, 140, 0.4);
+  --mv-glow-green-border: rgba(163, 190, 140, 0.5);
   --mv-glow-green-mid: rgba(163, 190, 140, 0.2);
+  --mv-glow-green-subtle: rgba(163, 190, 140, 0.15);
+  --mv-glow-green-light: rgba(163, 190, 140, 0.1);
   --mv-glow-green-lg: 0 0 16px rgba(163, 190, 140, 0.4);
   --mv-shadow-glow-green-md: 0 0 12px rgba(163, 190, 140, 0.4);
   --mv-glow-yellow: rgba(235, 203, 139, 0.3);
   --mv-glow-yellow-strong: rgba(235, 203, 139, 0.4);
   --mv-border-glow-yellow: rgba(235, 203, 139, 0.4);
   --mv-glow-red: rgba(191, 97, 106, 0.3);
+  --mv-glow-red-subtle: rgba(191, 97, 106, 0.15);
   --mv-glow-red-light: rgba(191, 97, 106, 0.1);
   --mv-bg-glow-red-lighter: rgba(191, 97, 106, 0.05);
   --mv-bg-glow-red-light: rgba(191, 97, 106, 0.2);
